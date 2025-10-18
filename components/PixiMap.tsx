@@ -40,7 +40,6 @@ export function PixiMap({
       if (containerRef.current) {
         const { width, height } = containerRef.current.getBoundingClientRect();
         if (width > 0 && height > 0) {
-          console.log("📐 Container size:", width, "x", height);
           setDimensions({ width, height });
         }
       }
@@ -117,7 +116,6 @@ export function PixiMap({
         scale: 1,
       };
 
-      console.log("📍 Centering camera on Central Green:", centerX, centerY);
       setCamera(initialPos);
       setInitialCameraPos(initialPos);
       setIsCameraReady(true);
@@ -209,17 +207,6 @@ export function PixiMap({
   useEffect(() => {
     onWorldReady?.(!isLoading && isInitialized);
   }, [isLoading, isInitialized, onWorldReady]);
-
-  // Log tile loading progress
-  useEffect(() => {
-    if (tilesLoading) {
-      console.log(
-        `📥 [PIXI MAP] Loading tiles: ${tilesProgress.toFixed(1)}% (${totalTiles} tiles loaded)`
-      );
-    } else if (totalTiles > 0) {
-      console.log(`✅ [PIXI MAP] All ${totalTiles} tiles loaded and cached!`);
-    }
-  }, [tilesLoading, tilesProgress, totalTiles]);
 
   return (
     <div
