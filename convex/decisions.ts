@@ -58,6 +58,30 @@ export const completeDecision = mutation({
 });
 
 /**
+ * Complete all incomplete decisions (migration/cleanup helper)
+ */
+export const completeAllIncompleteDecisions = mutation({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx, args) => {
+    const allDecisions = await ctx.db.query("decisions").collect();
+
+    let count = 0;
+    for (const decision of allDecisions) {
+      if (decision.completedAt === undefined) {
+        await ctx.db.patch(decision._id, {
+          completedAt: Date.now(),
+        });
+        count++;
+      }
+    }
+
+    console.log(`✓ Completed ${count} stuck decisions`);
+    return count;
+  },
+});
+
+/**
  * Get or create the current decision for an agent
  * Returns the most recent in-progress decision, or null if none
  */
