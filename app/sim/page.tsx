@@ -85,7 +85,10 @@ export default function SimPage() {
                   World:
                 </span>
                 {!isWorldReady ? (
-                  <Badge variant="outline" className="gap-1.5 whitespace-nowrap">
+                  <Badge
+                    variant="outline"
+                    className="gap-1.5 whitespace-nowrap"
+                  >
                     <Loader2 className="h-3 w-3 animate-spin" />
                     Loading
                   </Badge>
@@ -98,13 +101,16 @@ export default function SimPage() {
                     Running
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="gap-1.5 whitespace-nowrap">
+                  <Badge
+                    variant="outline"
+                    className="gap-1.5 whitespace-nowrap"
+                  >
                     <PauseCircle className="h-3 w-3" />
                     Paused
                   </Badge>
                 )}
               </div>
-              <div className="flex items-center gap-2 text-sm">
+              <div className="mt-2 flex items-center gap-2 text-sm">
                 <Eye className="h-4 w-4 flex-shrink-0" />
                 <span className="text-muted-foreground whitespace-nowrap">
                   {isLeader ? "Leader" : "Follower"}
@@ -155,7 +161,7 @@ export default function SimPage() {
               </SidebarGroupLabel>
               <SidebarGroupContent className="px-2">
                 {filteredAgents.length === 0 ? (
-                  <div className="px-4 py-8 text-center text-sm text-muted-foreground leading-relaxed">
+                  <div className="px-4 py-4 text-center text-sm text-muted-foreground leading-relaxed">
                     {agents.length === 0
                       ? "No agents yet. They will appear here when the simulation starts."
                       : "No agents match your search."}
@@ -167,7 +173,7 @@ export default function SimPage() {
                         <SidebarMenuItem key={agent._id}>
                           <Tooltip delayDuration={300}>
                             <TooltipTrigger asChild>
-                              <SidebarMenuButton className="h-auto py-2.5 px-3">
+                              <SidebarMenuButton className="h-auto py-1.5 px-3">
                                 <User className="h-4 w-4 flex-shrink-0" />
                                 <div className="flex flex-col items-start gap-0.5 min-w-0 flex-1">
                                   <span className="text-sm font-medium truncate w-full">
@@ -204,7 +210,9 @@ export default function SimPage() {
                                   </div>
                                 )}
                                 <div className="space-y-1">
-                                  <p className="text-xs font-medium">Position</p>
+                                  <p className="text-xs font-medium">
+                                    Position
+                                  </p>
                                   <p className="text-xs text-muted-foreground font-mono">
                                     ({agent.pos.x}, {agent.pos.y})
                                   </p>
@@ -216,7 +224,9 @@ export default function SimPage() {
                                   </p>
                                 </div>
                                 <div className="space-y-1.5">
-                                  <p className="text-xs font-medium">Emotions</p>
+                                  <p className="text-xs font-medium">
+                                    Emotions
+                                  </p>
                                   <div className="flex gap-3 text-xs flex-wrap">
                                     <span className="whitespace-nowrap">
                                       Mood:{" "}
@@ -234,11 +244,14 @@ export default function SimPage() {
                                   <div className="grid grid-cols-2 gap-2 text-xs">
                                     <span className="whitespace-nowrap">
                                       😴{" "}
-                                      {(agent.needs.sleepiness * 100).toFixed(0)}
+                                      {(agent.needs.sleepiness * 100).toFixed(
+                                        0
+                                      )}
                                       %
                                     </span>
                                     <span className="whitespace-nowrap">
-                                      🍔 {(agent.needs.hunger * 100).toFixed(0)}%
+                                      🍔 {(agent.needs.hunger * 100).toFixed(0)}
+                                      %
                                     </span>
                                     <span className="whitespace-nowrap">
                                       📚{" "}
