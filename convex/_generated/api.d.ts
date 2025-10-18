@@ -10,6 +10,7 @@
 
 import type * as agents from "../agents.js";
 import type * as conversations from "../conversations.js";
+import type * as conversationsMutations from "../conversationsMutations.js";
 import type * as decisions from "../decisions.js";
 import type * as events from "../events.js";
 import type * as gemini from "../gemini.js";
@@ -44,6 +45,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   agents: typeof agents;
   conversations: typeof conversations;
+  conversationsMutations: typeof conversationsMutations;
   decisions: typeof decisions;
   events: typeof events;
   gemini: typeof gemini;
