@@ -6,8 +6,8 @@
  * Scale: 1 tile = 1 meter, so this is a 200m × 150m campus area.
  */
 
-import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
+import { internalMutation } from "./_generated/server";
 
 /**
  * Tile type definition (matches schema)

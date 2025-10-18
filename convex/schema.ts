@@ -272,4 +272,28 @@ export default defineSchema({
     lastCompletedAt: v.number(), // timestamp when last tick completed
     currentLeaderId: v.string(), // UUID of the current leader client
   }),
+
+  // ========== EVENT SYSTEM ==========
+
+  events: defineTable({
+    timestamp: v.number(),
+    type: v.union(
+      v.literal("decision"),
+      v.literal("conversation"),
+      v.literal("observation"),
+      v.literal("world"),
+      v.literal("movement")
+    ),
+    agentIds: v.optional(v.array(v.id("agents"))),
+    description: v.string(),
+    location: v.optional(v.object({ x: v.number(), y: v.number() })),
+    metadata: v.optional(
+      v.object({
+        placeId: v.optional(v.id("places")),
+        severity: v.optional(v.string()), // "info", "important", "critical"
+      })
+    ),
+  })
+    .index("by_timestamp", ["timestamp"])
+    .index("by_type", ["type"]),
 });
