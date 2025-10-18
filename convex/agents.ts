@@ -346,9 +346,7 @@ export const migrateAddConversationField = mutation({
       }
     }
 
-    console.log(
-      `✓ Migrated ${count} agents to have currentConversationId field`
-    );
+    // console.log(`✓ Migrated ${count} agents to have currentConversationId field`);
     return count;
   },
 });

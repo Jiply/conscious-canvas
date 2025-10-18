@@ -1,7 +1,7 @@
 "use node";
+import Groq from "groq-sdk";
 import { v } from "convex/values";
 import { api } from "./_generated/api";
-import Groq from "groq-sdk";
 import { internalAction } from "./_generated/server";
 
 // ========== INTERNAL ACTIONS (LLM-POWERED) ==========
@@ -78,10 +78,6 @@ export const processConversationTurn = internalAction({
       limit: 3,
     });
 
-    console.log(
-      `💬 Processing conversation turn for ${agent.name} with ${otherAgent.name}`
-    );
-
     // 2. Call LLM to generate next message
     let response;
     try {
@@ -93,16 +89,15 @@ export const processConversationTurn = internalAction({
         observations,
         decisions
       );
+      // Log conversation message for public display
       console.log(
-        `✅ LLM response: "${response.message}" (continue: ${response.continueConversation})`
+        `💬 ${agent.name} → ${otherAgent.name}: "${response.message}"`
       );
     } catch (error) {
-      console.error(`❌ LLM error for ${agent.name}, using fallback:`, error);
       response = fallbackConversationResponse(agent);
     }
 
     const latency = Date.now() - startTime;
-    console.log(`⏱️  Conversation turn latency: ${latency}ms`);
 
     // 3. Add message to conversation
     await ctx.runMutation(api.conversationsMutations.addMessage, {
@@ -133,9 +128,6 @@ export const processConversationTurn = internalAction({
       await ctx.runMutation(api.conversationsMutations.completeConversation, {
         conversationId: args.conversationId,
       });
-      console.log(
-        `👋 ${agent.name} left conversation: ${response.reasonForLeaving}`
-      );
     }
 
     return {
@@ -151,10 +143,15 @@ export const processConversationTurn = internalAction({
  * Build system prompt for conversation
  */
 function buildConversationSystemPrompt(): string {
-  return `You are an autonomous agent in a campus simulation having a conversation with another agent.
+  return `You are a real human being partaking in campus life.
+Now, you are talking in real lifeto someone else who can be found on campus.
+Prefer lexically rich responses that take up few words and/or phrases, over verbose ones.
+It is helpful to consider that slang, nuance, subtext, and other cues may be embedded in what others say to you.
 
 You must respond with ONLY a valid JSON object matching this schema:
+\`\`\`
 {
+  "thoughts": "string (your internal thoughts about context, subtext, literal meanings, etc.)",
   "message": "string (what you say to the other person)",
   "continueConversation": boolean (true if you want to keep talking, false if you need to leave),
   "reasonForLeaving": "string (optional, only if continueConversation is false)",
@@ -163,14 +160,14 @@ You must respond with ONLY a valid JSON object matching this schema:
     "arousal": number (-0.2 to 0.2)
   }
 }
+\`\`\`
 
 IMPORTANT RULES:
-1. Use Theory of Mind to understand the other agent's emotions and intentions.
-2. Keep messages relatively short (1-3 sentences).
-3. Consider your needs (hunger, sleepiness, etc.). If a need is urgent (> 0.8), you should politely end the conversation.
-4. Consider your opinion of the other person. Be friendly or distant based on your sentiment toward them.
-5. Use your personality to guide your responses.
-6. If you have nothing more to say or the conversation feels done, set continueConversation to false.`;
+1. Use Theory of Mind to understand your conversation partner's emotions and intentions.
+2. Keep your personal goals, beliefs, priorities, values, and personality in mind when responding.
+3. Consider your basic biological needs (hunger, sleepiness, sexual arousal) a fundamental need that colors all your affect and state. If a need is urgent (> 0.8), you should politely end the conversation.
+4. Consider your opinion of, relationship to, and overall knowledge of your conversation partner. Your response should reflect your attitude towards your conversation partner, at a given point in time, given all that you know.
+5. If you have nothing more to say to your conversation partner (which can include not wanting to ask more questions), or the conversation feels done (judged generally by Grice's Maxims), set continueConversation to false, so you can go about your way.`;
 }
 
 /**
@@ -249,17 +246,17 @@ function buildConversationPrompt(
   // Urgent needs warnings
   const urgentNeeds = [];
   if (agent.needs.hunger > 0.8)
-    urgentNeeds.push("🍽️ HUNGRY - You're starving and need food soon");
+    urgentNeeds.push("HUNGRY - You're starving and need food soon");
   if (agent.needs.sleepiness > 0.8)
-    urgentNeeds.push("😴 EXHAUSTED - You're extremely tired and need rest");
+    urgentNeeds.push("EXHAUSTED - You're extremely tired and need rest");
   if (agent.needs.studyPressure > 0.8)
-    urgentNeeds.push("📚 STRESSED - Academic pressure is crushing you");
+    urgentNeeds.push("STRESSED - Academic pressure is crushing you");
   if (agent.needs.socialDrive > 0.8)
-    urgentNeeds.push("💬 LONELY - You desperately need social connection");
+    urgentNeeds.push("LONELY - You desperately need social connection");
 
   const urgentWarning =
     urgentNeeds.length > 0
-      ? `\n⚠️ URGENT NEEDS:\n${urgentNeeds.map((n) => `  - ${n}`).join("\n")}\n`
+      ? `\nURGENT NEEDS:\n${urgentNeeds.map((n) => `  - ${n}`).join("\n")}\n`
       : "";
 
   return `
@@ -321,8 +318,7 @@ TASK: Respond naturally to this conversation based on:
 • Whether you want to continue talking or need to leave
 
 Consider emotional contagion - their ${theirMood} ${theirEnergy} energy may influence how you respond.
-═══════════════════════════════════════════════════════════
-  `.trim();
+═══════════════════════════════════════════════════════════`.trim();
 }
 
 /**
@@ -390,8 +386,6 @@ async function generateConversationMessage(
     observations,
     decisions
   );
-
-  console.log(`📤 Calling Groq for conversation turn...`);
 
   const completion = await groq.chat.completions.create({
     messages: [

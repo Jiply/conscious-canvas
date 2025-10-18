@@ -1,12 +1,5 @@
 "use client";
 import {
-  Card,
-  CardTitle,
-  CardHeader,
-  CardContent,
-  CardDescription,
-} from "@/components/ui/card";
-import {
   Home,
   MapPin,
   Loader2,
@@ -14,6 +7,13 @@ import {
   AlertCircle,
   CheckCircle2,
 } from "lucide-react";
+import {
+  Card,
+  CardTitle,
+  CardHeader,
+  CardContent,
+  CardDescription,
+} from "@/components/ui/card";
 import { useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { Badge } from "@/components/ui/badge";
@@ -33,10 +33,7 @@ export default function InitPage() {
     setResult(null);
 
     try {
-      const res = await initMap({
-        seed: `utown_${Date.now()}`,
-        force,
-      });
+      const res = await initMap({ seed: `utown_${Date.now()}`, force });
       setResult(res);
     } catch (error: any) {
       setResult({

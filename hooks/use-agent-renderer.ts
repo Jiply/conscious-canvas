@@ -94,10 +94,6 @@ export function useAgentRenderer({
         // Create profile picture sprite using client-side mapping
         const profilePicUrl = getProfilePicture(agent.name);
 
-        console.log(
-          `Loading profile picture for ${agent.name}: ${profilePicUrl}`
-        );
-
         // Create a placeholder sprite first
         const profileSprite = new Sprite();
         profileSprite.anchor.set(0.5);
@@ -114,15 +110,8 @@ export function useAgentRenderer({
         agentContainer.addChild(circleMask);
         profileSprite.mask = circleMask;
 
-        // Load texture asynchronously using PixiJS Assets API
-        console.log(
-          `🖼️ Loading texture for ${agent.name} from: ${profilePicUrl}`
-        );
-
         Assets.load(profilePicUrl)
           .then((texture) => {
-            console.log(`  ✅ Texture loaded for ${agent.name}:`, texture);
-
             if (!profileSprite.destroyed) {
               profileSprite.texture = texture;
 
@@ -130,8 +119,6 @@ export function useAgentRenderer({
               const diameter = 32;
               profileSprite.width = diameter;
               profileSprite.height = diameter;
-
-              console.log(`  ✅ Sprite updated - ${diameter}x${diameter}`);
             }
           })
           .catch((error) => {

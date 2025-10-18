@@ -34,17 +34,11 @@ export const makeAgentDecision = action({
   handler: async (ctx, args) => {
     const startTime = Date.now();
 
-    console.log(`🚀 LLM action started for agent ${args.agentId}`);
-
     // 1. Gather context from Convex
     const agent = await ctx.runQuery(api.agents.getAgent, {
       agentId: args.agentId,
     });
     if (!agent) throw new Error("Agent not found");
-
-    console.log(
-      `📊 Making decision for ${agent.name} (hunger: ${agent.needs.hunger.toFixed(2)}, sleepiness: ${agent.needs.sleepiness.toFixed(2)})`
-    );
 
     const recentObservations = await ctx.runQuery(
       api.observations.getRecentObservations,
@@ -92,7 +86,6 @@ export const makeAgentDecision = action({
           innerThought: `CRITICAL HUNGER! Must eat immediately or I'll collapse!`,
           emotionDelta: { valence: -0.3, arousal: 0.2 },
         };
-        console.log(`🚨 CRITICAL HUNGER: Forcing ${agent.name} to go to café`);
       }
     } else if (agent.needs.sleepiness >= 0.95) {
       // Critical sleepiness - force MoveTo dorm
@@ -104,9 +97,6 @@ export const makeAgentDecision = action({
           innerThought: `CRITICAL EXHAUSTION! Must sleep immediately or I'll collapse!`,
           emotionDelta: { valence: -0.3, arousal: -0.2 },
         };
-        console.log(
-          `🚨 CRITICAL SLEEPINESS: Forcing ${agent.name} to go to dorm`
-        );
       }
     } else if (agent.needs.studyPressure >= 0.95) {
       // Critical study pressure - force MoveTo library
@@ -120,28 +110,25 @@ export const makeAgentDecision = action({
           innerThought: `CRITICAL DEADLINE! Must study immediately or I'll fail!`,
           emotionDelta: { valence: -0.2, arousal: 0.3 },
         };
-        console.log(
-          `🚨 CRITICAL STUDY PRESSURE: Forcing ${agent.name} to go to library`
-        );
       }
     }
 
     // 4. If no critical need, call LLM for decision-making
     if (!decision) {
       try {
-        console.log(`🤖 Calling Groq API for ${agent.name}...`);
         decision = await callGroqForDecision(systemPrompt, userPrompt);
+        // Log the agent's decision for public display
         console.log(
-          `✅ Groq returned decision: ${decision.action} (thought: "${decision.innerThought}")`
+          `🤖 ${agent.name}: "${decision.innerThought}" → ${decision.action}`
         );
       } catch (error) {
-        console.error(
-          `❌ Groq API error for ${agent.name}, falling back to heuristic:`,
-          error
-        );
         decision = heuristicFallback(agent);
-        console.log(`🔄 Heuristic fallback decision: ${decision.action}`);
       }
+    } else {
+      // Log critical need decisions for public display
+      console.log(
+        `🤖 ${agent.name}: "${decision.innerThought}" → ${decision.action}`
+      );
     }
 
     const latency = Date.now() - startTime;
@@ -162,7 +149,6 @@ export const makeAgentDecision = action({
       await ctx.runMutation(api.decisions.completeDecision, {
         decisionId,
       });
-      console.log(`✓ Idle decision completed immediately for ${agent.name}`);
     }
 
     // 4.6. If decision is EngageConversation, create conversation
@@ -183,25 +169,18 @@ export const makeAgentDecision = action({
             }
           );
 
-          console.log(
-            `💬 Created conversation ${conversationId} between ${agent.name} and ${targetAgent.name}`
-          );
-
           // Complete the EngageConversation decision since conversation is now active
           await ctx.runMutation(api.decisions.completeDecision, {
             decisionId,
           });
         } else {
-          console.log(
-            `❌ Cannot start conversation: ${targetAgent?.name} is already in a conversation`
-          );
           // Mark decision as completed anyway
           await ctx.runMutation(api.decisions.completeDecision, {
             decisionId,
           });
         }
       } catch (error) {
-        console.error(`Error creating conversation:`, error);
+        // Silently handle error
       }
     }
 
@@ -210,7 +189,7 @@ export const makeAgentDecision = action({
       try {
         // Get the target place
         const targetPlace = allPlaces.find(
-          (p) => p._id === decision.targetPlaceId
+          (p: any) => p._id === decision.targetPlaceId
         );
 
         if (
@@ -235,17 +214,10 @@ export const makeAgentDecision = action({
               path,
               state: "Transit",
             });
-            console.log(
-              `🗺️ Set path for ${agent.name} to ${targetPlace.name} (${path.length} steps)`
-            );
-          } else {
-            console.error(
-              `❌ No path found for ${agent.name} to ${targetPlace.name}`
-            );
           }
         }
       } catch (error) {
-        console.error(`Error calculating path for MoveTo:`, error);
+        // Silently handle pathfinding errors
       }
     }
 
@@ -406,13 +378,9 @@ async function callGroqForDecision(
     throw new Error("GROQ_API_KEY environment variable is not set");
   }
 
-  console.log(`🔑 Groq API key found: ${apiKey.substring(0, 10)}...`);
-
   const groq = new Groq({
     apiKey: apiKey,
   });
-
-  console.log(`📤 Sending request to Groq (model: kimi-k2)...`);
 
   const completion = await groq.chat.completions.create({
     messages: [
@@ -430,13 +398,8 @@ async function callGroqForDecision(
     throw new Error("No content in Groq response");
   }
 
-  console.log(`📥 Groq response received: ${content.substring(0, 100)}...`);
-
   // Parse JSON response
   const parsed = JSON.parse(content);
-  console.log(
-    `✓ Parsed decision: action=${parsed.toolName}, thought="${parsed.parameters?.innerThought}"`
-  );
 
   // Map toolName to action and extract parameters
   return {

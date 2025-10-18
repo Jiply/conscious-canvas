@@ -85,10 +85,6 @@ export const tick = mutation({
           lastCompletedAt: Date.now(),
         });
 
-        console.log(
-          `🧊 World FROZEN: ${worldSettings?.observerCount ?? 0} observers, skipping agent processing`
-        );
-
         return {
           success: true,
           processedAgents: 0,
@@ -113,8 +109,6 @@ export const tick = mutation({
         isRunning: false,
         lastCompletedAt: Date.now(),
       });
-
-      console.log(`🌍 World RUNNING: Processed ${agents.length} agents`);
 
       return {
         success: true,
@@ -178,11 +172,6 @@ async function processAgentTick(
     visibleAgentIds.includes(op.targetAgentId)
   );
 
-  // Log opinion retrieval
-  console.log(
-    `Agent ${agent.name} sees ${visibleAgents.length} agents, has ${visibleOpinions.length} opinions`
-  );
-
   const nearbyAgents = visibleAgents.filter((v) => v.distance < TALKING_RANGE);
 
   // 3.5. CONVERSATION TURN: If agent is in active conversation, process conversation turn
@@ -206,10 +195,6 @@ async function processAgentTick(
       nearbyAgents,
       visibleAgents,
       visibleOpinions
-    );
-  } else {
-    console.log(
-      `⏰ ${agent.name} waiting for next decision (${Math.round((agent.nextDecisionAt - now) / 1000)}s remaining)`
     );
   }
 }
@@ -271,17 +256,12 @@ async function executePathMovement(ctx: any, agent: Doc<"agents">) {
     path: agent.path.slice(1),
   });
 
-  console.log(
-    `🚶 ${agent.name} moved to (${nextStep.x}, ${nextStep.y}), ${agent.path.length - 1} steps remaining`
-  );
-
   // If path is now empty or has only 1 element (current position), reached destination
   if (agent.path.length <= 1) {
     await ctx.db.patch(agent._id, {
       path: undefined,
       state: "Idle",
     });
-    console.log(`✅ ${agent.name} reached destination`);
 
     // Get the active decision to see what action to perform
     const activeDecision = await ctx.db
@@ -299,7 +279,6 @@ async function executePathMovement(ctx: any, agent: Doc<"agents">) {
       await ctx.db.patch(activeDecision._id, {
         completedAt: Date.now(),
       });
-      console.log(`✓ Completed MoveTo decision for ${agent.name}`);
 
       // Now check if we should perform an action at this location
       if (activeDecision.targetPlaceId) {
@@ -334,15 +313,11 @@ async function performActionAtPlace(
 ) {
   const place = await ctx.db.get(placeId);
   if (!place) {
-    console.error(`❌ Place ${placeId} not found for ${agent.name}`);
     return;
   }
 
   // Check if agent is actually within the place bounds
   if (!isAgentInPlace(agent.pos, place.bounds)) {
-    console.log(
-      `⚠️ ${agent.name} is not within ${place.name} bounds (at ${agent.pos.x}, ${agent.pos.y}). Skipping action.`
-    );
     return;
   }
 
@@ -357,25 +332,16 @@ async function performActionAtPlace(
     newNeeds.hunger = Math.max(0, agent.needs.hunger - 0.4);
     decisionAction = "Eat";
     actionPerformed = true;
-    console.log(
-      `🍽️ ${agent.name} is eating at ${place.name} (hunger: ${agent.needs.hunger.toFixed(2)} → ${newNeeds.hunger.toFixed(2)})`
-    );
   } else if (placeKind === "dorm" && agent.needs.sleepiness > 0.1) {
     // Sleep at dorm - reduces sleepiness significantly
     newNeeds.sleepiness = Math.max(0, agent.needs.sleepiness - 0.5);
     decisionAction = "Sleep";
     actionPerformed = true;
-    console.log(
-      `😴 ${agent.name} is sleeping at ${place.name} (sleepiness: ${agent.needs.sleepiness.toFixed(2)} → ${newNeeds.sleepiness.toFixed(2)})`
-    );
   } else if (placeKind === "library" && agent.needs.studyPressure > 0.1) {
     // Study at library - reduces study pressure significantly
     newNeeds.studyPressure = Math.max(0, agent.needs.studyPressure - 0.3);
     decisionAction = "Study";
     actionPerformed = true;
-    console.log(
-      `📚 ${agent.name} is studying at ${place.name} (study pressure: ${agent.needs.studyPressure.toFixed(2)} → ${newNeeds.studyPressure.toFixed(2)})`
-    );
   }
 
   // Update agent needs if action was performed
@@ -392,8 +358,6 @@ async function performActionAtPlace(
       innerThought: `Performing ${decisionAction} at ${place.name}`,
       completedAt: Date.now(), // Complete immediately since action is instant
     });
-
-    console.log(`✓ ${agent.name} completed ${decisionAction} action`);
   }
 }
 
@@ -416,26 +380,16 @@ async function makeAgentDecision(
 
   if (activeDecision && !activeDecision.completedAt) {
     // Already has active decision, skip for now
-    console.log(
-      `⏭️ ${agent.name} has active ${activeDecision.action} decision, skipping new decision`
-    );
     return;
   }
 
   // Call LLM to make decision based on context
   // The LLM gets: agent stats, observations, decisions, opinions, available places
-  console.log(
-    `🧠 Scheduling LLM decision for ${agent.name} (${visibleOpinions.length} opinions, ${nearbyAgents.length} nearby agents)...`
-  );
-
   try {
     await ctx.scheduler.runAfter(0, api.llm.makeAgentDecision, {
       agentId: agent._id,
     });
-    console.log(`✅ LLM action scheduled for ${agent.name}`);
   } catch (error) {
-    console.error(`❌ Error scheduling LLM decision for ${agent.name}:`, error);
-
     // Fallback to simple Idle decision if LLM fails
     const idleDecisionId = await ctx.db.insert("decisions", {
       agentId: agent._id,
@@ -443,7 +397,6 @@ async function makeAgentDecision(
       innerThought: "Taking a moment to think...",
       completedAt: Date.now(), // Idle decisions complete immediately
     });
-    console.log(`🔄 Created fallback Idle decision for ${agent.name}`);
   }
 }
 
@@ -603,8 +556,6 @@ async function processConversationTurnForAgent(ctx: any, agent: Doc<"agents">) {
       conversationId: agent.currentConversationId,
     }
   );
-
-  console.log(`💬 Scheduled conversation turn for ${agent.name}`);
 }
 
 /**

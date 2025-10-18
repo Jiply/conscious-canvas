@@ -126,7 +126,6 @@ export const completeAllIncompleteDecisions = mutation({
       }
     }
 
-    console.log(`✓ Completed ${count} stuck decisions`);
     return count;
   },
 });

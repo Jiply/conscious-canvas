@@ -1,5 +1,5 @@
-import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { mutation, query } from "./_generated/server";
 
 // ========== MUTATIONS ==========
 
@@ -41,10 +41,6 @@ export const createConversation = mutation({
       currentConversationId: conversationId,
       state: "Interact",
     });
-
-    console.log(
-      `💬 Started conversation ${conversationId} between ${initiator.name} and ${target.name}`
-    );
 
     return conversationId;
   },
@@ -95,10 +91,6 @@ export const addMessage = mutation({
       turnCount: conversation.turnCount + 1,
     });
 
-    console.log(
-      `💬 ${agent.name}: "${args.content}" (continue: ${args.continueConversation})`
-    );
-
     return messageId;
   },
 });
@@ -133,10 +125,6 @@ export const completeConversation = mutation({
         });
       }
     }
-
-    console.log(
-      `✓ Completed conversation ${args.conversationId} (${conversation.turnCount} turns)`
-    );
 
     return null;
   },
