@@ -1,25 +1,24 @@
 "use client";
-
-import { useMutation, useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { Button } from "@/components/ui/button";
 import {
   Card,
+  CardTitle,
+  CardHeader,
   CardContent,
   CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
-  Loader2,
-  CheckCircle2,
-  AlertCircle,
-  MapPin,
   Home,
+  MapPin,
+  Loader2,
   Building2,
+  AlertCircle,
+  CheckCircle2,
 } from "lucide-react";
 import { useState } from "react";
+import { api } from "@/convex/_generated/api";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useMutation, useQuery } from "convex/react";
 
 export default function InitPage() {
   const [isInitializing, setIsInitializing] = useState(false);
