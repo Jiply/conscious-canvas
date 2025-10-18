@@ -142,28 +142,31 @@ async function processAgentTick(
  * Update agent needs (simple decay towards baseline)
  */
 async function updateAgentNeeds(ctx: any, agent: Doc<"agents">) {
-  const TICK_INTERVAL = 5; // 5 seconds
+  const TICK_INTERVAL = 5; // 5 real seconds
+  const TIME_COMPRESSION = 20; // 20x faster than real-time
+  const SIMULATED_SECONDS = TICK_INTERVAL * TIME_COMPRESSION; // 100 simulated seconds per tick
   const HOUR_IN_SECONDS = 3600;
 
-  // Simple linear decay/growth rates (per hour)
+  // Simple linear decay/growth rates (per simulated hour)
+  // These happen 20x faster now, so agents get hungry/tired much quicker
   const hungerGrowthRate = 0.3 / HOUR_IN_SECONDS; // grow by 0.3 per hour
   const sleepinessGrowthRate = 0.2 / HOUR_IN_SECONDS;
   const studyPressureGrowthRate = 0.1 / HOUR_IN_SECONDS;
   const socialDriveGrowthRate = 0.15 / HOUR_IN_SECONDS;
 
   const newNeeds = {
-    hunger: Math.min(1, agent.needs.hunger + hungerGrowthRate * TICK_INTERVAL),
+    hunger: Math.min(1, agent.needs.hunger + hungerGrowthRate * SIMULATED_SECONDS),
     sleepiness: Math.min(
       1,
-      agent.needs.sleepiness + sleepinessGrowthRate * TICK_INTERVAL
+      agent.needs.sleepiness + sleepinessGrowthRate * SIMULATED_SECONDS
     ),
     studyPressure: Math.min(
       1,
-      agent.needs.studyPressure + studyPressureGrowthRate * TICK_INTERVAL
+      agent.needs.studyPressure + studyPressureGrowthRate * SIMULATED_SECONDS
     ),
     socialDrive: Math.min(
       1,
-      agent.needs.socialDrive + socialDriveGrowthRate * TICK_INTERVAL
+      agent.needs.socialDrive + socialDriveGrowthRate * SIMULATED_SECONDS
     ),
   };
 
