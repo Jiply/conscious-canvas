@@ -18,8 +18,8 @@ export default defineSchema({
    * Singleton table - should only have one document
    */
   map_settings: defineTable({
-    gridWidth: v.number(), // Number of tiles horizontally (default: 80)
-    gridHeight: v.number(), // Number of tiles vertically (default: 50)
+    gridWidth: v.number(), // Number of tiles horizontally (default: 200)
+    gridHeight: v.number(), // Number of tiles vertically (default: 150)
     tileSize: v.number(), // Pixel size of each tile (default: 32)
     metersPerTile: v.number(), // Real-world scale: 1 tile = 1 meter
     version: v.number(), // Schema version for migrations
@@ -29,11 +29,11 @@ export default defineSchema({
 
   /**
    * Map Tiles - Individual tiles in the grid
-   * Full 80×50 grid = 4000 tiles
+   * Full 200×150 grid = 30000 tiles
    */
   map_tiles: defineTable({
-    x: v.number(), // X coordinate (0-79)
-    y: v.number(), // Y coordinate (0-49)
+    x: v.number(), // X coordinate (0-199)
+    y: v.number(), // Y coordinate (0-149)
     tileType: v.union(
       v.literal("floor"), // Indoor floor (inside buildings)
       v.literal("wall"), // Solid wall (buildings, barriers)
