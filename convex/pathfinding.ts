@@ -110,9 +110,7 @@ export const findPath = query({
     }
 
     // No path found
-    console.log(
-      `No path found from (${args.startX}, ${args.startY}) to (${args.goalX}, ${args.goalY}) after ${iterations} iterations`
-    );
+    // console.log(`No path found from (${args.startX}, ${args.startY}) to (${args.goalX}, ${args.goalY}) after ${iterations} iterations`);
     return null;
   },
 });
