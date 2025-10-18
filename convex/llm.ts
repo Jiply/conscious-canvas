@@ -1,8 +1,7 @@
 "use node";
-
-import { action } from "./_generated/server";
 import { v } from "convex/values";
-import { api, internal } from "./_generated/api";
+import { api } from "./_generated/api";
+import { action } from "./_generated/server";
 
 // ========== LLM DECISION MAKING ==========
 
@@ -60,7 +59,11 @@ export const makeAgentDecision = action({
     );
 
     // 2. Build LLM prompt
-    const prompt = buildDecisionPrompt(agent, recentObservations, recentDecisions);
+    const prompt = buildDecisionPrompt(
+      agent,
+      recentObservations,
+      recentDecisions
+    );
 
     // 3. Call LLM (placeholder for now - you'll integrate Groq/OpenAI here)
     // For now, use a simple heuristic fallback
@@ -112,7 +115,9 @@ function buildDecisionPrompt(
     .join("; ");
 
   const recentActions = decisions
-    .map((d) => `${d.action} at ${new Date(d._creationTime).toLocaleTimeString()}`)
+    .map(
+      (d) => `${d.action} at ${new Date(d._creationTime).toLocaleTimeString()}`
+    )
     .join("; ");
 
   return `

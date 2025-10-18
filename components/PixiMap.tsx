@@ -1,15 +1,14 @@
 "use client";
-
-import { useEffect, useRef, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { usePixiApp } from "@/hooks/use-pixi-app";
 import { useCamera } from "@/hooks/use-camera";
-import { useMapData } from "@/hooks/use-map-data";
-import { useTileRenderer } from "@/hooks/use-tile-renderer";
+import { usePixiApp } from "@/hooks/use-pixi-app";
+import { useEffect, useRef, useState } from "react";
+import { useTileCache } from "@/hooks/use-tile-cache";
+import { MapOverlays } from "@/components/MapOverlays";
 import { usePlaceRenderer } from "@/hooks/use-place-renderer";
 import { useAgentRenderer } from "@/hooks/use-agent-renderer";
-import { MapOverlays } from "@/components/MapOverlays";
+import { useTileRendererCached } from "@/hooks/use-tile-renderer-cached";
 
 interface PixiMapProps {
   className?: string;
@@ -54,16 +53,17 @@ export function PixiMap({ className, onWorldReady }: PixiMapProps) {
     height: dimensions.height,
   });
 
-  // Query map data to get mapSettings
-  const mapDataForSettings = useMapData({
-    debouncedCamera: { x: 0, y: 0, scale: 1 },
-    dimensions,
-    mapSettings: undefined,
-    isCameraReady: false,
-  });
+  // Fetch ALL tiles at startup using cached batch fetching
+  const {
+    tiles: tileCache,
+    isLoading: tilesLoading,
+    progress: tilesProgress,
+    totalTiles,
+  } = useTileCache();
 
-  const mapSettings = mapDataForSettings.mapSettings;
-  const places = mapDataForSettings.places;
+  // Query map settings and places
+  const mapSettings = useQuery(api.map.getMapSettings);
+  const places = useQuery(api.map.getPlaces);
 
   // Initialize camera with mapSettings
   const {
@@ -82,17 +82,6 @@ export function PixiMap({ className, onWorldReady }: PixiMapProps) {
     mapSettings: mapSettings ?? undefined,
     canvasRef,
   });
-
-  // Query tiles with actual camera
-  const tilesData = useMapData({
-    debouncedCamera,
-    dimensions,
-    mapSettings: mapSettings ?? undefined,
-    isCameraReady,
-  });
-
-  const tiles = tilesData.tiles;
-  const visibleRegion = tilesData.visibleRegion;
 
   // Query agents
   const agents = useQuery(api.agents.listAgents);
@@ -132,14 +121,15 @@ export function PixiMap({ className, onWorldReady }: PixiMapProps) {
     setInitialCameraPos,
   ]);
 
-  // Render tiles
-  useTileRenderer({
+  // Render tiles using cached pre-rendering approach
+  useTileRendererCached({
     tilesLayer: refs.tilesLayer,
-    skeletonLayer: refs.skeletonLayer,
-    tiles: tiles,
+    tiles: tileCache,
     mapSettings: mapSettings ?? undefined,
-    isCameraReady,
+    isLoading: tilesLoading,
     renderer: refs.renderer,
+    camera: debouncedCamera, // Use debounced camera for viewport culling
+    dimensions,
   });
 
   // Render places
@@ -162,9 +152,12 @@ export function PixiMap({ className, onWorldReady }: PixiMapProps) {
   useEffect(() => {
     if (!refs.worldContainer || !isCameraReady) return;
 
-    refs.worldContainer.x = camera.x;
-    refs.worldContainer.y = camera.y;
-    refs.worldContainer.scale.set(camera.scale);
+    // Double-check container is still valid before setting properties
+    if (refs.worldContainer && !refs.worldContainer.destroyed) {
+      refs.worldContainer.x = camera.x;
+      refs.worldContainer.y = camera.y;
+      refs.worldContainer.scale.set(camera.scale);
+    }
   }, [camera, isCameraReady, refs.worldContainer]);
 
   // Keyboard shortcuts
@@ -179,12 +172,23 @@ export function PixiMap({ className, onWorldReady }: PixiMapProps) {
     return () => window.removeEventListener("keypress", handleKeyPress);
   }, []);
 
-  const isLoading = !mapSettings || !isCameraReady;
+  const isLoading = !mapSettings || !isCameraReady || tilesLoading;
 
   // Notify parent when world is ready
   useEffect(() => {
     onWorldReady?.(!isLoading && isInitialized);
   }, [isLoading, isInitialized, onWorldReady]);
+
+  // Log tile loading progress
+  useEffect(() => {
+    if (tilesLoading) {
+      console.log(
+        `📥 [PIXI MAP] Loading tiles: ${tilesProgress.toFixed(1)}% (${totalTiles} tiles loaded)`
+      );
+    } else if (totalTiles > 0) {
+      console.log(`✅ [PIXI MAP] All ${totalTiles} tiles loaded and cached!`);
+    }
+  }, [tilesLoading, tilesProgress, totalTiles]);
 
   return (
     <div
@@ -215,13 +219,12 @@ export function PixiMap({ className, onWorldReady }: PixiMapProps) {
         mapSettings={mapSettings ?? undefined}
         places={places as any}
         camera={camera}
-        debouncedCamera={debouncedCamera}
         initialCameraPos={initialCameraPos}
-        tiles={tiles}
-        visibleRegion={visibleRegion}
         showStats={showStats}
         fps={fps}
         onResetCamera={resetCamera}
+        tilesProgress={tilesProgress}
+        totalTiles={totalTiles}
       />
     </div>
   );
