@@ -12,6 +12,7 @@ export interface TileRenderStyle {
   baseColor: number;
   borderColor: number;
   borderWidth: number;
+  opacity?: number; // Alpha transparency (0-1)
   pattern?: "solid" | "grid" | "diagonal" | "dots" | "brick";
   patternColor?: number;
   shadow?: boolean;
@@ -25,6 +26,7 @@ export const TILE_RENDER_STYLES: Record<TileType, TileRenderStyle> = {
     baseColor: 0xe8e4d9,
     borderColor: 0xd0ccc0,
     borderWidth: 1,
+    opacity: 0.95, // Higher opacity for buildings
     pattern: "grid",
     patternColor: 0xd5d1c6,
   },
@@ -32,6 +34,7 @@ export const TILE_RENDER_STYLES: Record<TileType, TileRenderStyle> = {
     baseColor: 0x8b7355,
     borderColor: 0x6a5544,
     borderWidth: 2,
+    opacity: 1.0, // Fully opaque for walls
     pattern: "brick",
     patternColor: 0x755f4a,
     shadow: true,
@@ -40,6 +43,7 @@ export const TILE_RENDER_STYLES: Record<TileType, TileRenderStyle> = {
     baseColor: 0xa0826d,
     borderColor: 0x8b7355,
     borderWidth: 2,
+    opacity: 0.95, // Higher opacity for buildings
     pattern: "solid",
   },
   grass: {
@@ -87,14 +91,23 @@ export function renderTile(
   // Apply variant-based color variation
   const colorVariation = variant * 0x0a0a0a;
   const baseColor = Math.max(0, style.baseColor - colorVariation);
+  const alpha = style.opacity ?? 1.0;
 
   // Draw base rectangle
   graphics.rect(x, y, tileSize, tileSize);
-  graphics.fill({ color: baseColor });
+  graphics.fill({ color: baseColor, alpha });
 
   // Draw pattern overlay
   if (style.pattern && style.pattern !== "solid" && style.patternColor) {
-    drawPattern(graphics, x, y, tileSize, style.pattern, style.patternColor);
+    drawPattern(
+      graphics,
+      x,
+      y,
+      tileSize,
+      style.pattern,
+      style.patternColor,
+      alpha
+    );
   }
 
   // Draw border
@@ -103,7 +116,7 @@ export function renderTile(
     graphics.stroke({
       width: style.borderWidth,
       color: style.borderColor,
-      alpha: 0.6,
+      alpha: Math.min(0.6, alpha),
     });
   }
 }
@@ -117,7 +130,8 @@ function drawPattern(
   y: number,
   tileSize: number,
   pattern: "grid" | "diagonal" | "dots" | "brick",
-  color: number
+  color: number,
+  baseAlpha: number = 1.0
 ): void {
   const halfSize = tileSize / 2;
   const quarterSize = tileSize / 4;
@@ -129,7 +143,7 @@ function drawPattern(
       graphics.lineTo(x + halfSize, y + tileSize);
       graphics.moveTo(x, y + halfSize);
       graphics.lineTo(x + tileSize, y + halfSize);
-      graphics.stroke({ width: 0.5, color, alpha: 0.3 });
+      graphics.stroke({ width: 0.5, color, alpha: 0.3 * baseAlpha });
       break;
 
     case "diagonal":
@@ -139,7 +153,7 @@ function drawPattern(
         graphics.moveTo(x + offset, y + tileSize);
         graphics.lineTo(x + tileSize + offset, y);
       }
-      graphics.stroke({ width: 1, color, alpha: 0.2 });
+      graphics.stroke({ width: 1, color, alpha: 0.2 * baseAlpha });
       break;
 
     case "dots":
@@ -154,7 +168,7 @@ function drawPattern(
 
       for (const [dotX, dotY] of dotPositions) {
         graphics.circle(dotX, dotY, 1.5);
-        graphics.fill({ color, alpha: 0.4 });
+        graphics.fill({ color, alpha: 0.4 * baseAlpha });
       }
       break;
 
@@ -178,7 +192,7 @@ function drawPattern(
       graphics.moveTo(x + halfSize, y + 2 * brickHeight);
       graphics.lineTo(x + halfSize, y + tileSize);
 
-      graphics.stroke({ width: 1, color, alpha: 0.4 });
+      graphics.stroke({ width: 1, color, alpha: 0.4 * baseAlpha });
       break;
   }
 }
