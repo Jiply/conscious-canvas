@@ -48,9 +48,7 @@ export function useTileRendererCached({
   useEffect(() => {
     if (!renderer || !mapSettings) return;
 
-    console.log("🎨 [TILE RENDERER CACHED] Pre-generating tile textures...");
     preGenerateAllTileTextures(renderer, mapSettings.tileSize, 3);
-    console.log("✅ [TILE RENDERER CACHED] Textures pre-generated!");
   }, [renderer, mapSettings]);
 
   // Effect: Pre-render ALL tiles once when cache is loaded
@@ -58,11 +56,6 @@ export function useTileRendererCached({
     if (!tilesLayer || !mapSettings || isLoading || !renderer) return;
     if (hasPreRendered.current) return;
     if (tiles.size === 0) return;
-
-    const perfStart = performance.now();
-    console.log(
-      `\n🚀 ========== PRE-RENDERING ALL ${tiles.size} TILES ==========`
-    );
 
     const tileSize = mapSettings.tileSize;
     let spritesCreated = 0;
@@ -95,17 +88,9 @@ export function useTileRendererCached({
         spritesCreated++;
       }
 
-      const totalTime = performance.now() - perfStart;
-      console.log(
-        `✅ PRE-RENDER COMPLETE: Created ${spritesCreated} sprites in ${totalTime.toFixed(2)}ms`
-      );
-      console.log(
-        `   📊 Performance: ${(totalTime / spritesCreated).toFixed(3)}ms per sprite\n`
-      );
-
       hasPreRendered.current = true;
     } catch (error) {
-      console.error("❌ Error pre-rendering tiles:", error);
+      // Error pre-rendering tiles
     }
   }, [tilesLayer, tiles, mapSettings, isLoading, renderer]);
 
@@ -159,19 +144,11 @@ export function useTileRendererCached({
         hiddenCount++;
       }
     }
-
-    // Only log on significant camera movements
-    if (visibleCount > 0) {
-      console.log(
-        `👁️  [VIEWPORT CULLING] Visible: ${visibleCount} | Hidden: ${hiddenCount} | Region: (${minX},${minY}) to (${maxX},${maxY})`
-      );
-    }
   }, [camera, dimensions, mapSettings]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      console.log("🧹 [TILE RENDERER CACHED] Cleaning up sprites...");
       for (const sprite of renderedSprites.current.values()) {
         if (!sprite.destroyed) {
           sprite.destroy();

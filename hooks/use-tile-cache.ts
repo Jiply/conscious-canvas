@@ -98,13 +98,6 @@ export function useTileCache(): TileCacheState {
   useEffect(() => {
     if (!batch0 || hasInitialized.current) return;
 
-    console.log(
-      `🚀 [TILE CACHE] Batch 0 received: ${batch0.tiles.length} tiles`
-    );
-    console.log(
-      `   📊 Total batches needed: ${batch0.totalBatches} (${batch0.tiles.length * batch0.totalBatches} tiles estimated)`
-    );
-
     // Set total batches
     setTotalBatches(batch0.totalBatches);
 
@@ -136,10 +129,6 @@ export function useTileCache(): TileCacheState {
     batchIndex: number
   ) => {
     if (!batchData || batchesLoaded.has(batchIndex)) return;
-
-    console.log(
-      `📦 [TILE CACHE] Batch ${batchIndex} received: ${batchData.tiles.length} tiles`
-    );
 
     setTiles((prevTiles) => {
       const newTiles = new Map(prevTiles);
@@ -187,9 +176,6 @@ export function useTileCache(): TileCacheState {
   // Check if loading is complete
   useEffect(() => {
     if (totalBatches > 0 && batchesLoaded.size === totalBatches) {
-      console.log(
-        `✅ [TILE CACHE] All ${batchesLoaded.size} batches loaded! Total tiles: ${totalTiles}`
-      );
       setIsLoading(false);
       setProgress(100);
     }
