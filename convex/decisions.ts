@@ -132,7 +132,7 @@ export const getDecisionHistory = query({
     const limit = args.limit ?? 10;
     return await ctx.db
       .query("decisions")
-      .withIndex("by_agent_and_time", (q) => q.eq("agentId", args.agentId))
+      .withIndex("by_agent", (q) => q.eq("agentId", args.agentId))
       .order("desc")
       .take(limit);
   },
