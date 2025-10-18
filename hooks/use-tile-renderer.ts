@@ -1,11 +1,13 @@
-// Import React hook for side effects
-import { useEffect } from "react";
-// Import PixiJS type definitions for Graphics and Container
+// Import React hook for side effects and refs
+import { useEffect, useRef } from "react";
+// Import PixiJS classes and types
+import { Sprite } from "pixi.js";
 import type { Graphics, Container } from "pixi.js";
-// Import tile rendering function (uses GPU-accelerated sprites)
-import { renderTilesAsSprites } from "@/lib/tileRenderer";
 // Import texture pre-generation function (creates reusable textures)
-import { preGenerateAllTileTextures } from "@/lib/textureGenerator";
+import {
+  preGenerateAllTileTextures,
+  getTileTexture,
+} from "@/lib/textureGenerator";
 // Import type definitions for Tile and MapSettings
 import type { Tile, MapSettings } from "@/lib/mapTypes";
 
@@ -34,6 +36,8 @@ export function useTileRenderer({
   isCameraReady,
   renderer,
 }: UseTileRendererOptions) {
+  // Cache for rendered tile sprites - key is "x,y" coordinate
+  const renderedSpritesCache = useRef<Map<string, any>>(new Map());
   // Effect: Debug logging for tile data and readiness status
   useEffect(() => {
     // Only log if we have tiles
@@ -71,8 +75,8 @@ export function useTileRenderer({
     preGenerateAllTileTextures(renderer, mapSettings.tileSize, 3);
   }, [renderer, mapSettings, isCameraReady]); // Only run once when all dependencies are ready
 
-  // Effect: Render tiles using Sprites (100-300x faster than Graphics!)
-  // This is the main rendering effect that draws all visible tiles
+  // Effect: Render tiles using SMART SPRITE CACHING
+  // Only creates/removes sprites that changed, reuses existing ones
   useEffect(() => {
     // Early return if any required dependency is missing
     if (!tilesLayer || !skeletonLayer) return;
@@ -84,31 +88,82 @@ export function useTileRenderer({
     // Start performance timing
     const perfStart = performance.now();
     console.log(
-      `\n🎨 ========== SPRITE RENDER TRIGGERED (t=${perfStart.toFixed(0)}ms) ==========`
+      `\n🎨 ========== SMART SPRITE RENDER (t=${perfStart.toFixed(0)}ms) ==========`
     );
-    console.log(`   📊 Rendering ${tiles.length} tiles with SPRITES 🚀`);
+    console.log(`   📊 Processing ${tiles.length} tiles with SMART CACHING 🚀`);
 
     // Get tile size from map settings
     const tileSize = mapSettings.tileSize;
 
     try {
-      // IMMEDIATE RENDERING - No delays for best performance!
-      const renderStart = performance.now();
-      console.log("   → Rendering tiles as SPRITES (GPU-accelerated) 🚀");
-
       // Clear skeleton layer (the placeholder outlines)
-      // Once we have real tiles, we don't need the skeleton anymore
-      skeletonLayer.clear();
+      if (skeletonLayer) {
+        skeletonLayer.clear();
+      }
 
-      // Use Sprite-based rendering (100-300x faster than Graphics!)
-      // This function creates Sprite instances that reuse pre-generated textures
-      renderTilesAsSprites(tilesLayer, renderer, tiles, tileSize);
+      // Build map of tiles we need to render
+      const neededTiles = new Map<string, Tile>();
+      for (const tile of tiles) {
+        const key = `${tile.x},${tile.y}`;
+        neededTiles.set(key, tile);
+      }
+
+      // Track what we need to do
+      let spritesToCreate = 0;
+      let spritesToRemove = 0;
+      let spritesToReuse = 0;
+
+      // Check existing sprites and remove ones we don't need
+      const existingSprites = renderedSpritesCache.current;
+      const spritesToDestroy: any[] = [];
+
+      for (const [key, sprite] of existingSprites) {
+        if (neededTiles.has(key)) {
+          // Keep this sprite - we still need it
+          spritesToReuse++;
+        } else {
+          // Remove this sprite - we don't need it anymore
+          spritesToDestroy.push(sprite);
+          spritesToRemove++;
+        }
+      }
+
+      // Remove sprites we don't need
+      for (const sprite of spritesToDestroy) {
+        // Get coordinates before destroying the sprite (with null check)
+        if (sprite && !sprite.destroyed) {
+          const key = `${Math.round(sprite.x / tileSize)},${Math.round(sprite.y / tileSize)}`;
+          tilesLayer.removeChild(sprite);
+          sprite.destroy();
+          existingSprites.delete(key);
+        }
+      }
+
+      // Create sprites for tiles we need but don't have
+      for (const [key, tile] of neededTiles) {
+        if (!existingSprites.has(key)) {
+          const texture = getTileTexture(
+            renderer,
+            tile.tileType,
+            tileSize,
+            tile.visualVariant || 0
+          );
+
+          const sprite = new Sprite(texture);
+          sprite.x = tile.x * tileSize;
+          sprite.y = tile.y * tileSize;
+
+          tilesLayer.addChild(sprite);
+          existingSprites.set(key, sprite);
+          spritesToCreate++;
+        }
+      }
 
       // Calculate and log total render time
       const totalTime = performance.now() - perfStart;
 
       console.log(
-        `✅ Complete SPRITE pipeline finished (${totalTime.toFixed(2)}ms total) - ${tiles.length} tiles 🎯\n`
+        `✅ SMART SPRITE RENDER: ${totalTime.toFixed(2)}ms | ♻️ Reused: ${spritesToReuse} | ➕ Created: ${spritesToCreate} | ➖ Removed: ${spritesToRemove} 🎯\n`
       );
     } catch (error) {
       // Log any errors that occur during rendering
