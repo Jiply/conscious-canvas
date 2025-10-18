@@ -28,6 +28,7 @@ export const createAgent = mutation({
       // Default state
       state: "Idle",
       nextDecisionAt: Date.now() + 5000, // make decision in 5 seconds
+      currentConversationId: undefined, // no conversation initially
 
       // Default emotions (neutral, calm)
       emotions: {
@@ -309,5 +310,33 @@ export const getAgentsNeedingDecisions = query({
     return agents
       .filter((agent) => agent.nextDecisionAt <= args.now)
       .map((agent) => agent._id);
+  },
+});
+
+// ========== MIGRATION HELPERS ==========
+
+/**
+ * Migration: Add currentConversationId field to all existing agents
+ * This can be safely run multiple times (idempotent)
+ */
+export const migrateAddConversationField = mutation({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx) => {
+    const agents = await ctx.db.query("agents").collect();
+    let count = 0;
+
+    for (const agent of agents) {
+      // Only update if the field doesn't exist (undefined check)
+      if (!("currentConversationId" in agent)) {
+        await ctx.db.patch(agent._id, {
+          currentConversationId: undefined,
+        });
+        count++;
+      }
+    }
+
+    console.log(`✓ Migrated ${count} agents to have currentConversationId field`);
+    return count;
   },
 });
