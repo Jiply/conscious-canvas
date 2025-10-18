@@ -80,7 +80,7 @@ export const pruneObservations = mutation({
   handler: async (ctx, args) => {
     const observations = await ctx.db
       .query("observations")
-      .withIndex("by_agent_and_time", (q) => q.eq("agentId", args.agentId))
+      .withIndex("by_agent", (q) => q.eq("agentId", args.agentId))
       .order("desc")
       .collect();
 
@@ -125,7 +125,7 @@ export const getRecentObservations = query({
     const limit = args.limit ?? 20;
     return await ctx.db
       .query("observations")
-      .withIndex("by_agent_and_time", (q) => q.eq("agentId", args.agentId))
+      .withIndex("by_agent", (q) => q.eq("agentId", args.agentId))
       .order("desc")
       .take(limit);
   },
