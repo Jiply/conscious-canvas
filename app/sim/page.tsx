@@ -36,6 +36,7 @@ import {
 import { useHeartbeat } from "@/hooks/use-heartbeat";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { PixiMap } from "@/components/PixiMap";
 
 export default function SimPage() {
   const { isLeader, stats } = useHeartbeat();
@@ -209,7 +210,7 @@ export default function SimPage() {
         </Sidebar>
 
         <SidebarInset>
-          <header className="flex h-14 items-center gap-4 border-b bg-background px-6">
+          <header className="flex h-14 items-center gap-4 border-b bg-background px-4">
             <SidebarTrigger />
             <Separator orientation="vertical" className="h-6" />
             <div className="flex items-center gap-2">
@@ -223,23 +224,10 @@ export default function SimPage() {
             </div>
           </header>
 
-          <main className="flex-1 overflow-hidden bg-muted/20 p-6">
-            <Card className="h-full w-full border-dashed">
-              <CardContent className="flex h-full items-center justify-center p-12">
-                <div className="text-center">
-                  <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-muted">
-                    <MapPin className="h-10 w-10 text-muted-foreground" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-2">
-                    Pixi Canvas Ready
-                  </h3>
-                  <p className="text-sm text-muted-foreground max-w-md">
-                    This area is reserved for the Pixi.js canvas. The simulation
-                    visualization will render here.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+          <main className="flex-1 overflow-hidden bg-muted/20 p-6 flex flex-col">
+            <div className="flex-1 rounded-lg border-2 border-dashed border-border overflow-hidden">
+              <PixiMap />
+            </div>
           </main>
         </SidebarInset>
       </div>
