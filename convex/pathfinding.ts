@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, internalMutation } from "./_generated/server";
+import { query } from "./_generated/server";
 
 // ========== TYPES ==========
 

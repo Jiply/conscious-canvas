@@ -1,5 +1,5 @@
-import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { mutation, query } from "./_generated/server";
 
 // ========== MUTATIONS ==========
 
@@ -35,6 +35,56 @@ export const addDecision = mutation({
       completedAt: undefined, // in progress
       llmLatencyMs: args.llmLatencyMs,
     });
+
+    // Get agent info for event logging
+    const agent = await ctx.db.get(args.agentId);
+    if (agent) {
+      let description = `${agent.name} `;
+
+      switch (args.action) {
+        case "MoveTo":
+          const targetPlace = args.targetPlaceId
+            ? await ctx.db.get(args.targetPlaceId)
+            : null;
+          description += `is heading to ${targetPlace?.name ?? "somewhere"}`;
+          break;
+        case "EngageConversation":
+          const targetAgent = args.targetAgentId
+            ? await ctx.db.get(args.targetAgentId)
+            : null;
+          description += `is chatting with ${targetAgent?.name ?? "someone"}`;
+          break;
+        case "Study":
+          description += `is studying`;
+          break;
+        case "Eat":
+          description += `is grabbing a bite to eat`;
+          break;
+        case "Sleep":
+          description += `is going to sleep`;
+          break;
+        case "Idle":
+          description += `is taking a moment to think`;
+          break;
+      }
+
+      if (args.innerThought) {
+        description += ` - "${args.innerThought}"`;
+      }
+
+      // Log decision event
+      await ctx.db.insert("events", {
+        timestamp: Date.now(),
+        type: "decision",
+        agentIds: [args.agentId],
+        description,
+        location: agent.pos,
+        metadata: {
+          placeId: args.targetPlaceId,
+          severity: "info",
+        },
+      });
+    }
 
     return decisionId;
   },

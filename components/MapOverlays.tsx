@@ -13,6 +13,8 @@ interface MapOverlaysProps {
   onResetCamera: () => void;
   tilesProgress?: number;
   totalTiles?: number;
+  isWorldRunning?: boolean;
+  observerCount?: number;
 }
 
 export function MapOverlays({
@@ -26,9 +28,34 @@ export function MapOverlays({
   onResetCamera,
   tilesProgress = 0,
   totalTiles = 0,
+  isWorldRunning = true,
+  observerCount = 0,
 }: MapOverlaysProps) {
   return (
     <>
+      {/* World Frozen Banner - shown when simulation is paused */}
+      {!isLoading && !isWorldRunning && (
+        <div className="absolute inset-0 bg-black/60 flex items-center justify-center pointer-events-none z-50">
+          <div className="bg-background/95 backdrop-blur-md border-4 border-yellow-500 rounded-2xl p-10 shadow-2xl text-center max-w-lg">
+            <div className="text-6xl mb-4">🧊</div>
+            <h2 className="text-4xl font-bold mb-3">WORLD FROZEN</h2>
+            <p className="text-lg text-muted-foreground mb-4">
+              The universe is paused
+            </p>
+            <div className="flex items-center justify-center gap-2 text-sm">
+              <div className="h-2 w-2 rounded-full bg-yellow-500" />
+              <span className="text-muted-foreground">
+                {observerCount} {observerCount === 1 ? "observer" : "observers"}{" "}
+                watching
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-4 opacity-60">
+              Waiting for observers to start simulation...
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Loading overlay with tile grid animation */}
       {isLoading && (
         <div className="absolute inset-0 bg-background overflow-hidden rounded-lg">
@@ -71,9 +98,12 @@ export function MapOverlays({
                       <div className="h-2 w-2 rounded-full bg-purple-500 animate-pulse" />
                       Loading tiles: {tilesProgress.toFixed(0)}%
                     </div>
-                    <div className="w-48 h-2 bg-muted rounded-full overflow-hidden">
+                    <div className="w-48 h-2 bg-muted rounded-full overflow-hidden relative">
+                      {/* Animated shimmer effect */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-purple-400/30 to-transparent animate-shimmer" />
+                      {/* Actual progress bar */}
                       <div
-                        className="h-full bg-purple-500 transition-all duration-300"
+                        className="h-full bg-gradient-to-r from-purple-600 to-purple-500 transition-all duration-500 ease-out"
                         style={{ width: `${tilesProgress}%` }}
                       />
                     </div>
@@ -168,7 +198,7 @@ export function MapOverlays({
             {Object.entries(TILE_VISUALS).map(([type, config]) => (
               <div key={type} className="flex items-center gap-2">
                 <div
-                  className="w-4 h-4 border border-gray-600 rounded-sm flex-shrink-0"
+                  className="w-4 h-4 rounded-sm flex-shrink-0"
                   style={{
                     backgroundColor: getTileColorString(type as any),
                     boxShadow:
@@ -180,7 +210,7 @@ export function MapOverlays({
                 <span className="capitalize text-[11px] min-w-[50px]">
                   {type}
                 </span>
-                <span className="text-muted-foreground text-[10px]">
+                <span className="text-muted-foreground text-[10px] ml-auto">
                   {config.walkable ? "✓" : "✗"}
                 </span>
               </div>
