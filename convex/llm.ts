@@ -1,6 +1,5 @@
 "use node";
-import { v } from "convex/values";
-import { api } from "./_generated/api";
+
 import { action } from "./_generated/server";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
@@ -20,10 +19,7 @@ export const makeAgentDecision = action({
     action: v.union(
       v.literal("MoveTo"),
       v.literal("EngageConversation"),
-      v.literal("Study"),
-      v.literal("Eat"),
-      v.literal("Idle"),
-      v.literal("Sleep")
+      v.literal("Idle")
     ),
     targetPlaceId: v.optional(v.id("places")),
     targetAgentId: v.optional(v.id("agents")),
@@ -85,21 +81,62 @@ export const makeAgentDecision = action({
       allPlaces
     );
 
-    // 3. Call Groq for decision-making
-    let decision;
-    try {
-      console.log(`🤖 Calling Groq API for ${agent.name}...`);
-      decision = await callGroqForDecision(systemPrompt, userPrompt);
-      console.log(
-        `✅ Groq returned decision: ${decision.action} (thought: "${decision.innerThought}")`
-      );
-    } catch (error) {
-      console.error(
-        `❌ Groq API error for ${agent.name}, falling back to heuristic:`,
-        error
-      );
-      decision = heuristicFallback(agent);
-      console.log(`🔄 Heuristic fallback decision: ${decision.action}`);
+    // 3. Check for critical needs that require immediate action
+    let decision: any;
+    if (agent.needs.hunger >= 0.95) {
+      // Critical hunger - force MoveTo cafe
+      const cafe = allPlaces.find((p: any) => p.kind.toLowerCase() === "cafe");
+      if (cafe) {
+        decision = {
+          action: "MoveTo" as const,
+          targetPlaceId: cafe._id,
+          innerThought: "CRITICAL HUNGER! Must eat immediately or I'll collapse!",
+          emotionDelta: { valence: -0.3, arousal: 0.2 },
+        };
+        console.log(`🚨 CRITICAL HUNGER: Forcing ${agent.name} to go to café`);
+      }
+    } else if (agent.needs.sleepiness >= 0.95) {
+      // Critical sleepiness - force MoveTo dorm
+      const dorm = allPlaces.find((p: any) => p.kind.toLowerCase() === "dorm");
+      if (dorm) {
+        decision = {
+          action: "MoveTo" as const,
+          targetPlaceId: dorm._id,
+          innerThought: "CRITICAL EXHAUSTION! Must sleep immediately or I'll collapse!",
+          emotionDelta: { valence: -0.3, arousal: -0.2 },
+        };
+        console.log(`🚨 CRITICAL SLEEPINESS: Forcing ${agent.name} to go to dorm`);
+      }
+    } else if (agent.needs.studyPressure >= 0.95) {
+      // Critical study pressure - force MoveTo library
+      const library = allPlaces.find((p: any) => p.kind.toLowerCase() === "library");
+      if (library) {
+        decision = {
+          action: "MoveTo" as const,
+          targetPlaceId: library._id,
+          innerThought: "CRITICAL DEADLINE! Must study immediately or I'll fail!",
+          emotionDelta: { valence: -0.2, arousal: 0.3 },
+        };
+        console.log(`🚨 CRITICAL STUDY PRESSURE: Forcing ${agent.name} to go to library`);
+      }
+    }
+
+    // 4. If no critical need, call LLM for decision-making
+    if (!decision) {
+      try {
+        console.log(`🤖 Calling Groq API for ${agent.name}...`);
+        decision = await callGroqForDecision(systemPrompt, userPrompt);
+        console.log(
+          `✅ Groq returned decision: ${decision.action} (thought: "${decision.innerThought}")`
+        );
+      } catch (error) {
+        console.error(
+          `❌ Groq API error for ${agent.name}, falling back to heuristic:`,
+          error
+        );
+        decision = heuristicFallback(agent);
+        console.log(`🔄 Heuristic fallback decision: ${decision.action}`);
+      }
     }
 
     const latency = Date.now() - startTime;
@@ -230,7 +267,7 @@ function buildSystemPrompt(): string {
 
 You must respond with ONLY a valid JSON object matching this schema:
 {
-  "toolName": "MoveTo" | "EngageConversation" | "Study" | "Eat" | "Idle" | "Sleep",
+  "toolName": "MoveTo" | "EngageConversation" | "Idle",
   "parameters": {
     "targetPlaceId": "string (required for MoveTo)",
     "targetAgentId": "string (required for EngageConversation)",
@@ -242,7 +279,9 @@ You must respond with ONLY a valid JSON object matching this schema:
 IMPORTANT RULES:
 1. You are NOT given explicit instructions. You must figure out what to do based on your stats and their consequences.
 2. AVOID being Idle. Idleness is wasteful and boring. If you have no urgent needs, go somewhere interesting (Café, Library, Quad, etc.) to socialize or observe.
-3. ALWAYS be proactive. Move around campus, explore, meet people. Standing still is for statues, not students.`;
+3. ALWAYS be proactive. Move around campus, explore, meet people. Standing still is for statues, not students.
+4. To eat, sleep, or study, you MUST use MoveTo to go to Café/Dorm/Library. Actions happen automatically when you arrive at the place.
+5. "Eat", "Sleep", and "Study" are NOT valid decisions. Only use MoveTo, EngageConversation, or Idle.`;
 }
 
 /**
@@ -295,25 +334,29 @@ CURRENT STATE:
 
 INTERNAL STATS (0.0 - 1.0 scale):
 
-1. HUNGER: ${agent.needs.hunger.toFixed(2)}
+1. HUNGER: ${agent.needs.hunger.toFixed(2)} ${agent.needs.hunger > 0.9 ? "🚨 CRITICAL! STARVING!" : agent.needs.hunger > 0.7 ? "⚠️ Very hungry" : ""}
    → Increases over time
-   → At 1.0: You will feel weak, unable to focus, and may collapse
-   → Reduce by: Going to Café and eating
+   → At 0.7+: You are very hungry and need to eat soon
+   → At 0.9+: CRITICAL! You are starving and MUST eat immediately or collapse!
+   → Reduce by: Use "MoveTo" action to go to any Café location
 
-2. SLEEPINESS: ${agent.needs.sleepiness.toFixed(2)}
+2. SLEEPINESS: ${agent.needs.sleepiness.toFixed(2)} ${agent.needs.sleepiness > 0.9 ? "🚨 CRITICAL! EXHAUSTED!" : agent.needs.sleepiness > 0.7 ? "⚠️ Very tired" : ""}
    → Increases over time
-   → At 1.0: You will become exhausted, unable to function, and must rest
-   → Reduce by: Going to Dorm and sleeping
+   → At 0.7+: You are very tired and need rest soon
+   → At 0.9+: CRITICAL! You are exhausted and MUST sleep immediately or collapse!
+   → Reduce by: Use "MoveTo" action to go to any Dorm location
 
-3. STUDY PRESSURE: ${agent.needs.studyPressure.toFixed(2)}
+3. STUDY PRESSURE: ${agent.needs.studyPressure.toFixed(2)} ${agent.needs.studyPressure > 0.9 ? "🚨 CRITICAL! FAILING!" : agent.needs.studyPressure > 0.7 ? "⚠️ High pressure" : ""}
    → Increases over time (academic deadlines approaching)
-   → At 1.0: You will fail your classes and be overwhelmed with stress
-   → Reduce by: Going to Library and studying
+   → At 0.7+: High academic pressure, should study soon
+   → At 0.9+: CRITICAL! You are failing and MUST study immediately!
+   → Reduce by: Use "MoveTo" action to go to Library location
 
-4. SOCIAL DRIVE: ${agent.needs.socialDrive.toFixed(2)}
+4. SOCIAL DRIVE: ${agent.needs.socialDrive.toFixed(2)} ${agent.needs.socialDrive > 0.9 ? "🚨 Very lonely" : agent.needs.socialDrive > 0.7 ? "⚠️ Feeling isolated" : ""}
    → Increases over time (humans need social interaction)
-   → At 1.0: You will feel isolated, lonely, and mentally unwell
-   → Reduce by: Engaging in conversation with nearby agents
+   → At 0.7+: Feeling isolated, should socialize
+   → At 0.9+: Very lonely, seek social interaction
+   → Reduce by: Use "EngageConversation" with nearby agents
 
 EMOTIONS:
 - Mood (valence): ${agent.emotions.valence.toFixed(2)} (${agent.emotions.valence > 0 ? "positive" : "negative"})
@@ -339,7 +382,7 @@ async function callGroqForDecision(
   systemPrompt: string,
   userPrompt: string
 ): Promise<{
-  action: "MoveTo" | "EngageConversation" | "Study" | "Eat" | "Idle" | "Sleep";
+  action: "MoveTo" | "EngageConversation" | "Idle";
   targetPlaceId?: string;
   targetAgentId?: string;
   utterance?: string;
@@ -422,9 +465,10 @@ function calculateEmotionDelta(action: string): {
 
 /**
  * Heuristic fallback when LLM is unavailable or too slow
+ * NOTE: Eat, Sleep, Study are NOT valid decision actions - agents must MoveTo appropriate places!
  */
 function heuristicFallback(agent: any): {
-  action: "MoveTo" | "EngageConversation" | "Study" | "Eat" | "Idle" | "Sleep";
+  action: "MoveTo" | "EngageConversation" | "Idle";
   targetPlaceId?: any;
   targetAgentId?: any;
   utterance?: string;
@@ -433,43 +477,14 @@ function heuristicFallback(agent: any): {
 } {
   const { needs } = agent;
 
-  // Simple utility-based decision
-  if (needs.hunger > 0.7) {
-    return {
-      action: "Eat",
-      innerThought: "I'm really hungry, need to grab something to eat.",
-      emotionDelta: { valence: 0.1, arousal: -0.1 },
-    };
-  }
+  // NOTE: hunger, sleepiness, and studyPressure require MoveTo decisions
+  // We can't perform Eat/Sleep/Study directly - that happens when agent reaches the place
 
-  if (needs.sleepiness > 0.8) {
-    return {
-      action: "Sleep",
-      innerThought: "So tired... need to rest.",
-      emotionDelta: { valence: -0.1, arousal: -0.2 },
-    };
-  }
-
-  if (needs.studyPressure > 0.6) {
-    return {
-      action: "Study",
-      innerThought: "Better hit the books for a bit.",
-      emotionDelta: { valence: -0.05, arousal: 0.1 },
-    };
-  }
-
-  if (needs.socialDrive > 0.6) {
-    return {
-      action: "Idle",
-      innerThought: "Maybe I should find someone to hang out with.",
-      emotionDelta: { valence: 0, arousal: 0 },
-    };
-  }
-
-  // Default: idle
+  // Just default to Idle in fallback - LLM should handle proper decision making
+  // If fallback is being called, something is wrong with LLM anyway
   return {
     action: "Idle",
-    innerThought: "Just taking a moment to myself.",
+    innerThought: "Taking a moment to assess my situation.",
     emotionDelta: { valence: 0, arousal: -0.05 },
   };
 }
