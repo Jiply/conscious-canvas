@@ -1,19 +1,18 @@
 import { TILE_VISUALS } from "@/lib/mapTypes";
 import { getTileColorString } from "@/lib/tileRenderer";
-import type { MapSettings, Tile, Place } from "@/lib/mapTypes";
+import type { MapSettings, Place } from "@/lib/mapTypes";
 
 interface MapOverlaysProps {
   isLoading: boolean;
   mapSettings: MapSettings | undefined;
   places: Place[] | undefined;
   camera: { x: number; y: number; scale: number };
-  debouncedCamera: { x: number; y: number; scale: number };
   initialCameraPos: { x: number; y: number; scale: number };
-  tiles: Tile[] | undefined;
-  visibleRegion: { x: number; y: number; width: number; height: number } | null;
   showStats: boolean;
   fps: number;
   onResetCamera: () => void;
+  tilesProgress?: number;
+  totalTiles?: number;
 }
 
 export function MapOverlays({
@@ -21,13 +20,12 @@ export function MapOverlays({
   mapSettings,
   places,
   camera,
-  debouncedCamera,
   initialCameraPos,
-  tiles,
-  visibleRegion,
   showStats,
   fps,
   onResetCamera,
+  tilesProgress = 0,
+  totalTiles = 0,
 }: MapOverlaysProps) {
   return (
     <>
@@ -67,6 +65,23 @@ export function MapOverlays({
                     Fetching places
                   </div>
                 )}
+                {tilesProgress < 100 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <div className="h-2 w-2 rounded-full bg-purple-500 animate-pulse" />
+                      Loading tiles: {tilesProgress.toFixed(0)}%
+                    </div>
+                    <div className="w-48 h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-purple-500 transition-all duration-300"
+                        style={{ width: `${tilesProgress}%` }}
+                      />
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {totalTiles.toLocaleString()} tiles loaded
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -103,16 +118,11 @@ export function MapOverlays({
             {mapSettings.gridWidth} × {mapSettings.gridHeight} tiles
           </div>
           <div className="text-muted-foreground">
-            {tiles?.length || 0} tiles loaded
+            {totalTiles.toLocaleString()} tiles cached
           </div>
           <div className="text-muted-foreground">
             {places?.length || 0} places
           </div>
-          {visibleRegion && (
-            <div className="text-muted-foreground mt-1 text-[10px]">
-              Viewport: {visibleRegion.width}×{visibleRegion.height} tiles
-            </div>
-          )}
         </div>
       )}
 
@@ -128,47 +138,23 @@ export function MapOverlays({
             <div>
               Camera: ({Math.round(camera.x)}, {Math.round(camera.y)})
             </div>
-            <div>Tiles: {tiles?.length || 0} loaded</div>
-            <div>
-              Viewport: {visibleRegion?.width}×{visibleRegion?.height} tiles
-            </div>
+            <div>Tiles: {totalTiles.toLocaleString()} cached</div>
             <div>Resolution: {(window.devicePixelRatio * 1.5).toFixed(1)}x</div>
             <div className="pt-1 border-t border-green-500/30 mt-1">
               <div className="text-cyan-300 font-semibold mb-1">📏 Scale</div>
               <div>1 tile = {mapSettings.metersPerTile}m</div>
-              {visibleRegion && (
-                <>
-                  <div>
-                    View:{" "}
-                    {(visibleRegion.width * mapSettings.metersPerTile).toFixed(
-                      0
-                    )}
-                    m ×{" "}
-                    {(visibleRegion.height * mapSettings.metersPerTile).toFixed(
-                      0
-                    )}
-                    m
-                  </div>
-                  <div className="text-muted-foreground">
-                    (
-                    {(
-                      visibleRegion.width *
-                      visibleRegion.height *
-                      mapSettings.metersPerTile *
-                      mapSettings.metersPerTile
-                    ).toFixed(0)}
-                    m²)
-                  </div>
-                </>
-              )}
+              <div>
+                Map:{" "}
+                {(mapSettings.gridWidth * mapSettings.metersPerTile).toFixed(0)}
+                m ×{" "}
+                {(mapSettings.gridHeight * mapSettings.metersPerTile).toFixed(
+                  0
+                )}
+                m
+              </div>
             </div>
             <div className="pt-1 border-t border-green-500/30">
-              {camera.x !== debouncedCamera.x ||
-              camera.y !== debouncedCamera.y ? (
-                <span className="text-yellow-400">⏳ Loading tiles...</span>
-              ) : (
-                <span className="text-green-400">✓ Tiles loaded</span>
-              )}
+              <span className="text-green-400">✓ All tiles pre-rendered</span>
             </div>
           </div>
         </div>

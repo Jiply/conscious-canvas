@@ -74,7 +74,9 @@ export const tick = mutation({
       const agents = await ctx.db.query("agents").collect();
 
       // 6. Process all agents IN PARALLEL
-      await Promise.all(agents.map((agent) => processAgentTick(ctx, agent, agents)));
+      await Promise.all(
+        agents.map((agent) => processAgentTick(ctx, agent, agents))
+      );
 
       // 7. Update needs for all agents (homeostasis)
       await Promise.all(agents.map((agent) => updateAgentNeeds(ctx, agent)));
@@ -125,7 +127,9 @@ async function processAgentTick(
 
   // Batch insert observations
   if (observations.length > 0) {
-    await Promise.all(observations.map((obs) => ctx.db.insert("observations", obs)));
+    await Promise.all(
+      observations.map((obs) => ctx.db.insert("observations", obs))
+    );
   }
 
   // Prune old observations (keep last 50)
@@ -155,7 +159,10 @@ async function updateAgentNeeds(ctx: any, agent: Doc<"agents">) {
   const socialDriveGrowthRate = 0.15 / HOUR_IN_SECONDS;
 
   const newNeeds = {
-    hunger: Math.min(1, agent.needs.hunger + hungerGrowthRate * SIMULATED_SECONDS),
+    hunger: Math.min(
+      1,
+      agent.needs.hunger + hungerGrowthRate * SIMULATED_SECONDS
+    ),
     sleepiness: Math.min(
       1,
       agent.needs.sleepiness + sleepinessGrowthRate * SIMULATED_SECONDS
@@ -347,7 +354,11 @@ function calculateSalience(
 /**
  * Prune old observations, keep only the most recent N
  */
-async function pruneOldObservations(ctx: any, agentId: Id<"agents">, keepCount: number) {
+async function pruneOldObservations(
+  ctx: any,
+  agentId: Id<"agents">,
+  keepCount: number
+) {
   const observations = await ctx.db
     .query("observations")
     .withIndex("by_agent", (q: any) => q.eq("agentId", agentId))
