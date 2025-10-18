@@ -4,8 +4,8 @@
  * Handles large map generation by splitting into multiple function calls
  */
 
-import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
+import { internalMutation } from "./_generated/server";
 
 /**
  * Continue inserting tiles in batches
