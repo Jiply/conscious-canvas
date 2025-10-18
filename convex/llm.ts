@@ -115,6 +115,39 @@ export const makeAgentDecision = action({
       console.log(`✓ Idle decision completed immediately for ${agent.name}`);
     }
 
+    // 4.6. If decision is EngageConversation, create conversation
+    if (decision.action === "EngageConversation" && decision.targetAgentId) {
+      try {
+        // Check if target agent is available (not already in a conversation)
+        const targetAgent = await ctx.runQuery(api.agents.getAgent, {
+          agentId: decision.targetAgentId,
+        });
+
+        if (targetAgent && !targetAgent.currentConversationId) {
+          // Create conversation between the two agents
+          const conversationId = await ctx.runMutation(api.conversationsMutations.createConversation, {
+            initiatorId: args.agentId,
+            targetId: decision.targetAgentId,
+          });
+
+          console.log(`💬 Created conversation ${conversationId} between ${agent.name} and ${targetAgent.name}`);
+
+          // Complete the EngageConversation decision since conversation is now active
+          await ctx.runMutation(api.decisions.completeDecision, {
+            decisionId,
+          });
+        } else {
+          console.log(`❌ Cannot start conversation: ${targetAgent?.name} is already in a conversation`);
+          // Mark decision as completed anyway
+          await ctx.runMutation(api.decisions.completeDecision, {
+            decisionId,
+          });
+        }
+      } catch (error) {
+        console.error(`Error creating conversation:`, error);
+      }
+    }
+
     // 5. Execute MoveTo decision by calculating path
     if (decision.action === "MoveTo" && decision.targetPlaceId) {
       try {
