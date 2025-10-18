@@ -38,32 +38,6 @@ export function useTileRenderer({
 }: UseTileRendererOptions) {
   // Cache for rendered tile sprites - key is "x,y" coordinate
   const renderedSpritesCache = useRef<Map<string, any>>(new Map());
-  // Effect: Debug logging for tile data and readiness status
-  useEffect(() => {
-    // Only log if we have tiles
-    if (tiles && tiles.length > 0) {
-      // Check if all dependencies are ready for rendering
-      const canRender =
-        !!tilesLayer && !!skeletonLayer && !!mapSettings && isCameraReady;
-
-      // Get unique list of tile types for debugging
-      const tileTypes = [...new Set(tiles.map((t) => t.tileType))];
-      console.log(
-        `📊 [TILES] ${tiles.length} tiles ready | Types: ${tileTypes.join(", ")}`
-      );
-
-      // If we can't render yet, log what's missing
-      if (!canRender) {
-        console.warn("⏳ [TILES] Waiting to render:", {
-          hasTilesLayer: !!tilesLayer, // Check if tiles layer exists
-          hasSkeletonLayer: !!skeletonLayer, // Check if skeleton layer exists
-          hasMapSettings: !!mapSettings, // Check if map settings loaded
-          isCameraReady, // Check if camera is ready
-        });
-      }
-    }
-  }, [tiles, tilesLayer, skeletonLayer, mapSettings, isCameraReady, renderer]); // Re-run when any dependency changes
-
   // Effect: Pre-generate tile textures once when ready
   // This creates reusable GPU textures for each tile type to avoid regenerating them every frame
   useEffect(() => {
@@ -84,13 +58,6 @@ export function useTileRenderer({
     if (!mapSettings) return;
     if (!isCameraReady) return;
     if (!renderer) return;
-
-    // Start performance timing
-    const perfStart = performance.now();
-    console.log(
-      `\n🎨 ========== SMART SPRITE RENDER (t=${perfStart.toFixed(0)}ms) ==========`
-    );
-    console.log(`   📊 Processing ${tiles.length} tiles with SMART CACHING 🚀`);
 
     // Get tile size from map settings
     const tileSize = mapSettings.tileSize;
@@ -158,16 +125,8 @@ export function useTileRenderer({
           spritesToCreate++;
         }
       }
-
-      // Calculate and log total render time
-      const totalTime = performance.now() - perfStart;
-
-      console.log(
-        `✅ SMART SPRITE RENDER: ${totalTime.toFixed(2)}ms | ♻️ Reused: ${spritesToReuse} | ➕ Created: ${spritesToCreate} | ➖ Removed: ${spritesToRemove} 🎯\n`
-      );
     } catch (error) {
-      // Log any errors that occur during rendering
-      console.error("❌ Error rendering tiles:", error);
+      // Error rendering tiles
     }
   }, [tiles, mapSettings, isCameraReady, tilesLayer, skeletonLayer, renderer]); // Re-run when any of these change
 }

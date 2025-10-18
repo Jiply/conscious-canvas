@@ -62,7 +62,7 @@ export default function SimPage() {
 
   const toggleAdmin = hasObserversAPI
     ? useMutation((api as any).observers.toggleAdmin)
-    : async () => console.warn("Observers API not deployed yet");
+    : async () => {};
   const [searchQuery, setSearchQuery] = useState("");
   const [centerOnPlace, setCenterOnPlace] = useState<{
     x: number;
@@ -121,15 +121,15 @@ export default function SimPage() {
     <SidebarProvider defaultOpen={true}>
       <div className="flex h-screen w-full">
         <Sidebar side="left" variant="sidebar" collapsible="offcanvas">
-          <SidebarHeader className="border-b">
-            <div className="flex items-center justify-between px-2 py-1">
+          <SidebarHeader className="border-b space-y-1">
+            <div className="flex items-center justify-between px-2 pt-2">
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-semibold whitespace-nowrap">
                   Conscious Campus
                 </h2>
               </div>
             </div>
-            <div className="px-2 py-1 space-y-2">
+            <div className="px-2 pb-2 space-y-2">
               <div className="flex items-center gap-2 text-sm">
                 <Clock className="h-4 w-4 flex-shrink-0" />
                 <span className="text-muted-foreground whitespace-nowrap">
@@ -167,8 +167,8 @@ export default function SimPage() {
                   Observers:
                 </span>
                 <Badge
-                  variant={observerCount > 0 ? "default" : "outline"}
                   className="text-xs font-mono whitespace-nowrap"
+                  variant={observerCount > 0 ? "default" : "outline"}
                 >
                   {observerCount}
                 </Badge>
@@ -197,7 +197,7 @@ export default function SimPage() {
                 <SidebarGroupLabel className="px-2">
                   Search Agents
                 </SidebarGroupLabel>
-                <SidebarGroupContent className="p-2">
+                <SidebarGroupContent className="px-2 pb-2">
                   <div className="relative">
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
                     <Input
