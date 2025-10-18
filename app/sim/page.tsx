@@ -18,7 +18,6 @@ import {
   SidebarSeparator,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -127,198 +126,208 @@ export default function SimPage() {
             </div>
           </SidebarHeader>
 
-          <SidebarContent>
-            <SidebarGroup>
-              <SidebarGroupLabel className="px-4">
-                Search Agents
-              </SidebarGroupLabel>
-              <SidebarGroupContent className="px-4 py-2">
-                <div className="relative">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
-                  <Input
-                    placeholder="Search by name, role, state..."
-                    className="pl-9 h-9"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-              </SidebarGroupContent>
-            </SidebarGroup>
-
-            <SidebarSeparator />
-
-            <SidebarGroup>
-              <SidebarGroupLabel className="px-4">
-                <div className="flex items-center justify-between w-full">
-                  <span>Agents</span>
-                  <Badge
-                    variant="secondary"
-                    className="ml-auto font-mono text-xs whitespace-nowrap"
-                  >
-                    {filteredAgents.length}/{agents.length}
-                  </Badge>
-                </div>
-              </SidebarGroupLabel>
-              <SidebarGroupContent className="px-2">
-                {filteredAgents.length === 0 ? (
-                  <div className="px-4 py-4 text-center text-sm text-muted-foreground leading-relaxed">
-                    {agents.length === 0
-                      ? "No agents yet. They will appear here when the simulation starts."
-                      : "No agents match your search."}
+          <SidebarContent className="flex flex-col">
+            {/* Fixed Search Section */}
+            <div className="flex-shrink-0">
+              <SidebarGroup>
+                <SidebarGroupLabel className="px-4">
+                  Search Agents
+                </SidebarGroupLabel>
+                <SidebarGroupContent className="px-4 py-2">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <Input
+                      placeholder="Search by name, role, state..."
+                      className="pl-9 h-9"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
                   </div>
-                ) : (
-                  <TooltipProvider>
-                    <SidebarMenu>
-                      {filteredAgents.map((agent) => (
-                        <SidebarMenuItem key={agent._id}>
-                          <Tooltip delayDuration={300}>
-                            <TooltipTrigger asChild>
-                              <SidebarMenuButton className="h-auto py-1.5 px-3">
-                                <User className="h-4 w-4 flex-shrink-0" />
-                                <div className="flex flex-col items-start gap-0.5 min-w-0 flex-1">
-                                  <span className="text-sm font-medium truncate w-full">
-                                    {agent.name}
-                                  </span>
-                                  <span className="text-xs text-muted-foreground truncate w-full">
-                                    {agent.state} • {agent.role}
-                                  </span>
-                                </div>
-                              </SidebarMenuButton>
-                            </TooltipTrigger>
-                            <TooltipContent
-                              side="right"
-                              className="max-w-xs p-4"
-                              sideOffset={8}
-                            >
-                              <div className="space-y-3">
-                                <div className="pb-2 border-b">
-                                  <p className="font-semibold text-sm">
-                                    {agent.name}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground mt-0.5">
-                                    {agent.role}
-                                  </p>
-                                </div>
-                                {agent.personality && (
+                </SidebarGroupContent>
+              </SidebarGroup>
+              <SidebarSeparator />
+            </div>
+
+            {/* Scrollable Agents List */}
+            <div className="flex-1 overflow-y-auto">
+              <SidebarGroup>
+                <SidebarGroupLabel className="px-4">
+                  <div className="flex items-center justify-between w-full">
+                    <span>Agents</span>
+                    <Badge
+                      variant="secondary"
+                      className="ml-auto font-mono text-xs whitespace-nowrap"
+                    >
+                      {filteredAgents.length}/{agents.length}
+                    </Badge>
+                  </div>
+                </SidebarGroupLabel>
+                <SidebarGroupContent className="px-2">
+                  {filteredAgents.length === 0 ? (
+                    <div className="px-4 py-4 text-center text-sm text-muted-foreground leading-relaxed">
+                      {agents.length === 0
+                        ? "No agents yet. They will appear here when the simulation starts."
+                        : "No agents match your search."}
+                    </div>
+                  ) : (
+                    <TooltipProvider>
+                      <SidebarMenu>
+                        {filteredAgents.map((agent) => (
+                          <SidebarMenuItem key={agent._id}>
+                            <Tooltip delayDuration={300}>
+                              <TooltipTrigger asChild>
+                                <SidebarMenuButton className="h-auto py-1.5 px-3">
+                                  <User className="h-4 w-4 flex-shrink-0" />
+                                  <div className="flex flex-col items-start min-w-0 flex-1">
+                                    <span className="text-sm font-medium truncate w-full">
+                                      {agent.name}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground truncate w-full">
+                                      {agent.state} • {agent.role}
+                                    </span>
+                                  </div>
+                                </SidebarMenuButton>
+                              </TooltipTrigger>
+                              <TooltipContent
+                                side="right"
+                                className="max-w-xs p-4"
+                                sideOffset={8}
+                              >
+                                <div className="space-y-3">
+                                  <div className="pb-2 border-b">
+                                    <p className="font-semibold text-sm">
+                                      {agent.name}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                      {agent.role}
+                                    </p>
+                                  </div>
+                                  {agent.personality && (
+                                    <div className="space-y-1">
+                                      <p className="text-xs font-medium">
+                                        Personality
+                                      </p>
+                                      <p className="text-xs text-muted-foreground leading-relaxed">
+                                        {agent.personality}
+                                      </p>
+                                    </div>
+                                  )}
                                   <div className="space-y-1">
                                     <p className="text-xs font-medium">
-                                      Personality
+                                      Position
                                     </p>
-                                    <p className="text-xs text-muted-foreground leading-relaxed">
-                                      {agent.personality}
+                                    <p className="text-xs text-muted-foreground font-mono">
+                                      ({agent.pos.x}, {agent.pos.y})
                                     </p>
                                   </div>
-                                )}
-                                <div className="space-y-1">
-                                  <p className="text-xs font-medium">
-                                    Position
-                                  </p>
-                                  <p className="text-xs text-muted-foreground font-mono">
-                                    ({agent.pos.x}, {agent.pos.y})
-                                  </p>
-                                </div>
-                                <div className="space-y-1">
-                                  <p className="text-xs font-medium">State</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {agent.state}
-                                  </p>
-                                </div>
-                                <div className="space-y-1.5">
-                                  <p className="text-xs font-medium">
-                                    Emotions
-                                  </p>
-                                  <div className="flex gap-3 text-xs flex-wrap">
-                                    <span className="whitespace-nowrap">
-                                      Mood:{" "}
-                                      {agent.emotions.valence > 0 ? "😊" : "😔"}{" "}
-                                      {agent.emotions.valence.toFixed(2)}
-                                    </span>
-                                    <span className="whitespace-nowrap">
-                                      Energy: ⚡{" "}
-                                      {agent.emotions.arousal.toFixed(2)}
-                                    </span>
+                                  <div className="space-y-1">
+                                    <p className="text-xs font-medium">State</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {agent.state}
+                                    </p>
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    <p className="text-xs font-medium">
+                                      Emotions
+                                    </p>
+                                    <div className="flex gap-3 text-xs flex-wrap">
+                                      <span className="whitespace-nowrap">
+                                        Mood:{" "}
+                                        {agent.emotions.valence > 0
+                                          ? "😊"
+                                          : "😔"}{" "}
+                                        {agent.emotions.valence.toFixed(2)}
+                                      </span>
+                                      <span className="whitespace-nowrap">
+                                        Energy: ⚡{" "}
+                                        {agent.emotions.arousal.toFixed(2)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    <p className="text-xs font-medium">Needs</p>
+                                    <div className="grid grid-cols-2 gap-2 text-xs">
+                                      <span className="whitespace-nowrap">
+                                        😴{" "}
+                                        {(agent.needs.sleepiness * 100).toFixed(
+                                          0
+                                        )}
+                                        %
+                                      </span>
+                                      <span className="whitespace-nowrap">
+                                        🍔{" "}
+                                        {(agent.needs.hunger * 100).toFixed(0)}%
+                                      </span>
+                                      <span className="whitespace-nowrap">
+                                        📚{" "}
+                                        {(
+                                          agent.needs.studyPressure * 100
+                                        ).toFixed(0)}
+                                        %
+                                      </span>
+                                      <span className="whitespace-nowrap">
+                                        👥{" "}
+                                        {(
+                                          agent.needs.socialDrive * 100
+                                        ).toFixed(0)}
+                                        %
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
-                                <div className="space-y-1.5">
-                                  <p className="text-xs font-medium">Needs</p>
-                                  <div className="grid grid-cols-2 gap-2 text-xs">
-                                    <span className="whitespace-nowrap">
-                                      😴{" "}
-                                      {(agent.needs.sleepiness * 100).toFixed(
-                                        0
-                                      )}
-                                      %
-                                    </span>
-                                    <span className="whitespace-nowrap">
-                                      🍔 {(agent.needs.hunger * 100).toFixed(0)}
-                                      %
-                                    </span>
-                                    <span className="whitespace-nowrap">
-                                      📚{" "}
-                                      {(
-                                        agent.needs.studyPressure * 100
-                                      ).toFixed(0)}
-                                      %
-                                    </span>
-                                    <span className="whitespace-nowrap">
-                                      👥{" "}
-                                      {(agent.needs.socialDrive * 100).toFixed(
-                                        0
-                                      )}
-                                      %
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </SidebarMenuItem>
-                      ))}
-                    </SidebarMenu>
-                  </TooltipProvider>
-                )}
-              </SidebarGroupContent>
-            </SidebarGroup>
+                              </TooltipContent>
+                            </Tooltip>
+                          </SidebarMenuItem>
+                        ))}
+                      </SidebarMenu>
+                    </TooltipProvider>
+                  )}
+                </SidebarGroupContent>
+              </SidebarGroup>
+            </div>
 
             <SidebarSeparator />
 
-            <SidebarGroup>
-              <SidebarGroupLabel>Places</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton>
-                      <MapPin className="h-4 w-4" />
-                      <span>Dorm</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton>
-                      <MapPin className="h-4 w-4" />
-                      <span>Lecture Hall</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton>
-                      <MapPin className="h-4 w-4" />
-                      <span>Café</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton>
-                      <MapPin className="h-4 w-4" />
-                      <span>Library</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton>
-                      <MapPin className="h-4 w-4" />
-                      <span>Quad</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+            {/* Scrollable Places List */}
+            <div className="flex-1 overflow-y-auto">
+              <SidebarGroup>
+                <SidebarGroupLabel>Places</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton>
+                        <MapPin className="h-4 w-4" />
+                        <span>Dorm</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton>
+                        <MapPin className="h-4 w-4" />
+                        <span>Lecture Hall</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton>
+                        <MapPin className="h-4 w-4" />
+                        <span>Café</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton>
+                        <MapPin className="h-4 w-4" />
+                        <span>Library</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton>
+                        <MapPin className="h-4 w-4" />
+                        <span>Quad</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            </div>
           </SidebarContent>
 
           <SidebarFooter className="border-t">
