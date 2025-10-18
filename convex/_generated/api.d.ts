@@ -12,8 +12,11 @@ import type * as agents from "../agents.js";
 import type * as decisions from "../decisions.js";
 import type * as heartbeat from "../heartbeat.js";
 import type * as llm from "../llm.js";
+import type * as map from "../map.js";
 import type * as observations from "../observations.js";
 import type * as opinions from "../opinions.js";
+import type * as seedMap from "../seedMap.js";
+import type * as tasks from "../tasks.js";
 
 import type {
   ApiFromModules,
@@ -34,8 +37,11 @@ declare const fullApi: ApiFromModules<{
   decisions: typeof decisions;
   heartbeat: typeof heartbeat;
   llm: typeof llm;
+  map: typeof map;
   observations: typeof observations;
   opinions: typeof opinions;
+  seedMap: typeof seedMap;
+  tasks: typeof tasks;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 
