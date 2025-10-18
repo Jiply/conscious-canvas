@@ -197,7 +197,9 @@ export default function SimPage() {
                                   </p>
                                 </div>
                                 <div>
-                                  <p className="text-xs font-medium">Emotions:</p>
+                                  <p className="text-xs font-medium">
+                                    Emotions:
+                                  </p>
                                   <div className="flex gap-2 text-xs">
                                     <span>
                                       Mood:{" "}
@@ -214,21 +216,29 @@ export default function SimPage() {
                                   <p className="text-xs font-medium">Needs:</p>
                                   <div className="grid grid-cols-2 gap-1 text-xs">
                                     <span>
-                                      😴 {(agent.needs.sleepiness * 100).toFixed(0)}%
-                                    </span>
-                                    <span>
-                                      🍔 {(agent.needs.hunger * 100).toFixed(0)}%
-                                    </span>
-                                    <span>
-                                      📚{" "}
-                                      {(agent.needs.studyPressure * 100).toFixed(
+                                      😴{" "}
+                                      {(agent.needs.sleepiness * 100).toFixed(
                                         0
                                       )}
                                       %
                                     </span>
                                     <span>
+                                      🍔 {(agent.needs.hunger * 100).toFixed(0)}
+                                      %
+                                    </span>
+                                    <span>
+                                      📚{" "}
+                                      {(
+                                        agent.needs.studyPressure * 100
+                                      ).toFixed(0)}
+                                      %
+                                    </span>
+                                    <span>
                                       👥{" "}
-                                      {(agent.needs.socialDrive * 100).toFixed(0)}%
+                                      {(agent.needs.socialDrive * 100).toFixed(
+                                        0
+                                      )}
+                                      %
                                     </span>
                                   </div>
                                 </div>
