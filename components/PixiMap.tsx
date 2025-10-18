@@ -13,9 +13,20 @@ import { useTileRendererCached } from "@/hooks/use-tile-renderer-cached";
 interface PixiMapProps {
   className?: string;
   onWorldReady?: (isReady: boolean) => void;
+  centerOnLocation?: { x: number; y: number } | null;
+  onCenterComplete?: () => void;
+  isWorldRunning?: boolean;
+  observerCount?: number;
 }
 
-export function PixiMap({ className, onWorldReady }: PixiMapProps) {
+export function PixiMap({
+  className,
+  onWorldReady,
+  centerOnLocation,
+  onCenterComplete,
+  isWorldRunning,
+  observerCount,
+}: PixiMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [isCameraReady, setIsCameraReady] = useState(false);
@@ -160,6 +171,26 @@ export function PixiMap({ className, onWorldReady }: PixiMapProps) {
     }
   }, [camera, isCameraReady, refs.worldContainer]);
 
+  // Handle camera centering on location
+  useEffect(() => {
+    if (!centerOnLocation || !mapSettings || !isCameraReady) return;
+
+    const tileSize = mapSettings.tileSize;
+    const targetX = centerOnLocation.x * tileSize;
+    const targetY = centerOnLocation.y * tileSize;
+
+    // Calculate camera position to center the target in the viewport
+    const newX = dimensions.width / 2 - targetX * camera.scale;
+    const newY = dimensions.height / 2 - targetY * camera.scale;
+
+    setCamera({ ...camera, x: newX, y: newY });
+
+    // Notify parent that centering is complete
+    if (onCenterComplete) {
+      onCenterComplete();
+    }
+  }, [centerOnLocation, mapSettings, isCameraReady, dimensions, camera.scale]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -225,6 +256,8 @@ export function PixiMap({ className, onWorldReady }: PixiMapProps) {
         onResetCamera={resetCamera}
         tilesProgress={tilesProgress}
         totalTiles={totalTiles}
+        isWorldRunning={isWorldRunning}
+        observerCount={observerCount}
       />
     </div>
   );

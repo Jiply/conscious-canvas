@@ -71,6 +71,14 @@ export function useAgentRenderer({
         const agentContainer = new Container();
         agentsLayer.addChild(agentContainer);
 
+        // Draw vision radius (20 tiles = 20 * tileSize pixels)
+        const visionRadius = new Graphics();
+        const radiusInPixels = 20 * tileSize;
+        visionRadius.circle(0, 0, radiusInPixels);
+        visionRadius.fill({ color: 0x3b82f6, alpha: 0.08 }); // Blue with low opacity
+        visionRadius.stroke({ width: 2, color: 0x3b82f6, alpha: 0.25 }); // Blue border
+        agentContainer.addChild(visionRadius);
+
         // Draw agent circle
         const agentCircle = new Graphics();
         agentCircle.circle(0, 0, 8);
@@ -142,7 +150,11 @@ export function useAgentRenderer({
           Math.abs(agentData.targetX - targetX) > 0.1 ||
           Math.abs(agentData.targetY - targetY) > 0.1;
 
-        if (targetChanged) {
+        if (
+          targetChanged &&
+          agentData.container &&
+          !agentData.container.destroyed
+        ) {
           // Start new animation from current position
           agentData.startX = agentData.container.x;
           agentData.startY = agentData.container.y;
