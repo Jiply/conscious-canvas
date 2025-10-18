@@ -89,8 +89,7 @@ export const makeAgentDecision = action({
         decision = {
           action: "MoveTo" as const,
           targetPlaceId: cafe._id,
-          innerThought:
-            "CRITICAL HUNGER! Must eat immediately or I'll collapse!",
+          innerThought: `CRITICAL HUNGER! Must eat immediately or I'll collapse!`,
           emotionDelta: { valence: -0.3, arousal: 0.2 },
         };
         console.log(`🚨 CRITICAL HUNGER: Forcing ${agent.name} to go to café`);
@@ -102,8 +101,7 @@ export const makeAgentDecision = action({
         decision = {
           action: "MoveTo" as const,
           targetPlaceId: dorm._id,
-          innerThought:
-            "CRITICAL EXHAUSTION! Must sleep immediately or I'll collapse!",
+          innerThought: `CRITICAL EXHAUSTION! Must sleep immediately or I'll collapse!`,
           emotionDelta: { valence: -0.3, arousal: -0.2 },
         };
         console.log(
@@ -119,8 +117,7 @@ export const makeAgentDecision = action({
         decision = {
           action: "MoveTo" as const,
           targetPlaceId: library._id,
-          innerThought:
-            "CRITICAL DEADLINE! Must study immediately or I'll fail!",
+          innerThought: `CRITICAL DEADLINE! Must study immediately or I'll fail!`,
           emotionDelta: { valence: -0.2, arousal: 0.3 },
         };
         console.log(

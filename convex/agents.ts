@@ -15,6 +15,7 @@ export const createAgent = mutation({
       v.literal("barista")
     ),
     personality: v.optional(v.string()),
+    profilePicture: v.optional(v.string()),
     startPos: v.optional(v.object({ x: v.number(), y: v.number() })),
   },
   returns: v.id("agents"),
@@ -23,6 +24,7 @@ export const createAgent = mutation({
       name: args.name,
       role: args.role,
       personality: args.personality,
+      profilePicture: args.profilePicture,
 
       // Default position (center of map if not specified)
       pos: args.startPos ?? { x: 40, y: 25 },
@@ -218,6 +220,7 @@ export const listAgents = query({
         v.literal("barista")
       ),
       personality: v.optional(v.string()),
+      profilePicture: v.optional(v.string()),
       pos: v.object({ x: v.number(), y: v.number() }),
       headingRad: v.number(),
       path: v.optional(v.array(v.object({ x: v.number(), y: v.number() }))),
@@ -229,6 +232,7 @@ export const listAgents = query({
         v.literal("Sleep")
       ),
       nextDecisionAt: v.number(),
+      currentConversationId: v.optional(v.id("conversations")),
       emotions: v.object({
         valence: v.number(),
         arousal: v.number(),
@@ -268,6 +272,7 @@ export const getAgent = query({
         v.literal("barista")
       ),
       personality: v.optional(v.string()),
+      profilePicture: v.optional(v.string()),
       pos: v.object({ x: v.number(), y: v.number() }),
       headingRad: v.number(),
       path: v.optional(v.array(v.object({ x: v.number(), y: v.number() }))),
@@ -279,6 +284,7 @@ export const getAgent = query({
         v.literal("Sleep")
       ),
       nextDecisionAt: v.number(),
+      currentConversationId: v.optional(v.id("conversations")),
       emotions: v.object({
         valence: v.number(),
         arousal: v.number(),
@@ -340,7 +346,9 @@ export const migrateAddConversationField = mutation({
       }
     }
 
-    console.log(`✓ Migrated ${count} agents to have currentConversationId field`);
+    console.log(
+      `✓ Migrated ${count} agents to have currentConversationId field`
+    );
     return count;
   },
 });

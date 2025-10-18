@@ -58,10 +58,6 @@ export function useCamera({
   useEffect(() => {
     // Set a timer to update the debounced camera after 50ms of no changes
     const timer = setTimeout(() => {
-      // Log the debounced camera update for debugging
-      console.log(
-        `🎥 [CAMERA] Debounced camera update: pos=(${camera.x.toFixed(0)},${camera.y.toFixed(0)}) scale=${camera.scale.toFixed(2)}`
-      );
       // Update the debounced camera state (this triggers tile queries)
       setDebouncedCamera(camera);
     }, 50); // Reduced from 150ms to 50ms for faster tile loading
