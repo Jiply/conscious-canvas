@@ -10,6 +10,7 @@
 
 import type * as agents from "../agents.js";
 import type * as decisions from "../decisions.js";
+import type * as gemini from "../gemini.js";
 import type * as heartbeat from "../heartbeat.js";
 import type * as llm from "../llm.js";
 import type * as map from "../map.js";
@@ -36,6 +37,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   agents: typeof agents;
   decisions: typeof decisions;
+  gemini: typeof gemini;
   heartbeat: typeof heartbeat;
   llm: typeof llm;
   map: typeof map;
