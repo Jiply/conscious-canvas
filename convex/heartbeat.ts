@@ -169,14 +169,21 @@ async function processAgentTick(
     return; // Skip making new decision while executing path
   }
 
-  // 4. DECISION: Decide what to do next (passing opinions to decision system)
-  await makeAgentDecision(
-    ctx,
-    agent,
-    nearbyAgents,
-    visibleAgents,
-    visibleOpinions
-  );
+  // 4. DECISION: Decide what to do next (only if enough time has passed)
+  const now = Date.now();
+  if (now >= agent.nextDecisionAt) {
+    await makeAgentDecision(
+      ctx,
+      agent,
+      nearbyAgents,
+      visibleAgents,
+      visibleOpinions
+    );
+  } else {
+    console.log(
+      `⏰ ${agent.name} waiting for next decision (${Math.round((agent.nextDecisionAt - now) / 1000)}s remaining)`
+    );
+  }
 }
 
 /**
@@ -275,6 +282,21 @@ async function executePathMovement(ctx: any, agent: Doc<"agents">) {
 }
 
 /**
+ * Check if agent is within a place's bounds
+ */
+function isAgentInPlace(
+  agentPos: { x: number; y: number },
+  placeBounds: { x: number; y: number; width: number; height: number }
+): boolean {
+  return (
+    agentPos.x >= placeBounds.x &&
+    agentPos.x < placeBounds.x + placeBounds.width &&
+    agentPos.y >= placeBounds.y &&
+    agentPos.y < placeBounds.y + placeBounds.height
+  );
+}
+
+/**
  * Perform action at a place (Eat at Café, Sleep at Dorm, Study at Library)
  */
 async function performActionAtPlace(
@@ -285,6 +307,14 @@ async function performActionAtPlace(
   const place = await ctx.db.get(placeId);
   if (!place) {
     console.error(`❌ Place ${placeId} not found for ${agent.name}`);
+    return;
+  }
+
+  // Check if agent is actually within the place bounds
+  if (!isAgentInPlace(agent.pos, place.bounds)) {
+    console.log(
+      `⚠️ ${agent.name} is not within ${place.name} bounds (at ${agent.pos.x}, ${agent.pos.y}). Skipping action.`
+    );
     return;
   }
 
