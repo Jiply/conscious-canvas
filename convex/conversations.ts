@@ -1,8 +1,7 @@
 "use node";
-
-import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { api } from "./_generated/api";
+import { internalAction } from "./_generated/server";
 
 // ========== ACTIONS ==========
 
@@ -73,10 +72,13 @@ export const updateOpinionFromConversation: any = internalAction({
   returns: v.null(),
   handler: async (ctx, args): Promise<any> => {
     // Get existing opinion (if any)
-    const existingOpinion = await ctx.runQuery(api.opinions.getOpinionOfTarget, {
-      agentId: args.agentId,
-      targetAgentId: args.targetAgentId,
-    });
+    const existingOpinion = await ctx.runQuery(
+      api.opinions.getOpinionOfTarget,
+      {
+        agentId: args.agentId,
+        targetAgentId: args.targetAgentId,
+      }
+    );
 
     if (existingOpinion) {
       // Update existing opinion
