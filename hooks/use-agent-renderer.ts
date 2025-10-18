@@ -71,13 +71,13 @@ export function useAgentRenderer({
         const agentContainer = new Container();
         agentsLayer.addChild(agentContainer);
 
-        // Draw agent circle
+        // Draw agent circle (16px radius = 32px diameter, 2x larger)
         const agentCircle = new Graphics();
-        agentCircle.circle(0, 0, 8);
+        agentCircle.circle(0, 0, 16);
         agentCircle.fill({ color: getAgentColor(agent.role) });
 
         // Add a white border for visibility
-        agentCircle.circle(0, 0, 8);
+        agentCircle.circle(0, 0, 16);
         agentCircle.stroke({ width: 2, color: 0xffffff, alpha: 0.8 });
 
         agentContainer.addChild(agentCircle);
@@ -96,7 +96,7 @@ export function useAgentRenderer({
           style: labelStyle,
         });
         label.anchor.set(0.5);
-        label.y = -14;
+        label.y = -22; // Moved further up to accommodate larger circle
         agentContainer.addChild(label);
 
         // Set initial position (no animation for first appearance)
