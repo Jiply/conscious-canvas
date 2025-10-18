@@ -164,7 +164,13 @@ async function processAgentTick(
   }
 
   // 4. DECISION: Decide what to do next (passing opinions to decision system)
-  await makeAgentDecision(ctx, agent, nearbyAgents, visibleAgents, visibleOpinions);
+  await makeAgentDecision(
+    ctx,
+    agent,
+    nearbyAgents,
+    visibleAgents,
+    visibleOpinions
+  );
 }
 
 /**
@@ -243,7 +249,11 @@ async function executePathMovement(ctx: any, agent: Doc<"agents">) {
       .order("desc")
       .first();
 
-    if (activeDecision && !activeDecision.completedAt && activeDecision.action === "MoveTo") {
+    if (
+      activeDecision &&
+      !activeDecision.completedAt &&
+      activeDecision.action === "MoveTo"
+    ) {
       // Mark MoveTo as complete
       await ctx.db.patch(activeDecision._id, {
         completedAt: Date.now(),
@@ -261,7 +271,11 @@ async function executePathMovement(ctx: any, agent: Doc<"agents">) {
 /**
  * Perform action at a place (Eat at Café, Sleep at Dorm, Study at Library)
  */
-async function performActionAtPlace(ctx: any, agent: Doc<"agents">, placeId: string) {
+async function performActionAtPlace(
+  ctx: any,
+  agent: Doc<"agents">,
+  placeId: string
+) {
   const place = await ctx.db.get(placeId);
   if (!place) {
     console.error(`❌ Place ${placeId} not found for ${agent.name}`);
@@ -279,19 +293,25 @@ async function performActionAtPlace(ctx: any, agent: Doc<"agents">, placeId: str
     newNeeds.hunger = Math.max(0, agent.needs.hunger - 0.4);
     decisionAction = "Eat";
     actionPerformed = true;
-    console.log(`🍽️ ${agent.name} is eating at ${place.name} (hunger: ${agent.needs.hunger.toFixed(2)} → ${newNeeds.hunger.toFixed(2)})`);
+    console.log(
+      `🍽️ ${agent.name} is eating at ${place.name} (hunger: ${agent.needs.hunger.toFixed(2)} → ${newNeeds.hunger.toFixed(2)})`
+    );
   } else if (placeKind === "dorm" && agent.needs.sleepiness > 0.1) {
     // Sleep at dorm - reduces sleepiness significantly
     newNeeds.sleepiness = Math.max(0, agent.needs.sleepiness - 0.5);
     decisionAction = "Sleep";
     actionPerformed = true;
-    console.log(`😴 ${agent.name} is sleeping at ${place.name} (sleepiness: ${agent.needs.sleepiness.toFixed(2)} → ${newNeeds.sleepiness.toFixed(2)})`);
+    console.log(
+      `😴 ${agent.name} is sleeping at ${place.name} (sleepiness: ${agent.needs.sleepiness.toFixed(2)} → ${newNeeds.sleepiness.toFixed(2)})`
+    );
   } else if (placeKind === "library" && agent.needs.studyPressure > 0.1) {
     // Study at library - reduces study pressure significantly
     newNeeds.studyPressure = Math.max(0, agent.needs.studyPressure - 0.3);
     decisionAction = "Study";
     actionPerformed = true;
-    console.log(`📚 ${agent.name} is studying at ${place.name} (study pressure: ${agent.needs.studyPressure.toFixed(2)} → ${newNeeds.studyPressure.toFixed(2)})`);
+    console.log(
+      `📚 ${agent.name} is studying at ${place.name} (study pressure: ${agent.needs.studyPressure.toFixed(2)} → ${newNeeds.studyPressure.toFixed(2)})`
+    );
   }
 
   // Update agent needs if action was performed
@@ -332,13 +352,17 @@ async function makeAgentDecision(
 
   if (activeDecision && !activeDecision.completedAt) {
     // Already has active decision, skip for now
-    console.log(`⏭️ ${agent.name} has active ${activeDecision.action} decision, skipping new decision`);
+    console.log(
+      `⏭️ ${agent.name} has active ${activeDecision.action} decision, skipping new decision`
+    );
     return;
   }
 
   // Call LLM to make decision based on context
   // The LLM gets: agent stats, observations, decisions, opinions, available places
-  console.log(`🧠 Scheduling LLM decision for ${agent.name} (${visibleOpinions.length} opinions, ${nearbyAgents.length} nearby agents)...`);
+  console.log(
+    `🧠 Scheduling LLM decision for ${agent.name} (${visibleOpinions.length} opinions, ${nearbyAgents.length} nearby agents)...`
+  );
 
   try {
     await ctx.scheduler.runAfter(0, api.llm.makeAgentDecision, {
