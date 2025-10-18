@@ -2,6 +2,9 @@
 import { v } from "convex/values";
 import { api } from "./_generated/api";
 import { action } from "./_generated/server";
+import { v } from "convex/values";
+import { api, internal } from "./_generated/api";
+import Groq from "groq-sdk";
 
 // ========== LLM DECISION MAKING ==========
 
@@ -36,11 +39,17 @@ export const makeAgentDecision = action({
   handler: async (ctx, args) => {
     const startTime = Date.now();
 
+    console.log(`🚀 LLM action started for agent ${args.agentId}`);
+
     // 1. Gather context from Convex
     const agent = await ctx.runQuery(api.agents.getAgent, {
       agentId: args.agentId,
     });
     if (!agent) throw new Error("Agent not found");
+
+    console.log(
+      `📊 Making decision for ${agent.name} (hunger: ${agent.needs.hunger.toFixed(2)}, sleepiness: ${agent.needs.sleepiness.toFixed(2)})`
+    );
 
     const recentObservations = await ctx.runQuery(
       api.observations.getRecentObservations,
@@ -58,21 +67,45 @@ export const makeAgentDecision = action({
       }
     );
 
-    // 2. Build LLM prompt
-    const prompt = buildDecisionPrompt(
+    // Get all opinions this agent holds
+    const agentOpinions = await ctx.runQuery(api.opinions.getAgentOpinions, {
+      agentId: args.agentId,
+    });
+
+    // Get available places
+    const allPlaces = await ctx.runQuery(api.map.getPlaces, {});
+
+    // 2. Build LLM prompt with stats and consequences
+    const systemPrompt = buildSystemPrompt();
+    const userPrompt = buildDecisionPrompt(
       agent,
       recentObservations,
-      recentDecisions
+      recentDecisions,
+      agentOpinions,
+      allPlaces
     );
 
-    // 3. Call LLM (placeholder for now - you'll integrate Groq/OpenAI here)
-    // For now, use a simple heuristic fallback
-    const decision = heuristicFallback(agent);
+    // 3. Call Groq for decision-making
+    let decision;
+    try {
+      console.log(`🤖 Calling Groq API for ${agent.name}...`);
+      decision = await callGroqForDecision(systemPrompt, userPrompt);
+      console.log(
+        `✅ Groq returned decision: ${decision.action} (thought: "${decision.innerThought}")`
+      );
+    } catch (error) {
+      console.error(
+        `❌ Groq API error for ${agent.name}, falling back to heuristic:`,
+        error
+      );
+      decision = heuristicFallback(agent);
+      console.log(`🔄 Heuristic fallback decision: ${decision.action}`);
+    }
 
     const latency = Date.now() - startTime;
 
     // 4. Record decision in Convex
-    await ctx.runMutation(api.decisions.addDecision, {
+    const decisionId = await ctx.runMutation(api.decisions.addDecision, {
       agentId: args.agentId,
       action: decision.action,
       targetPlaceId: decision.targetPlaceId,
@@ -82,7 +115,59 @@ export const makeAgentDecision = action({
       llmLatencyMs: latency,
     });
 
-    // 5. Update agent state
+    // 4.5. If decision is Idle, mark it as complete immediately
+    if (decision.action === "Idle") {
+      await ctx.runMutation(api.decisions.completeDecision, {
+        decisionId,
+      });
+      console.log(`✓ Idle decision completed immediately for ${agent.name}`);
+    }
+
+    // 5. Execute MoveTo decision by calculating path
+    if (decision.action === "MoveTo" && decision.targetPlaceId) {
+      try {
+        // Get the target place
+        const targetPlace = allPlaces.find(
+          (p) => p._id === decision.targetPlaceId
+        );
+
+        if (
+          targetPlace &&
+          targetPlace.entrances &&
+          targetPlace.entrances.length > 0
+        ) {
+          const entrance = targetPlace.entrances[0];
+
+          // Calculate path using A* pathfinding
+          const path = await ctx.runQuery(api.pathfinding.findPath, {
+            startX: agent.pos.x,
+            startY: agent.pos.y,
+            goalX: entrance.x,
+            goalY: entrance.y,
+          });
+
+          if (path) {
+            // Set the path on the agent
+            await ctx.runMutation(api.agents.setAgentPath, {
+              agentId: args.agentId,
+              path,
+              state: "Transit",
+            });
+            console.log(
+              `🗺️ Set path for ${agent.name} to ${targetPlace.name} (${path.length} steps)`
+            );
+          } else {
+            console.error(
+              `❌ No path found for ${agent.name} to ${targetPlace.name}`
+            );
+          }
+        }
+      } catch (error) {
+        console.error(`Error calculating path for MoveTo:`, error);
+      }
+    }
+
+    // 6. Update agent state
     if (decision.emotionDelta) {
       await ctx.runMutation(api.agents.updateAgentEmotions, {
         agentId: args.agentId,
@@ -104,51 +189,202 @@ export const makeAgentDecision = action({
 
 // ========== HELPER FUNCTIONS ==========
 
+/**
+ * System prompt - defines the agent's decision-making framework
+ */
+function buildSystemPrompt(): string {
+  return `You are an autonomous agent in a campus simulation. You must decide your next action based on your internal stats and environment.
+
+You must respond with ONLY a valid JSON object matching this schema:
+{
+  "toolName": "MoveTo" | "EngageConversation" | "Study" | "Eat" | "Idle" | "Sleep",
+  "parameters": {
+    "targetPlaceId": "string (required for MoveTo)",
+    "targetAgentId": "string (required for EngageConversation)",
+    "utterance": "string (optional, for EngageConversation)",
+    "innerThought": "string (required, your reasoning)"
+  }
+}
+
+IMPORTANT RULES:
+1. You are NOT given explicit instructions. You must figure out what to do based on your stats and their consequences.
+2. AVOID being Idle. Idleness is wasteful and boring. If you have no urgent needs, go somewhere interesting (Café, Library, Quad, etc.) to socialize or observe.
+3. ALWAYS be proactive. Move around campus, explore, meet people. Standing still is for statues, not students.`;
+}
+
+/**
+ * User prompt - provides agent stats, consequences, and context
+ */
 function buildDecisionPrompt(
   agent: any,
   observations: any[],
-  decisions: any[]
+  decisions: any[],
+  opinions: any[],
+  places: any[]
 ): string {
-  // TODO: Build proper prompt for Groq
+  // Format observations with opinions
   const observationsSummary = observations
-    .map((o) => o.summary ?? "observed something")
-    .join("; ");
+    .map((obs, idx) => {
+      let line = `${idx + 1}. ${obs.summary ?? "observed something"}`;
+      if (obs.targetId) {
+        const opinion = opinions.find(
+          (op) => op.targetAgentId === obs.targetId
+        );
+        if (opinion) {
+          line += ` [Opinion: ${opinion.summary} (sentiment: ${opinion.sentiment.toFixed(2)})]`;
+        }
+      }
+      return line;
+    })
+    .join("\n");
 
+  // Format recent decisions
   const recentActions = decisions
-    .map(
-      (d) => `${d.action} at ${new Date(d._creationTime).toLocaleTimeString()}`
-    )
-    .join("; ");
+    .map((d, idx) => {
+      const timestamp = new Date(d._creationTime).toLocaleTimeString();
+      return `${idx + 1}. ${d.action} at ${timestamp}${d.innerThought ? ` - "${d.innerThought}"` : ""}`;
+    })
+    .join("\n");
+
+  // Format available places
+  const placesList = places
+    .map((p) => `- ${p.name} (${p.kind}) [ID: ${p._id}]`)
+    .join("\n");
 
   return `
-You are ${agent.name}, a ${agent.role} on campus.
-${agent.personality ? `Personality: ${agent.personality}` : ""}
+AGENT: ${agent.name}
+ROLE: ${agent.role}
+${agent.personality ? `PERSONALITY: ${agent.personality}` : ""}
 
-Current state:
-- Location: (${agent.pos.x}, ${agent.pos.y})
-- Mood: ${agent.emotions.valence > 0 ? "positive" : "negative"} (${agent.emotions.valence.toFixed(2)})
-- Energy: ${(1 - agent.emotions.arousal).toFixed(2)}
-- Hunger: ${agent.needs.hunger.toFixed(2)}
-- Sleepiness: ${agent.needs.sleepiness.toFixed(2)}
-- Study pressure: ${agent.needs.studyPressure.toFixed(2)}
-- Social drive: ${agent.needs.socialDrive.toFixed(2)}
+CURRENT STATE:
+- Position: (${agent.pos.x}, ${agent.pos.y})
+- State: ${agent.state}
 
-Recent observations:
-${observationsSummary || "none"}
+INTERNAL STATS (0.0 - 1.0 scale):
 
-Recent actions:
-${recentActions || "none"}
+1. HUNGER: ${agent.needs.hunger.toFixed(2)}
+   → Increases over time
+   → At 1.0: You will feel weak, unable to focus, and may collapse
+   → Reduce by: Going to Café and eating
 
-What should you do next? Choose one:
-- MoveTo (specify place)
-- EngageConversation (specify target agent)
-- Study
-- Eat
-- Idle
-- Sleep
+2. SLEEPINESS: ${agent.needs.sleepiness.toFixed(2)}
+   → Increases over time
+   → At 1.0: You will become exhausted, unable to function, and must rest
+   → Reduce by: Going to Dorm and sleeping
 
-Respond with your choice and any thoughts/utterances.
+3. STUDY PRESSURE: ${agent.needs.studyPressure.toFixed(2)}
+   → Increases over time (academic deadlines approaching)
+   → At 1.0: You will fail your classes and be overwhelmed with stress
+   → Reduce by: Going to Library and studying
+
+4. SOCIAL DRIVE: ${agent.needs.socialDrive.toFixed(2)}
+   → Increases over time (humans need social interaction)
+   → At 1.0: You will feel isolated, lonely, and mentally unwell
+   → Reduce by: Engaging in conversation with nearby agents
+
+EMOTIONS:
+- Mood (valence): ${agent.emotions.valence.toFixed(2)} (${agent.emotions.valence > 0 ? "positive" : "negative"})
+- Energy (arousal): ${agent.emotions.arousal.toFixed(2)} (${agent.emotions.arousal > 0.5 ? "excited" : "calm"})
+
+RECENT OBSERVATIONS (last 10):
+${observationsSummary || "None"}
+
+RECENT ACTIONS (last 5):
+${recentActions || "None"}
+
+AVAILABLE PLACES:
+${placesList || "None"}
+
+TASK: Analyze your stats and decide your next action. Consider the consequences of letting any stat reach 1.0. Respond with JSON only.
   `.trim();
+}
+
+/**
+ * Call Groq API for decision-making with JSON mode
+ */
+async function callGroqForDecision(
+  systemPrompt: string,
+  userPrompt: string
+): Promise<{
+  action: "MoveTo" | "EngageConversation" | "Study" | "Eat" | "Idle" | "Sleep";
+  targetPlaceId?: string;
+  targetAgentId?: string;
+  utterance?: string;
+  innerThought?: string;
+  emotionDelta?: { valence: number; arousal: number };
+}> {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    throw new Error("GROQ_API_KEY environment variable is not set");
+  }
+
+  console.log(`🔑 Groq API key found: ${apiKey.substring(0, 10)}...`);
+
+  const groq = new Groq({
+    apiKey: apiKey,
+  });
+
+  console.log(`📤 Sending request to Groq (model: kimi-k2)...`);
+
+  const completion = await groq.chat.completions.create({
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+    model: "kimi-k2",
+    temperature: 1.0,
+    max_tokens: 300,
+    response_format: { type: "json_object" },
+  });
+
+  const content = completion.choices[0].message.content;
+  if (!content) {
+    throw new Error("No content in Groq response");
+  }
+
+  console.log(`📥 Groq response received: ${content.substring(0, 100)}...`);
+
+  // Parse JSON response
+  const parsed = JSON.parse(content);
+  console.log(
+    `✓ Parsed decision: action=${parsed.toolName}, thought="${parsed.parameters?.innerThought}"`
+  );
+
+  // Map toolName to action and extract parameters
+  return {
+    action: parsed.toolName,
+    targetPlaceId: parsed.parameters?.targetPlaceId,
+    targetAgentId: parsed.parameters?.targetAgentId,
+    utterance: parsed.parameters?.utterance,
+    innerThought: parsed.parameters?.innerThought || "Thinking...",
+    // Calculate emotion delta based on action (simple heuristic)
+    emotionDelta: calculateEmotionDelta(parsed.toolName),
+  };
+}
+
+/**
+ * Calculate emotion changes based on action type
+ */
+function calculateEmotionDelta(action: string): {
+  valence: number;
+  arousal: number;
+} {
+  switch (action) {
+    case "Eat":
+      return { valence: 0.2, arousal: -0.1 };
+    case "Sleep":
+      return { valence: 0.1, arousal: -0.3 };
+    case "Study":
+      return { valence: -0.05, arousal: 0.1 };
+    case "EngageConversation":
+      return { valence: 0.15, arousal: 0.2 };
+    case "MoveTo":
+      return { valence: 0, arousal: 0.05 };
+    case "Idle":
+      return { valence: 0, arousal: -0.05 };
+    default:
+      return { valence: 0, arousal: 0 };
+  }
 }
 
 /**
