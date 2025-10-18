@@ -320,14 +320,6 @@ export function renderTiles(
   tileSize: number
 ): void {
   graphics.clear();
-  console.log(
-    `🎨 renderTiles (Graphics): Rendering ${tiles.length} tiles at size ${tileSize}px`
-  );
-
-  // Sample first few tiles for debugging
-  if (tiles.length > 0) {
-    console.log("📊 First tile:", tiles[0]);
-  }
 
   for (const tile of tiles) {
     const pixelX = tile.x * tileSize;
@@ -341,8 +333,6 @@ export function renderTiles(
       tile.visualVariant || 0
     );
   }
-
-  console.log(`✅ renderTiles (Graphics): Completed rendering`);
 }
 
 /**
@@ -401,12 +391,6 @@ export function renderTilesAsSprites(
   }>,
   tileSize: number
 ): void {
-  const startTime = performance.now();
-
-  console.log(
-    `🎨 renderTilesAsSprites: Rendering ${tiles.length} tiles at size ${tileSize}px`
-  );
-
   // Build a map of new tiles by coordinate key
   const newTileMap = new Map<string, (typeof tiles)[0]>();
   for (const tile of tiles) {
@@ -467,9 +451,4 @@ export function renderTilesAsSprites(
       created++;
     }
   }
-
-  const duration = performance.now() - startTime;
-  console.log(
-    `✅ renderTilesAsSprites: Completed in ${duration.toFixed(2)}ms | ♻️ Reused: ${reused} | ➕ Created: ${created} | ➖ Removed: ${removed}`
-  );
 }

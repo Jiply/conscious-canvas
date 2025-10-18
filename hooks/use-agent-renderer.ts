@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Container, Graphics, Text, TextStyle } from "pixi.js";
+import { Container, Graphics, Text, TextStyle, Sprite, Assets } from "pixi.js";
 import type { Doc } from "@/convex/_generated/dataModel";
 
 interface AgentRendererProps {
@@ -14,6 +14,28 @@ interface AgentRendererProps {
     | undefined;
   isCameraReady: boolean;
 }
+
+/**
+ * Map agent names to profile picture assets in /public folder
+ * Only use the actual PNG files that exist: 01.png through 10.png
+ */
+const AGENT_PROFILE_PICTURES: Record<string, string> = {
+  "Maya Chen": "/01.png",
+  "Prof. James Wilson": "/02.png",
+  "Zara Ahmed": "/03.png",
+  "Liam O'Brien": "/04.png",
+  "Sofia Martinez": "/05.png",
+  "Raj Patel": "/06.png",
+  "Emma Kim": "/07.png",
+  "Marcus Johnson": "/08.png",
+};
+
+/**
+ * Get profile picture URL for an agent
+ */
+const getProfilePicture = (agentName: string): string => {
+  return AGENT_PROFILE_PICTURES[agentName] || "/01.png"; // Default to 01.png
+};
 
 interface AgentData {
   container: Container;
@@ -35,16 +57,6 @@ export function useAgentRenderer({
   isCameraReady,
 }: AgentRendererProps) {
   const agentContainersRef = useRef<Map<string, AgentData>>(new Map());
-
-  // Helper function to get agent color based on role
-  const getAgentColor = (role: string): number => {
-    const colorMap: Record<string, number> = {
-      student: 0x3b82f6, // blue
-      prof: 0x8b5cf6, // purple
-      barista: 0x10b981, // green
-    };
-    return colorMap[role.toLowerCase()] || 0x6b7280; // gray default
-  };
 
   // Update agent positions and create/remove agents
   useEffect(() => {
@@ -79,16 +91,61 @@ export function useAgentRenderer({
         visionRadius.stroke({ width: 2, color: 0x3b82f6, alpha: 0.25 }); // Blue border
         agentContainer.addChild(visionRadius);
 
-        // Draw agent circle (16px radius = 32px diameter, 2x larger)
-        const agentCircle = new Graphics();
-        agentCircle.circle(0, 0, 16);
-        agentCircle.fill({ color: getAgentColor(agent.role) });
+        // Create profile picture sprite using client-side mapping
+        const profilePicUrl = getProfilePicture(agent.name);
 
-        // Add a white border for visibility
-        agentCircle.circle(0, 0, 16);
-        agentCircle.stroke({ width: 2, color: 0xffffff, alpha: 0.8 });
+        console.log(
+          `Loading profile picture for ${agent.name}: ${profilePicUrl}`
+        );
 
-        agentContainer.addChild(agentCircle);
+        // Create a placeholder sprite first
+        const profileSprite = new Sprite();
+        profileSprite.anchor.set(0.5);
+        profileSprite.position.set(0, 0);
+
+        // Create circular mask
+        const circleMask = new Graphics();
+        circleMask.circle(0, 0, 16);
+        circleMask.fill(0xffffff);
+        circleMask.alpha = 0; // Hide the mask but keep it functional
+
+        // Add to container
+        agentContainer.addChild(profileSprite);
+        agentContainer.addChild(circleMask);
+        profileSprite.mask = circleMask;
+
+        // Load texture asynchronously using PixiJS Assets API
+        console.log(
+          `🖼️ Loading texture for ${agent.name} from: ${profilePicUrl}`
+        );
+
+        Assets.load(profilePicUrl)
+          .then((texture) => {
+            console.log(`  ✅ Texture loaded for ${agent.name}:`, texture);
+
+            if (!profileSprite.destroyed) {
+              profileSprite.texture = texture;
+
+              // Size the sprite to 32px diameter (16px radius)
+              const diameter = 32;
+              profileSprite.width = diameter;
+              profileSprite.height = diameter;
+
+              console.log(`  ✅ Sprite updated - ${diameter}x${diameter}`);
+            }
+          })
+          .catch((error) => {
+            console.error(
+              `  ❌ Failed to load texture for ${agent.name}:`,
+              error
+            );
+          });
+
+        // Add a white border for visibility (drawn on top)
+        const border = new Graphics();
+        border.circle(0, 0, 16);
+        border.stroke({ width: 2, color: 0xffffff, alpha: 0.8 });
+        agentContainer.addChild(border);
 
         // Add agent name label
         const labelStyle = new TextStyle({
@@ -182,8 +239,6 @@ export function useAgentRenderer({
         agentData.container.alpha = 1;
       }
     }
-
-    console.log(`✅ Agent rendering: ${agents.length} agents active`);
   }, [agents, mapSettings, isCameraReady, agentsLayer]);
 
   // Animation loop for smooth movement with wobble

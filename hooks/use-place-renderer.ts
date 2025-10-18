@@ -31,7 +31,6 @@ export function usePlaceRenderer({
       return;
     }
 
-    console.log("🏢 Rendering", places.length, "places");
     // Clear all existing place graphics before re-rendering
     placesLayer.removeChildren();
 
@@ -159,7 +158,5 @@ export function usePlaceRenderer({
         animate();
       }, index * 50); // Delay by 50ms per place (staggered effect)
     });
-
-    console.log("✅ Places rendered with fade-in animation");
   }, [places, mapSettings, isCameraReady, placesLayer]); // Re-run when any of these change
 }

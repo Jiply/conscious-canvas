@@ -66,7 +66,6 @@ export function usePixiApp({ width, height }: UsePixiAppOptions) {
       return;
     }
 
-    console.log("🎨 Initializing Pixi app...");
     // Create new PixiJS Application instance
     const app = new Application();
 
@@ -130,7 +129,6 @@ export function usePixiApp({ width, height }: UsePixiAppOptions) {
         // Add FPS counter to PixiJS ticker (runs every frame)
         app.ticker.add(fpsUpdate);
 
-        console.log("✅ Pixi app initialized");
         // Mark as initialized so components can start rendering
         setIsInitialized(true);
       });
@@ -138,7 +136,6 @@ export function usePixiApp({ width, height }: UsePixiAppOptions) {
     // Cleanup function: Destroy PixiJS app when component unmounts
     return () => {
       if (appRef.current) {
-        console.log("🗑️ Destroying Pixi app");
         // Destroy application and all children
         appRef.current.destroy(true, { children: true });
         // Clear all references
@@ -157,7 +154,6 @@ export function usePixiApp({ width, height }: UsePixiAppOptions) {
     // Don't resize if app isn't initialized or dimensions are invalid
     if (!appRef.current || width === 0 || height === 0) return;
 
-    console.log("🔄 Resizing canvas to:", width, "x", height);
     // Tell PixiJS renderer to resize (updates both canvas and internal buffers)
     appRef.current.renderer.resize(width, height);
   }, [width, height]); // Re-run when width or height changes

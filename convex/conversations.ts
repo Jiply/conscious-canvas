@@ -165,7 +165,7 @@ You must respond with ONLY a valid JSON object matching this schema:
 }
 
 IMPORTANT RULES:
-1. Be natural and conversational. Respond to what the other person said.
+1. Use Theory of Mind to understand the other agent's emotions and intentions.
 2. Keep messages relatively short (1-3 sentences).
 3. Consider your needs (hunger, sleepiness, etc.). If a need is urgent (> 0.8), you should politely end the conversation.
 4. Consider your opinion of the other person. Be friendly or distant based on your sentiment toward them.
@@ -184,43 +184,178 @@ function buildConversationPrompt(
   observations: any[],
   decisions: any[]
 ): string {
-  // Format conversation history
+  // Format conversation history with emotional context
   const conversationHistory = messages
     .map((msg, idx) => {
       const speaker = msg.agentId === agent._id ? "You" : otherAgent.name;
-      return `${idx + 1}. ${speaker}: "${msg.content}"`;
+      const emotion = msg.emotionSnapshot
+        ? ` [felt ${interpretValence(msg.emotionSnapshot.valence)}, ${interpretArousal(msg.emotionSnapshot.arousal)}]`
+        : "";
+      return `${idx + 1}. ${speaker}: "${msg.content}"${emotion}`;
     })
     .join("\n");
 
-  // Format recent context
+  // Format recent observations with salience
   const recentObservations = observations
+    .slice(0, 5)
+    .map((obs, idx) => {
+      const salience = obs.salience > 0.7 ? "⭐ " : "";
+      return `${salience}${obs.summary}`;
+    })
+    .join("\n  ");
+
+  // Format recent decisions for context
+  const recentDecisions = decisions
     .slice(0, 3)
-    .map((obs) => obs.summary)
-    .join("; ");
+    .map((d) => `${d.action}${d.innerThought ? ` ("${d.innerThought}")` : ""}`)
+    .join(", ");
+
+  // Interpret agent's current emotional state
+  const myMood = interpretValence(agent.emotions.valence);
+  const myEnergy = interpretArousal(agent.emotions.arousal);
+  const emotionalState = `You feel ${myMood} and ${myEnergy}`;
+
+  // Interpret other agent's emotional state (emotional contagion context)
+  const theirMood = interpretValence(otherAgent.emotions.valence);
+  const theirEnergy = interpretArousal(otherAgent.emotions.arousal);
+  const theirEmotionalState = `They seem ${theirMood} and ${theirEnergy}`;
+
+  // Format goals with weights
+  const activeGoals = agent.goals
+    .sort((a: any, b: any) => b.weight - a.weight)
+    .slice(0, 3)
+    .map((g: any) => `${g.name} (priority: ${(g.weight * 100).toFixed(0)}%)`)
+    .join(", ");
+
+  // Relationship dynamics (from opinion)
+  let relationshipContext = "";
+  if (opinion) {
+    const sentiment = opinion.sentiment;
+    if (sentiment > 0.6) {
+      relationshipContext = `You genuinely like ${otherAgent.name} (sentiment: ${sentiment.toFixed(2)}). ${opinion.summary}`;
+    } else if (sentiment > 0.2) {
+      relationshipContext = `You feel neutral-positive toward ${otherAgent.name} (sentiment: ${sentiment.toFixed(2)}). ${opinion.summary}`;
+    } else if (sentiment > -0.2) {
+      relationshipContext = `You're unsure about ${otherAgent.name} (sentiment: ${sentiment.toFixed(2)}). ${opinion.summary}`;
+    } else if (sentiment > -0.6) {
+      relationshipContext = `You're not fond of ${otherAgent.name} (sentiment: ${sentiment.toFixed(2)}). ${opinion.summary}`;
+    } else {
+      relationshipContext = `You dislike ${otherAgent.name} (sentiment: ${sentiment.toFixed(2)}). ${opinion.summary}`;
+    }
+  } else {
+    relationshipContext = `You have no strong opinion of ${otherAgent.name} yet. This is a chance to form an impression.`;
+  }
+
+  // Urgent needs warnings
+  const urgentNeeds = [];
+  if (agent.needs.hunger > 0.8)
+    urgentNeeds.push("🍽️ HUNGRY - You're starving and need food soon");
+  if (agent.needs.sleepiness > 0.8)
+    urgentNeeds.push("😴 EXHAUSTED - You're extremely tired and need rest");
+  if (agent.needs.studyPressure > 0.8)
+    urgentNeeds.push("📚 STRESSED - Academic pressure is crushing you");
+  if (agent.needs.socialDrive > 0.8)
+    urgentNeeds.push("💬 LONELY - You desperately need social connection");
+
+  const urgentWarning =
+    urgentNeeds.length > 0
+      ? `\n⚠️ URGENT NEEDS:\n${urgentNeeds.map((n) => `  - ${n}`).join("\n")}\n`
+      : "";
 
   return `
-YOU: ${agent.name}
-YOUR ROLE: ${agent.role}
-${agent.personality ? `YOUR PERSONALITY: ${agent.personality}` : ""}
+═══════════════════════════════════════════════════════════
+YOU: ${agent.name} (${agent.role})
+${agent.personality ? `PERSONALITY: ${agent.personality}` : ""}
+═══════════════════════════════════════════════════════════
 
+╔══ YOUR EMOTIONAL STATE ══╗
+│ ${emotionalState}
+│ • Mood: ${myMood} (valence: ${agent.emotions.valence.toFixed(2)})
+│ • Energy: ${myEnergy} (arousal: ${agent.emotions.arousal.toFixed(2)})
+╚═══════════════════════════╝
+
+╔══ YOUR NEEDS ══╗
+│ • Hunger: ${renderMeter(agent.needs.hunger)} ${agent.needs.hunger.toFixed(2)} ${agent.needs.hunger > 0.8 ? "🚨 CRITICAL" : agent.needs.hunger > 0.6 ? "⚠️ High" : ""}
+│ • Sleepiness: ${renderMeter(agent.needs.sleepiness)} ${agent.needs.sleepiness.toFixed(2)} ${agent.needs.sleepiness > 0.8 ? "🚨 CRITICAL" : agent.needs.sleepiness > 0.6 ? "⚠️ High" : ""}
+│ • Study Pressure: ${renderMeter(agent.needs.studyPressure)} ${agent.needs.studyPressure.toFixed(2)} ${agent.needs.studyPressure > 0.8 ? "🚨 CRITICAL" : agent.needs.studyPressure > 0.6 ? "⚠️ High" : ""}
+│ • Social Drive: ${renderMeter(agent.needs.socialDrive)} ${agent.needs.socialDrive.toFixed(2)} ${agent.needs.socialDrive > 0.8 ? "🚨 Very High" : ""}
+╚═════════════════╝
+${urgentWarning}
+╔══ YOUR GOALS ══╗
+│ ${activeGoals || "No specific goals right now"}
+╚═════════════════╝
+
+═══════════════════════════════════════════════════════════
 TALKING TO: ${otherAgent.name} (${otherAgent.role})
-${opinion ? `YOUR OPINION OF THEM: ${opinion.summary} (sentiment: ${opinion.sentiment.toFixed(2)})` : "No strong opinion yet"}
+═══════════════════════════════════════════════════════════
 
-YOUR CURRENT STATE:
-- Hunger: ${agent.needs.hunger.toFixed(2)} ${agent.needs.hunger > 0.8 ? "(URGENT!)" : ""}
-- Sleepiness: ${agent.needs.sleepiness.toFixed(2)} ${agent.needs.sleepiness > 0.8 ? "(URGENT!)" : ""}
-- Study Pressure: ${agent.needs.studyPressure.toFixed(2)} ${agent.needs.studyPressure > 0.8 ? "(URGENT!)" : ""}
-- Social Drive: ${agent.needs.socialDrive.toFixed(2)}
-- Mood: ${agent.emotions.valence.toFixed(2)} (${agent.emotions.valence > 0 ? "positive" : "negative"})
+╔══ THEIR EMOTIONAL STATE ══╗
+│ ${theirEmotionalState}
+│ • Mood: ${theirMood} (valence: ${otherAgent.emotions.valence.toFixed(2)})
+│ • Energy: ${theirEnergy} (arousal: ${otherAgent.emotions.arousal.toFixed(2)})
+╚════════════════════════════╝
 
-CONVERSATION SO FAR (${messages.length} messages):
-${conversationHistory || "Just started"}
+╔══ YOUR RELATIONSHIP ══╗
+│ ${relationshipContext}
+╚════════════════════════╝
 
-RECENT CONTEXT:
-${recentObservations || "Nothing notable"}
+╔══ CONVERSATION HISTORY (${messages.length} messages) ══╗
+${conversationHistory || "│ [Just started - no messages yet]"}
+╚═══════════════════════════════════════════════════════╝
 
-TASK: Respond to the conversation naturally. Decide if you want to continue talking or need to leave.
+╔══ RECENT OBSERVATIONS ══╗
+${recentObservations ? `  ${recentObservations}` : "  Nothing notable recently"}
+╚══════════════════════════╝
+
+╔══ YOUR RECENT ACTIONS ══╗
+│ ${recentDecisions || "No recent actions"}
+╚══════════════════════════╝
+
+═══════════════════════════════════════════════════════════
+TASK: Respond naturally to this conversation based on:
+• Your emotional state and how you're feeling RIGHT NOW
+• Your relationship with ${otherAgent.name} and your opinion of them
+• Your current needs (especially if any are urgent)
+• What they just said and how they seem to be feeling
+• Your personality and goals
+• Whether you want to continue talking or need to leave
+
+Consider emotional contagion - their ${theirMood} ${theirEnergy} energy may influence how you respond.
+═══════════════════════════════════════════════════════════
   `.trim();
+}
+
+/**
+ * Interpret valence value to human-readable mood
+ */
+function interpretValence(valence: number): string {
+  if (valence > 0.6) return "very happy";
+  if (valence > 0.3) return "content";
+  if (valence > 0.1) return "slightly positive";
+  if (valence > -0.1) return "neutral";
+  if (valence > -0.3) return "slightly down";
+  if (valence > -0.6) return "unhappy";
+  return "very upset";
+}
+
+/**
+ * Interpret arousal value to human-readable energy level
+ */
+function interpretArousal(arousal: number): string {
+  if (arousal > 0.8) return "extremely energized";
+  if (arousal > 0.6) return "quite energetic";
+  if (arousal > 0.4) return "alert";
+  if (arousal > 0.2) return "relaxed";
+  return "very calm";
+}
+
+/**
+ * Render a visual meter for needs
+ */
+function renderMeter(value: number): string {
+  const filled = Math.round(value * 10);
+  const empty = 10 - filled;
+  return "█".repeat(filled) + "░".repeat(empty);
 }
 
 /**
