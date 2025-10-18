@@ -1,9 +1,33 @@
 // Import React hooks for side effects, refs, and state management
 import { useEffect, useRef, useState } from "react";
 // Import Convex client hook to make database mutations
-import { useConvex } from "convex/react";
+import { useConvex, useQuery } from "convex/react";
 // Import generated API endpoints from Convex
 import { api } from "@/convex/_generated/api";
+
+/**
+ * Get or create persistent session ID from localStorage
+ * This ID persists across page reloads to track same observer
+ * @returns {string} A unique UUID for this session
+ */
+function getSessionId(): string {
+  // Check if we're in a browser environment (not server-side rendering)
+  if (typeof window !== "undefined") {
+    // Try to get existing session ID from localStorage
+    const stored = localStorage.getItem("observer_session_id");
+    // If we have one, return it to maintain persistent identity
+    if (stored) return stored;
+
+    // Generate a new random UUID for this session
+    const newId = crypto.randomUUID();
+    // Store it in localStorage for future page loads
+    localStorage.setItem("observer_session_id", newId);
+    // Return the new ID
+    return newId;
+  }
+  // If running on server, just generate a temporary UUID
+  return crypto.randomUUID();
+}
 
 /**
  * Get or create persistent leader ID from localStorage
@@ -30,15 +54,15 @@ function getLeaderId(): string {
 }
 
 /**
- * Heartbeat hook with automatic leader election
+ * Heartbeat hook with observer tracking and automatic leader election
  *
- * Implements a distributed leader election system where:
- * - The first client to connect becomes the leader and starts ticking every 5s
- * - If the heartbeat is already running, retries in 1s
- * - If another client is leader, this client stops trying
- * - The leader processes all agent actions on each tick
+ * Implements a distributed observer + leader election system where:
+ * - Every client sends observer heartbeat every 5s (tracks "who's watching")
+ * - The first client to connect becomes the leader and processes ticks
+ * - World only runs when observerCount > 0
+ * - When last observer leaves, world freezes
  *
- * @returns {{isLeader: boolean, stats: object | null}} Leadership status and performance stats
+ * @returns {{isLeader: boolean, stats: object | null, observerCount: number, startTime: number | null}} Leadership status, stats, observer count, and start time
  */
 export function useHeartbeat() {
   // Get the Convex client for making mutations
@@ -47,12 +71,22 @@ export function useHeartbeat() {
   // State: Track if this client is the leader
   const [isLeader, setIsLeader] = useState(false);
 
+  // State: Track observer count
+  const [observerCount, setObserverCount] = useState(0);
+
+  // State: Track when the first heartbeat connected
+  const [startTime, setStartTime] = useState<number | null>(null);
+
   // State: Track heartbeat performance statistics
   const [stats, setStats] = useState<{
     processedAgents: number; // Number of agents processed in last tick
     latencyMs: number; // Time taken to process last tick
     lastTickAt: number; // Timestamp of last successful tick
+    observerCount: number; // Current observer count
   } | null>(null);
+
+  // Ref: Store persistent session ID for observer tracking
+  const sessionIdRef = useRef<string>(getSessionId());
 
   // Ref: Store persistent leader ID (survives across renders)
   const leaderIdRef = useRef<string>(getLeaderId());
@@ -63,7 +97,68 @@ export function useHeartbeat() {
   // Ref: Track if component is still mounted (prevent state updates after unmount)
   const mountedRef = useRef(true);
 
-  // Effect: Set up heartbeat system with leader election
+  // Effect: Set up observer heartbeat (every 5 seconds)
+  useEffect(() => {
+    mountedRef.current = true;
+
+    // Check if observers API exists (may not if schema hasn't deployed yet)
+    const hasObserversAPI =
+      "observers" in api && "heartbeat" in (api.observers as any);
+
+    if (!hasObserversAPI) {
+      console.warn(
+        "⚠️ Observers API not deployed yet. Run 'npx convex dev' to deploy."
+      );
+      // Set default observer count of 1 (this client)
+      setObserverCount(1);
+      return;
+    }
+
+    // Send observer heartbeat to track "who's watching"
+    async function sendObserverHeartbeat() {
+      if (!mountedRef.current) return;
+
+      try {
+        const result = await convex.mutation((api as any).observers.heartbeat, {
+          sessionId: sessionIdRef.current,
+        });
+
+        if (!mountedRef.current) return;
+
+        setObserverCount(result.observerCount);
+
+        // Set start time on first successful heartbeat
+        if (startTime === null) {
+          setStartTime(Date.now());
+        }
+
+        console.log(
+          `👁️ Observer heartbeat: ${result.observerCount} observers, world ${result.isWorldRunning ? "RUNNING" : "FROZEN"}`
+        );
+      } catch (err) {
+        console.error("Observer heartbeat error:", err);
+        // Fallback: assume we're the only observer
+        setObserverCount(1);
+        // Set start time on first connection attempt
+        if (startTime === null) {
+          setStartTime(Date.now());
+        }
+      }
+    }
+
+    // Send first heartbeat immediately
+    sendObserverHeartbeat();
+
+    // Send heartbeat every 5 seconds
+    const observerInterval = setInterval(sendObserverHeartbeat, 5000);
+
+    return () => {
+      mountedRef.current = false;
+      clearInterval(observerInterval);
+    };
+  }, [convex]);
+
+  // Effect: Set up leader tick processing (only if leader AND world is running)
   useEffect(() => {
     // Mark component as mounted
     mountedRef.current = true;
@@ -92,6 +187,7 @@ export function useHeartbeat() {
             processedAgents: result.processedAgents, // How many agents processed
             latencyMs: result.latencyMs, // How long it took
             lastTickAt: Date.now(), // When this tick completed
+            observerCount: observerCount, // Current observer count
           });
 
           // Log success for debugging
@@ -103,7 +199,7 @@ export function useHeartbeat() {
           timeoutRef.current = setTimeout(heartbeat, 5000);
         } else if (!result.isLeader) {
           // Another client is leader, stop trying to become leader
-          console.log("Not leader, stopping heartbeat");
+          console.log("Not leader, stopping tick processing");
           setIsLeader(false);
         }
       } catch (err) {
@@ -129,11 +225,13 @@ export function useHeartbeat() {
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [convex]); // Only re-run if convex client changes
+  }, [convex, observerCount]); // Re-run if observer count changes
 
   // Return leadership status and statistics for display in UI
   return {
     isLeader, // Boolean: true if this client is the leader
     stats, // Object: performance statistics or null if no ticks yet
+    observerCount, // Number: current observer count
+    startTime, // Number: timestamp when first heartbeat connected
   };
 }

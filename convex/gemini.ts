@@ -1,8 +1,7 @@
 "use node";
-
+import { v } from "convex/values";
 import { GoogleGenAI } from "@google/genai";
 import { action } from "./_generated/server";
-import { v } from "convex/values";
 
 /**
  * Generate a profile picture using Gemini 2.5 Flash Image (nano banana)
