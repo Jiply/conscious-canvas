@@ -41,6 +41,11 @@ export default defineSchema({
       v.literal("grass"), // Grass/lawn (walkable)
       v.literal("water"), // Water feature (not walkable)
       v.literal("path"), // Paved walkway (walkable)
+      v.literal("brick_path"), // Brick paved walkway (walkable)
+      v.literal("tall_tree"), // Tall tree (not walkable)
+      v.literal("short_tree"), // Short tree (not walkable)
+      v.literal("boulder"), // Boulder/rock (not walkable)
+      v.literal("stone"), // Stone tile (walkable)
       v.literal("void") // Empty/boundary (not walkable)
     ),
     isWalkable: v.boolean(), // Can agents walk on this tile?
@@ -156,6 +161,9 @@ export default defineSchema({
     ),
     nextDecisionAt: v.number(), // timestamp (ms) when LLM should run next
 
+    // Conversation state
+    currentConversationId: v.optional(v.id("conversations")), // active conversation (if any)
+
     // Emotions & needs (all 0-1 for LLM reasoning)
     emotions: v.object({
       valence: v.number(), // -1 to 1 (negative to positive mood)
@@ -246,6 +254,44 @@ export default defineSchema({
   })
     .index("by_agent", ["agentId"])
     .index("by_status", ["agentId", "completedAt"]), // find in-progress decisions
+
+  // ========== CONVERSATIONS ==========
+
+  /**
+   * Conversations - Multi-turn dialogue sessions between agents
+   * Supports 2+ participants for potential group conversations
+   */
+  conversations: defineTable({
+    participantIds: v.array(v.id("agents")), // 2+ agents in conversation
+    status: v.union(v.literal("active"), v.literal("completed")),
+    startedAt: v.number(), // timestamp when conversation began
+    completedAt: v.optional(v.number()), // timestamp when conversation ended
+    location: v.optional(v.object({ x: v.number(), y: v.number() })), // where conversation took place
+    nearestPlaceId: v.optional(v.id("places")), // nearby landmark
+    turnCount: v.number(), // number of messages exchanged (for analytics)
+  })
+    .index("by_status", ["status"]) // find active conversations
+    .index("by_participant", ["participantIds"]), // find agent's conversations
+
+  /**
+   * Messages - Individual utterances within a conversation
+   * Each message represents one agent's turn in the dialogue
+   */
+  messages: defineTable({
+    conversationId: v.id("conversations"), // which conversation this belongs to
+    agentId: v.id("agents"), // who said this
+    content: v.string(), // what they said
+    emotionSnapshot: v.optional(
+      v.object({
+        valence: v.number(), // agent's emotion when they said this
+        arousal: v.number(),
+      })
+    ),
+    continueConversation: v.boolean(), // does speaker want to keep talking?
+    reasonForLeaving: v.optional(v.string()), // why they're ending conversation (if continueConversation=false)
+  })
+    .index("by_conversation", ["conversationId"]) // get all messages in conversation
+    .index("by_agent", ["agentId"]), // get all messages by agent
 
   // ========== HEARTBEAT SYSTEM ==========
 
