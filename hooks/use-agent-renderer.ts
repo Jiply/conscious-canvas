@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Container, Graphics, Text, TextStyle, Sprite, Texture } from "pixi.js";
+import { Container, Graphics, Text, TextStyle, Sprite, Assets } from "pixi.js";
 import type { Doc } from "@/convex/_generated/dataModel";
 
 interface AgentRendererProps {
@@ -17,6 +17,7 @@ interface AgentRendererProps {
 
 /**
  * Map agent names to profile picture assets in /public folder
+ * Only use the actual PNG files that exist: 01.png through 10.png
  */
 const AGENT_PROFILE_PICTURES: Record<string, string> = {
   "Maya Chen": "/01.png",
@@ -97,30 +98,48 @@ export function useAgentRenderer({
           `Loading profile picture for ${agent.name}: ${profilePicUrl}`
         );
 
-        // Load texture - Texture.from handles async loading automatically
-        const texture = Texture.from(profilePicUrl);
-        const profileSprite = new Sprite(texture);
-
-        // Size the sprite to 32px diameter (16px radius)
-        const diameter = 32;
-        profileSprite.width = diameter;
-        profileSprite.height = diameter;
-        profileSprite.anchor.set(0.5); // Center the sprite
+        // Create a placeholder sprite first
+        const profileSprite = new Sprite();
+        profileSprite.anchor.set(0.5);
         profileSprite.position.set(0, 0);
 
-        // Create circular mask using Graphics
+        // Create circular mask
         const circleMask = new Graphics();
         circleMask.circle(0, 0, 16);
-        circleMask.fill({ color: 0xffffff });
+        circleMask.fill(0xffffff);
+        circleMask.alpha = 0; // Hide the mask but keep it functional
 
-        // Add mask to container first (must be in scene graph)
-        agentContainer.addChild(circleMask);
-
-        // Add sprite to container
+        // Add to container
         agentContainer.addChild(profileSprite);
-
-        // Apply the mask to the sprite
+        agentContainer.addChild(circleMask);
         profileSprite.mask = circleMask;
+
+        // Load texture asynchronously using PixiJS Assets API
+        console.log(
+          `🖼️ Loading texture for ${agent.name} from: ${profilePicUrl}`
+        );
+
+        Assets.load(profilePicUrl)
+          .then((texture) => {
+            console.log(`  ✅ Texture loaded for ${agent.name}:`, texture);
+
+            if (!profileSprite.destroyed) {
+              profileSprite.texture = texture;
+
+              // Size the sprite to 32px diameter (16px radius)
+              const diameter = 32;
+              profileSprite.width = diameter;
+              profileSprite.height = diameter;
+
+              console.log(`  ✅ Sprite updated - ${diameter}x${diameter}`);
+            }
+          })
+          .catch((error) => {
+            console.error(
+              `  ❌ Failed to load texture for ${agent.name}:`,
+              error
+            );
+          });
 
         // Add a white border for visibility (drawn on top)
         const border = new Graphics();
