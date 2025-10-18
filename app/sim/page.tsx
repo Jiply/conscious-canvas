@@ -17,13 +17,18 @@ import {
   SidebarSeparator,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import {
-  Users,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   MapPin,
   Clock,
   Eye,
@@ -37,10 +42,26 @@ import { useHeartbeat } from "@/hooks/use-heartbeat";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { PixiMap } from "@/components/PixiMap";
+import { useState, useMemo } from "react";
 
 export default function SimPage() {
   const { isLeader, stats } = useHeartbeat();
   const agents = useQuery(api.agents.listAgents) ?? [];
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Filter agents based on search query
+  const filteredAgents = useMemo(() => {
+    if (!searchQuery.trim()) return agents;
+
+    const query = searchQuery.toLowerCase();
+    return agents.filter(
+      (agent) =>
+        agent.name.toLowerCase().includes(query) ||
+        agent.role.toLowerCase().includes(query) ||
+        agent.state.toLowerCase().includes(query) ||
+        agent.personality?.toLowerCase().includes(query)
+    );
+  }, [agents, searchQuery]);
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="flex h-screen w-full">
@@ -94,8 +115,10 @@ export default function SimPage() {
                 <div className="relative px-2">
                   <Search className="absolute left-4 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search by name, role, location..."
+                    placeholder="Search by name, role, state..."
                     className="pl-8"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
               </SidebarGroupContent>
@@ -108,34 +131,111 @@ export default function SimPage() {
                 <div className="flex items-center justify-between w-full">
                   <span>Agents</span>
                   <Badge variant="secondary" className="ml-auto">
-                    {agents.length}
+                    {filteredAgents.length}/{agents.length}
                   </Badge>
                 </div>
               </SidebarGroupLabel>
               <SidebarGroupContent>
-                {agents.length === 0 ? (
+                {filteredAgents.length === 0 ? (
                   <div className="px-2 py-4 text-center text-sm text-muted-foreground">
-                    No agents yet. They will appear here when the simulation
-                    starts.
+                    {agents.length === 0
+                      ? "No agents yet. They will appear here when the simulation starts."
+                      : "No agents match your search."}
                   </div>
                 ) : (
-                  <SidebarMenu>
-                    {agents.map((agent) => (
-                      <SidebarMenuItem key={agent._id}>
-                        <SidebarMenuButton>
-                          <User className="h-4 w-4" />
-                          <div className="flex flex-col items-start">
-                            <span className="text-sm font-medium">
-                              {agent.name}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {agent.state} • {agent.role}
-                            </span>
-                          </div>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
+                  <TooltipProvider>
+                    <SidebarMenu>
+                      {filteredAgents.map((agent) => (
+                        <SidebarMenuItem key={agent._id}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <SidebarMenuButton>
+                                <User className="h-4 w-4" />
+                                <div className="flex flex-col items-start">
+                                  <span className="text-sm font-medium">
+                                    {agent.name}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {agent.state} • {agent.role}
+                                  </span>
+                                </div>
+                              </SidebarMenuButton>
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="max-w-xs">
+                              <div className="space-y-2">
+                                <div>
+                                  <p className="font-semibold">{agent.name}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {agent.role}
+                                  </p>
+                                </div>
+                                {agent.personality && (
+                                  <div>
+                                    <p className="text-xs font-medium">
+                                      Personality:
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {agent.personality}
+                                    </p>
+                                  </div>
+                                )}
+                                <div>
+                                  <p className="text-xs font-medium">
+                                    Position:
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    ({agent.pos.x}, {agent.pos.y})
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-xs font-medium">State:</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {agent.state}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-xs font-medium">Emotions:</p>
+                                  <div className="flex gap-2 text-xs">
+                                    <span>
+                                      Mood:{" "}
+                                      {agent.emotions.valence > 0 ? "😊" : "😔"}{" "}
+                                      {agent.emotions.valence.toFixed(2)}
+                                    </span>
+                                    <span>
+                                      Energy: ⚡{" "}
+                                      {agent.emotions.arousal.toFixed(2)}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div>
+                                  <p className="text-xs font-medium">Needs:</p>
+                                  <div className="grid grid-cols-2 gap-1 text-xs">
+                                    <span>
+                                      😴 {(agent.needs.sleepiness * 100).toFixed(0)}%
+                                    </span>
+                                    <span>
+                                      🍔 {(agent.needs.hunger * 100).toFixed(0)}%
+                                    </span>
+                                    <span>
+                                      📚{" "}
+                                      {(agent.needs.studyPressure * 100).toFixed(
+                                        0
+                                      )}
+                                      %
+                                    </span>
+                                    <span>
+                                      👥{" "}
+                                      {(agent.needs.socialDrive * 100).toFixed(0)}%
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </TooltipProvider>
                 )}
               </SidebarGroupContent>
             </SidebarGroup>
