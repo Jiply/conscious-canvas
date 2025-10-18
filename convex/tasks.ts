@@ -1,5 +1,5 @@
-import { query } from "./_generated/server";
 import { v } from "convex/values";
+import { query } from "./_generated/server";
 
 /**
  * Example query - returns a test message

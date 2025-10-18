@@ -74,6 +74,113 @@ export const TILE_RENDER_STYLES: Record<TileType, TileRenderStyle> = {
     borderWidth: 0,
     pattern: "solid",
   },
+  // Terrain variety
+  tall_tree: {
+    baseColor: 0x2e7d32,
+    borderColor: 0x1b5e20,
+    borderWidth: 1,
+    pattern: "solid",
+    shadow: true,
+  },
+  short_tree: {
+    baseColor: 0x558b2f,
+    borderColor: 0x33691e,
+    borderWidth: 1,
+    pattern: "solid",
+  },
+  bush: {
+    baseColor: 0x689f38,
+    borderColor: 0x558b2f,
+    borderWidth: 0.5,
+    pattern: "dots",
+    patternColor: 0x7cb342,
+  },
+  flower_bed: {
+    baseColor: 0xf48fb1,
+    borderColor: 0xf06292,
+    borderWidth: 1,
+    pattern: "dots",
+    patternColor: 0xf8bbd0,
+  },
+  concrete: {
+    baseColor: 0x9e9e9e,
+    borderColor: 0x757575,
+    borderWidth: 1,
+    pattern: "grid",
+    patternColor: 0xbdbdbd,
+  },
+  brick_path: {
+    baseColor: 0xa1887f,
+    borderColor: 0x8d6e63,
+    borderWidth: 1,
+    pattern: "brick",
+    patternColor: 0xbcaaa4,
+  },
+  // Building interiors
+  cafe_stall: {
+    baseColor: 0xd7ccc8,
+    borderColor: 0xbcaaa4,
+    borderWidth: 2,
+    pattern: "solid",
+    opacity: 0.95,
+  },
+  study_desk: {
+    baseColor: 0xbcaaa4,
+    borderColor: 0xa1887f,
+    borderWidth: 1,
+    pattern: "solid",
+    opacity: 0.95,
+  },
+  bookshelf: {
+    baseColor: 0x8d6e63,
+    borderColor: 0x6d4c41,
+    borderWidth: 2,
+    pattern: "solid",
+    opacity: 1.0,
+    shadow: true,
+  },
+  lounge_chair: {
+    baseColor: 0xb39ddb,
+    borderColor: 0x9575cd,
+    borderWidth: 1,
+    pattern: "solid",
+    opacity: 0.95,
+  },
+  laundry_machine: {
+    baseColor: 0x90caf9,
+    borderColor: 0x64b5f6,
+    borderWidth: 2,
+    pattern: "solid",
+    opacity: 1.0,
+  },
+  lecture_seat: {
+    baseColor: 0x9fa8da,
+    borderColor: 0x7986cb,
+    borderWidth: 1,
+    pattern: "solid",
+    opacity: 0.95,
+  },
+  library_desk: {
+    baseColor: 0xa1887f,
+    borderColor: 0x8d6e63,
+    borderWidth: 1,
+    pattern: "solid",
+    opacity: 0.95,
+  },
+  dorm_bed: {
+    baseColor: 0xce93d8,
+    borderColor: 0xba68c8,
+    borderWidth: 1,
+    pattern: "solid",
+    opacity: 0.95,
+  },
+  kitchen_counter: {
+    baseColor: 0xffe082,
+    borderColor: 0xffd54f,
+    borderWidth: 1,
+    pattern: "solid",
+    opacity: 0.95,
+  },
 };
 
 /**
@@ -250,6 +357,23 @@ export function getTileDescription(tileType: TileType): string {
     water: "Water feature (non-walkable)",
     path: "Paved walkway",
     void: "Empty space or boundary",
+    // Terrain variety
+    tall_tree: "Tall tree (non-walkable)",
+    short_tree: "Short tree (non-walkable)",
+    bush: "Bush or shrub (walkable)",
+    flower_bed: "Decorative flower bed",
+    concrete: "Concrete plaza or courtyard",
+    brick_path: "Decorative brick pathway",
+    // Building interiors
+    cafe_stall: "Café food stall",
+    study_desk: "Study desk",
+    bookshelf: "Library bookshelf",
+    lounge_chair: "Lounge seating",
+    laundry_machine: "Laundry machine",
+    lecture_seat: "Lecture hall seating",
+    library_desk: "Library study desk",
+    dorm_bed: "Dorm room bed",
+    kitchen_counter: "Kitchen counter",
   };
   return descriptions[tileType];
 }
