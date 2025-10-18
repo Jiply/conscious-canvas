@@ -8,7 +8,12 @@
  * @module
  */
 
-import type * as tasks from "../tasks.js";
+import type * as agents from "../agents.js";
+import type * as decisions from "../decisions.js";
+import type * as heartbeat from "../heartbeat.js";
+import type * as llm from "../llm.js";
+import type * as observations from "../observations.js";
+import type * as opinions from "../opinions.js";
 
 import type {
   ApiFromModules,
@@ -25,7 +30,12 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
-  tasks: typeof tasks;
+  agents: typeof agents;
+  decisions: typeof decisions;
+  heartbeat: typeof heartbeat;
+  llm: typeof llm;
+  observations: typeof observations;
+  opinions: typeof opinions;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 

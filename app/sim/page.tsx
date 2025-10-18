@@ -33,8 +33,13 @@ import {
   User,
   Activity,
 } from "lucide-react";
+import { useHeartbeat } from "@/hooks/use-heartbeat";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 export default function SimPage() {
+  const { isLeader, stats } = useHeartbeat();
+  const agents = useQuery(api.agents.listAgents) ?? [];
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="flex h-screen w-full">
@@ -50,15 +55,33 @@ export default function SimPage() {
               <div className="flex items-center gap-2 text-sm">
                 <Clock className="h-4 w-4" />
                 <span className="text-muted-foreground">World: </span>
-                <Badge variant="secondary" className="gap-1">
-                  <PlayCircle className="h-3 w-3" />
-                  Running
+                <Badge
+                  variant={isLeader ? "secondary" : "outline"}
+                  className="gap-1"
+                >
+                  {isLeader ? (
+                    <>
+                      <PlayCircle className="h-3 w-3" />
+                      Running
+                    </>
+                  ) : (
+                    <>
+                      <PauseCircle className="h-3 w-3" />
+                      Paused
+                    </>
+                  )}
                 </Badge>
               </div>
               <div className="mt-2 flex items-center gap-2 text-sm">
                 <Eye className="h-4 w-4" />
-                <span className="text-muted-foreground">Observers: </span>
-                <Badge variant="outline">1</Badge>
+                <span className="text-muted-foreground">
+                  {isLeader ? "Leader" : "Follower"}
+                </span>
+                {stats && (
+                  <Badge variant="outline" className="text-xs font-mono">
+                    {stats.latencyMs}ms
+                  </Badge>
+                )}
               </div>
             </div>
           </SidebarHeader>
@@ -84,15 +107,35 @@ export default function SimPage() {
                 <div className="flex items-center justify-between w-full">
                   <span>Agents</span>
                   <Badge variant="secondary" className="ml-auto">
-                    0
+                    {agents.length}
                   </Badge>
                 </div>
               </SidebarGroupLabel>
               <SidebarGroupContent>
-                <div className="px-2 py-4 text-center text-sm text-muted-foreground">
-                  No agents yet. They will appear here when the simulation
-                  starts.
-                </div>
+                {agents.length === 0 ? (
+                  <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+                    No agents yet. They will appear here when the simulation
+                    starts.
+                  </div>
+                ) : (
+                  <SidebarMenu>
+                    {agents.map((agent) => (
+                      <SidebarMenuItem key={agent._id}>
+                        <SidebarMenuButton>
+                          <User className="h-4 w-4" />
+                          <div className="flex flex-col items-start">
+                            <span className="text-sm font-medium">
+                              {agent.name}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {agent.state} • {agent.role}
+                            </span>
+                          </div>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                )}
               </SidebarGroupContent>
             </SidebarGroup>
 
