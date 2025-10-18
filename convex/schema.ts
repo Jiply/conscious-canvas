@@ -139,6 +139,7 @@ export default defineSchema({
       v.literal("barista")
     ),
     personality: v.optional(v.string()), // LLM-friendly bio
+    profilePicture: v.optional(v.string()), // Base64 encoded image data
 
     // Position & movement
     pos: v.object({ x: v.number(), y: v.number() }),
