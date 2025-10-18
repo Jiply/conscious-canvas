@@ -1,11 +1,12 @@
 import { mutation } from "./_generated/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
+import { api } from "./_generated/api";
 
 // ========== CONSTANTS ==========
 
-const FOV_RADIUS = 20; // tiles
-const FOV_ANGLE = (120 * Math.PI) / 180; // 120 degrees in radians
+const VISION_WIDTH = 7; // tiles wide (perpendicular to heading)
+const VISION_DEPTH = 20; // tiles deep (in direction of heading)
 const TALKING_RANGE = 2; // tiles
 const STALE_LOCK_TIMEOUT = 30000; // 30 seconds
 
@@ -111,8 +112,8 @@ async function processAgentTick(
   agent: Doc<"agents">,
   allAgents: Doc<"agents">[]
 ) {
-  // 1. PERCEPTION: Find agents in field of view
-  const visibleAgents = getAgentsInFOV(agent, allAgents);
+  // 1. PERCEPTION: Find agents in rectangular field of view with occlusion
+  const visibleAgents = await getAgentsInVision(ctx, agent, allAgents);
 
   // 2. OBSERVATIONS: Record what agent sees
   const observations = visibleAgents.map((visible) => ({
@@ -135,11 +136,35 @@ async function processAgentTick(
   // Prune old observations (keep last 50)
   await pruneOldObservations(ctx, agent._id, 50);
 
-  // 3. OPINIONS: Get or update opinions of visible agents
+  // 3. OPINIONS: Retrieve opinions for visible agents from database
+  const visibleAgentIds = visibleAgents.map((v) => v.agent._id);
+
+  // Get all opinions this agent has
+  const allOpinions = await ctx.db
+    .query("opinions")
+    .withIndex("by_agent", (q: any) => q.eq("agentId", agent._id))
+    .collect();
+
+  // Filter to only opinions about visible agents
+  const visibleOpinions = allOpinions.filter((op: any) =>
+    visibleAgentIds.includes(op.targetAgentId)
+  );
+
+  // Log opinion retrieval
+  console.log(
+    `Agent ${agent.name} sees ${visibleAgents.length} agents, has ${visibleOpinions.length} opinions`
+  );
+
   const nearbyAgents = visibleAgents.filter((v) => v.distance < TALKING_RANGE);
 
-  // 4. DECISION: Decide what to do next
-  await makeAgentDecision(ctx, agent, nearbyAgents, visibleAgents);
+  // 3.5. EXECUTE PREVIOUS DECISION: If agent has a path, walk along it
+  if (agent.path && agent.path.length > 0) {
+    await executePathMovement(ctx, agent);
+    return; // Skip making new decision while executing path
+  }
+
+  // 4. DECISION: Decide what to do next (passing opinions to decision system)
+  await makeAgentDecision(ctx, agent, nearbyAgents, visibleAgents, visibleOpinions);
 }
 
 /**
@@ -177,19 +202,115 @@ async function updateAgentNeeds(ctx: any, agent: Doc<"agents">) {
     ),
   };
 
-  // Move agent left by 1 tile (wrap around to right edge if needed)
-  const newX = agent.pos.x - 1;
-  const wrappedX = newX < 0 ? 79 : newX; // Assuming 80 tile width (0-79)
-
-  const newPos = {
-    x: wrappedX,
-    y: agent.pos.y,
-  };
-
+  // Update needs only (movement will be handled by decision executor)
   await ctx.db.patch(agent._id, {
     needs: newNeeds,
-    pos: newPos,
   });
+}
+
+/**
+ * Execute path movement - move agent one step along their path
+ */
+async function executePathMovement(ctx: any, agent: Doc<"agents">) {
+  if (!agent.path || agent.path.length === 0) return;
+
+  // Get the next position in the path (index 1, since index 0 is current position)
+  const nextStep = agent.path.length > 1 ? agent.path[1] : agent.path[0];
+
+  // Move agent to next position
+  await ctx.db.patch(agent._id, {
+    pos: { x: nextStep.x, y: nextStep.y },
+    // Remove first step from path
+    path: agent.path.slice(1),
+  });
+
+  console.log(
+    `🚶 ${agent.name} moved to (${nextStep.x}, ${nextStep.y}), ${agent.path.length - 1} steps remaining`
+  );
+
+  // If path is now empty or has only 1 element (current position), reached destination
+  if (agent.path.length <= 1) {
+    await ctx.db.patch(agent._id, {
+      path: undefined,
+      state: "Idle",
+    });
+    console.log(`✅ ${agent.name} reached destination`);
+
+    // Get the active decision to see what action to perform
+    const activeDecision = await ctx.db
+      .query("decisions")
+      .withIndex("by_agent", (q: any) => q.eq("agentId", agent._id))
+      .order("desc")
+      .first();
+
+    if (activeDecision && !activeDecision.completedAt && activeDecision.action === "MoveTo") {
+      // Mark MoveTo as complete
+      await ctx.db.patch(activeDecision._id, {
+        completedAt: Date.now(),
+      });
+      console.log(`✓ Completed MoveTo decision for ${agent.name}`);
+
+      // Now check if we should perform an action at this location
+      if (activeDecision.targetPlaceId) {
+        await performActionAtPlace(ctx, agent, activeDecision.targetPlaceId);
+      }
+    }
+  }
+}
+
+/**
+ * Perform action at a place (Eat at Café, Sleep at Dorm, Study at Library)
+ */
+async function performActionAtPlace(ctx: any, agent: Doc<"agents">, placeId: string) {
+  const place = await ctx.db.get(placeId);
+  if (!place) {
+    console.error(`❌ Place ${placeId} not found for ${agent.name}`);
+    return;
+  }
+
+  const placeKind = place.kind.toLowerCase();
+  let actionPerformed = false;
+  let decisionAction: "Eat" | "Sleep" | "Study" | null = null;
+  const newNeeds = { ...agent.needs };
+
+  // Determine action based on place type
+  if (placeKind === "cafe" && agent.needs.hunger > 0.1) {
+    // Eat at café - reduces hunger significantly
+    newNeeds.hunger = Math.max(0, agent.needs.hunger - 0.4);
+    decisionAction = "Eat";
+    actionPerformed = true;
+    console.log(`🍽️ ${agent.name} is eating at ${place.name} (hunger: ${agent.needs.hunger.toFixed(2)} → ${newNeeds.hunger.toFixed(2)})`);
+  } else if (placeKind === "dorm" && agent.needs.sleepiness > 0.1) {
+    // Sleep at dorm - reduces sleepiness significantly
+    newNeeds.sleepiness = Math.max(0, agent.needs.sleepiness - 0.5);
+    decisionAction = "Sleep";
+    actionPerformed = true;
+    console.log(`😴 ${agent.name} is sleeping at ${place.name} (sleepiness: ${agent.needs.sleepiness.toFixed(2)} → ${newNeeds.sleepiness.toFixed(2)})`);
+  } else if (placeKind === "library" && agent.needs.studyPressure > 0.1) {
+    // Study at library - reduces study pressure significantly
+    newNeeds.studyPressure = Math.max(0, agent.needs.studyPressure - 0.3);
+    decisionAction = "Study";
+    actionPerformed = true;
+    console.log(`📚 ${agent.name} is studying at ${place.name} (study pressure: ${agent.needs.studyPressure.toFixed(2)} → ${newNeeds.studyPressure.toFixed(2)})`);
+  }
+
+  // Update agent needs if action was performed
+  if (actionPerformed && decisionAction) {
+    await ctx.db.patch(agent._id, {
+      needs: newNeeds,
+    });
+
+    // Create and immediately complete the action decision (Eat/Sleep/Study)
+    const actionDecisionId = await ctx.db.insert("decisions", {
+      agentId: agent._id,
+      action: decisionAction,
+      targetPlaceId: placeId,
+      innerThought: `Performing ${decisionAction} at ${place.name}`,
+      completedAt: Date.now(), // Complete immediately since action is instant
+    });
+
+    console.log(`✓ ${agent.name} completed ${decisionAction} action`);
+  }
 }
 
 /**
@@ -199,7 +320,8 @@ async function makeAgentDecision(
   ctx: any,
   agent: Doc<"agents">,
   nearbyAgents: Array<{ agent: Doc<"agents">; distance: number }>,
-  _visibleAgents: Array<{ agent: Doc<"agents">; distance: number }>
+  _visibleAgents: Array<{ agent: Doc<"agents">; distance: number }>,
+  visibleOpinions: any[]
 ) {
   // Check if agent already has an active decision
   const activeDecision = await ctx.db
@@ -210,85 +332,31 @@ async function makeAgentDecision(
 
   if (activeDecision && !activeDecision.completedAt) {
     // Already has active decision, skip for now
+    console.log(`⏭️ ${agent.name} has active ${activeDecision.action} decision, skipping new decision`);
     return;
   }
 
-  // Simple heuristic decision making (will be replaced by LLM later)
-  const { needs } = agent;
+  // Call LLM to make decision based on context
+  // The LLM gets: agent stats, observations, decisions, opinions, available places
+  console.log(`🧠 Scheduling LLM decision for ${agent.name} (${visibleOpinions.length} opinions, ${nearbyAgents.length} nearby agents)...`);
 
-  // Priority 1: Social interaction if someone nearby and high social drive
-  if (nearbyAgents.length > 0 && needs.socialDrive > 0.6) {
-    const target = nearbyAgents[0].agent;
-
-    // Get or create opinion
-    const opinion = await ctx.db
-      .query("opinions")
-      .withIndex("by_pair", (q: any) =>
-        q.eq("agentId", agent._id).eq("targetAgentId", target._id)
-      )
-      .unique();
-
-    const sentiment = opinion?.sentiment ?? 0;
-
-    // Only talk if sentiment is neutral or positive
-    if (sentiment >= -0.2) {
-      await ctx.db.insert("decisions", {
-        agentId: agent._id,
-        action: "EngageConversation",
-        targetAgentId: target._id,
-        innerThought: `I should chat with ${target.name}`,
-        utterance: `Hey ${target.name}!`,
-        completedAt: undefined,
-      });
-
-      // Increase social drive satisfaction
-      await ctx.db.patch(agent._id, {
-        needs: { ...needs, socialDrive: Math.max(0, needs.socialDrive - 0.2) },
-      });
-
-      return;
-    }
-  }
-
-  // Priority 2: Urgent needs
-  if (needs.hunger > 0.7) {
-    await ctx.db.insert("decisions", {
+  try {
+    await ctx.scheduler.runAfter(0, api.llm.makeAgentDecision, {
       agentId: agent._id,
-      action: "Eat",
-      innerThought: "I'm really hungry, need to grab something to eat.",
-      completedAt: undefined,
     });
-    return;
-  }
+    console.log(`✅ LLM action scheduled for ${agent.name}`);
+  } catch (error) {
+    console.error(`❌ Error scheduling LLM decision for ${agent.name}:`, error);
 
-  if (needs.sleepiness > 0.8) {
-    await ctx.db.insert("decisions", {
+    // Fallback to simple Idle decision if LLM fails
+    const idleDecisionId = await ctx.db.insert("decisions", {
       agentId: agent._id,
-      action: "Sleep",
-      innerThought: "So tired... need to rest.",
-      completedAt: undefined,
+      action: "Idle",
+      innerThought: "Taking a moment to think...",
+      completedAt: Date.now(), // Idle decisions complete immediately
     });
-    return;
+    console.log(`🔄 Created fallback Idle decision for ${agent.name}`);
   }
-
-  // Priority 3: Study pressure
-  if (needs.studyPressure > 0.6) {
-    await ctx.db.insert("decisions", {
-      agentId: agent._id,
-      action: "Study",
-      innerThought: "Better hit the books for a bit.",
-      completedAt: undefined,
-    });
-    return;
-  }
-
-  // Default: Idle
-  await ctx.db.insert("decisions", {
-    agentId: agent._id,
-    action: "Idle",
-    innerThought: "Just taking a moment to myself.",
-    completedAt: undefined,
-  });
 }
 
 // ========== PERCEPTION SYSTEM ==========
@@ -296,32 +364,138 @@ async function makeAgentDecision(
 /**
  * Get all agents visible to this agent (within FOV cone)
  */
-function getAgentsInFOV(
+/**
+ * Get agents in rectangular field of view with line-of-sight occlusion
+ * Vision is 20 tiles deep × 7 tiles wide in the direction agent is facing
+ */
+async function getAgentsInVision(
+  ctx: any,
   agent: Doc<"agents">,
   allAgents: Doc<"agents">[]
-): Array<{ agent: Doc<"agents">; distance: number }> {
+): Promise<Array<{ agent: Doc<"agents">; distance: number }>> {
   const visible: Array<{ agent: Doc<"agents">; distance: number }> = [];
+
+  // Direction vectors based on heading
+  const headingX = Math.cos(agent.headingRad);
+  const headingY = Math.sin(agent.headingRad);
+
+  // Perpendicular vector (90 degrees counterclockwise)
+  const perpX = -headingY;
+  const perpY = headingX;
 
   for (const other of allAgents) {
     if (other._id === agent._id) continue; // Skip self
 
+    // Vector from agent to target
     const dx = other.pos.x - agent.pos.x;
     const dy = other.pos.y - agent.pos.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
 
-    // Check distance
-    if (distance > FOV_RADIUS) continue;
+    // Project onto heading direction (forward distance)
+    const forwardDist = dx * headingX + dy * headingY;
 
-    // Check FOV cone
-    const bearing = Math.atan2(dy, dx);
-    const angleDiff = Math.abs(normalizeAngle(bearing - agent.headingRad));
+    // Project onto perpendicular direction (sideways distance)
+    const sidewaysDist = Math.abs(dx * perpX + dy * perpY);
 
-    if (angleDiff > FOV_ANGLE / 2) continue;
+    // Check if within rectangular FOV
+    if (forwardDist < 0 || forwardDist > VISION_DEPTH) continue; // Not in forward cone
+    if (sidewaysDist > VISION_WIDTH / 2) continue; // Too far to the side
+
+    // Check line of sight (occlusion by walls and other agents)
+    const hasLineOfSight = await checkLineOfSight(
+      ctx,
+      agent.pos,
+      other.pos,
+      allAgents,
+      agent._id
+    );
+
+    if (!hasLineOfSight) continue;
 
     visible.push({ agent: other, distance });
   }
 
   return visible;
+}
+
+/**
+ * Check if there's a clear line of sight between two points
+ * Uses Bresenham's line algorithm and checks for:
+ * 1. Non-walkable tiles (walls)
+ * 2. Other agents blocking the view
+ */
+async function checkLineOfSight(
+  ctx: any,
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  allAgents: Doc<"agents">[],
+  observerAgentId: Id<"agents">
+): Promise<boolean> {
+  // Bresenham's line algorithm
+  const x0 = Math.round(from.x);
+  const y0 = Math.round(from.y);
+  const x1 = Math.round(to.x);
+  const y1 = Math.round(to.y);
+
+  const dx = Math.abs(x1 - x0);
+  const dy = Math.abs(y1 - y0);
+  const sx = x0 < x1 ? 1 : -1;
+  const sy = y0 < y1 ? 1 : -1;
+  let err = dx - dy;
+
+  let x = x0;
+  let y = y0;
+
+  while (true) {
+    // Don't check start and end points
+    if ((x !== x0 || y !== y0) && (x !== x1 || y !== y1)) {
+      // Check if this tile is walkable
+      const tile = await ctx.db
+        .query("map_tiles")
+        .withIndex("by_coordinates", (q: any) => q.eq("x", x).eq("y", y))
+        .first();
+
+      if (tile && !tile.isWalkable) {
+        return false; // Wall blocks line of sight
+      }
+
+      // Check if any agent is blocking at this position
+      const blockingAgent = allAgents.find(
+        (a) =>
+          a._id !== observerAgentId &&
+          Math.round(a.pos.x) === x &&
+          Math.round(a.pos.y) === y
+      );
+
+      if (blockingAgent) {
+        return false; // Agent blocks line of sight
+      }
+    }
+
+    // Reached end point
+    if (x === x1 && y === y1) break;
+
+    const e2 = 2 * err;
+    if (e2 > -dy) {
+      err -= dy;
+      x += sx;
+    }
+    if (e2 < dx) {
+      err += dx;
+      y += sy;
+    }
+  }
+
+  return true; // Clear line of sight
+}
+
+function getAgentsInFOV(
+  agent: Doc<"agents">,
+  allAgents: Doc<"agents">[]
+): Array<{ agent: Doc<"agents">; distance: number }> {
+  // This is now deprecated - using getAgentsInVision instead
+  // Keeping for backwards compatibility temporarily
+  return [];
 }
 
 /**
@@ -342,7 +516,7 @@ function calculateSalience(
   _observer: Doc<"agents">
 ): number {
   // Closer = more salient
-  const distanceFactor = 1 - distance / FOV_RADIUS;
+  const distanceFactor = 1 - distance / VISION_DEPTH;
 
   // Emotional arousal of target increases salience
   const arousalFactor = target.emotions.arousal;
