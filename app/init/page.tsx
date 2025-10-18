@@ -29,7 +29,7 @@ export default function InitPage() {
   const settings = useQuery(api.map.getMapSettings);
   const places = useQuery(api.map.getPlaces);
 
-  const handleInit = async (force: boolean = false) => {
+  async function handleInit(force: boolean = false) {
     setIsInitializing(true);
     setResult(null);
 
@@ -47,7 +47,7 @@ export default function InitPage() {
     } finally {
       setIsInitializing(false);
     }
-  };
+  }
 
   const isMapInitialized = settings !== undefined && settings !== null;
 
