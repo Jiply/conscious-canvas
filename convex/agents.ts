@@ -232,6 +232,7 @@ export const listAgents = query({
         v.literal("Sleep")
       ),
       nextDecisionAt: v.number(),
+      currentConversationId: v.optional(v.id("conversations")),
       emotions: v.object({
         valence: v.number(),
         arousal: v.number(),
@@ -283,6 +284,7 @@ export const getAgent = query({
         v.literal("Sleep")
       ),
       nextDecisionAt: v.number(),
+      currentConversationId: v.optional(v.id("conversations")),
       emotions: v.object({
         valence: v.number(),
         arousal: v.number(),

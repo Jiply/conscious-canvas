@@ -65,7 +65,6 @@ export function preGenerateAllTileTextures(
   tileSize: number,
   maxVariants: number = 3
 ): void {
-  const startTime = performance.now();
   const tileTypes: TileType[] = [
     "floor",
     "wall",
@@ -76,22 +75,11 @@ export function preGenerateAllTileTextures(
     "void",
   ];
 
-  console.log(
-    `🎨 Pre-generating tile textures (${tileTypes.length} types × ${maxVariants} variants)...`
-  );
-
-  let generatedCount = 0;
   for (const tileType of tileTypes) {
     for (let variant = 0; variant < maxVariants; variant++) {
       generateTileTexture(renderer, tileType, tileSize, variant);
-      generatedCount++;
     }
   }
-
-  const duration = performance.now() - startTime;
-  console.log(
-    `✅ Generated ${generatedCount} tile textures in ${duration.toFixed(2)}ms (${(duration / generatedCount).toFixed(2)}ms/texture)`
-  );
 }
 
 /**
@@ -114,7 +102,6 @@ export function clearTextureCache(): void {
     texture.destroy();
   }
   textureCache.clear();
-  console.log("🗑️  Texture cache cleared");
 }
 
 /**
