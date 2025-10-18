@@ -1,5 +1,5 @@
-import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { defineSchema, defineTable } from "convex/server";
 
 /**
  * Conscious Campus - Convex Database Schema
@@ -41,12 +41,24 @@ export default defineSchema({
       v.literal("grass"), // Grass/lawn (walkable)
       v.literal("water"), // Water feature (not walkable)
       v.literal("path"), // Paved walkway (walkable)
-      v.literal("brick_path"), // Brick paved walkway (walkable)
-      v.literal("tall_tree"), // Tall tree (not walkable)
-      v.literal("short_tree"), // Short tree (not walkable)
-      v.literal("boulder"), // Boulder/rock (not walkable)
-      v.literal("stone"), // Stone tile (walkable)
-      v.literal("void") // Empty/boundary (not walkable)
+      v.literal("void"), // Empty/boundary (not walkable)
+      // Terrain variety
+      v.literal("tall_tree"), // Tall trees (not walkable)
+      v.literal("short_tree"), // Short trees (not walkable)
+      v.literal("bush"), // Bushes (walkable)
+      v.literal("flower_bed"), // Flower beds (walkable)
+      v.literal("concrete"), // Concrete areas (walkable)
+      v.literal("brick_path"), // Decorative brick paths (walkable)
+      // Building interiors
+      v.literal("cafe_stall"), // Café food stalls
+      v.literal("study_desk"), // Study desks
+      v.literal("bookshelf"), // Library bookshelves
+      v.literal("lounge_chair"), // Lounge seating
+      v.literal("laundry_machine"), // Laundry facilities
+      v.literal("lecture_seat"), // Lecture hall seating
+      v.literal("library_desk"), // Library study desks
+      v.literal("dorm_bed"), // Dorm room beds
+      v.literal("kitchen_counter") // Kitchen areas
     ),
     isWalkable: v.boolean(), // Can agents walk on this tile?
     visualVariant: v.optional(v.number()), // Visual variation (0-3) for same type
