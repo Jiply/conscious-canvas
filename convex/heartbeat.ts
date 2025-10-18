@@ -4,8 +4,8 @@ import type { Doc, Id } from "./_generated/dataModel";
 
 // ========== CONSTANTS ==========
 
-const FOV_RADIUS = 20; // tiles
-const FOV_ANGLE = (120 * Math.PI) / 180; // 120 degrees in radians
+const VISION_WIDTH = 7; // tiles wide (perpendicular to heading)
+const VISION_DEPTH = 20; // tiles deep (in direction of heading)
 const TALKING_RANGE = 2; // tiles
 const STALE_LOCK_TIMEOUT = 30000; // 30 seconds
 
@@ -109,8 +109,8 @@ async function processAgentTick(
   agent: Doc<"agents">,
   allAgents: Doc<"agents">[]
 ) {
-  // 1. PERCEPTION: Find agents in field of view
-  const visibleAgents = getAgentsInFOV(agent, allAgents);
+  // 1. PERCEPTION: Find agents in rectangular field of view with occlusion
+  const visibleAgents = await getAgentsInVision(ctx, agent, allAgents);
 
   // 2. OBSERVATIONS: Record what agent sees
   const observations = visibleAgents.map((visible) => ({
@@ -289,32 +289,138 @@ async function makeAgentDecision(
 /**
  * Get all agents visible to this agent (within FOV cone)
  */
-function getAgentsInFOV(
+/**
+ * Get agents in rectangular field of view with line-of-sight occlusion
+ * Vision is 20 tiles deep × 7 tiles wide in the direction agent is facing
+ */
+async function getAgentsInVision(
+  ctx: any,
   agent: Doc<"agents">,
   allAgents: Doc<"agents">[]
-): Array<{ agent: Doc<"agents">; distance: number }> {
+): Promise<Array<{ agent: Doc<"agents">; distance: number }>> {
   const visible: Array<{ agent: Doc<"agents">; distance: number }> = [];
+
+  // Direction vectors based on heading
+  const headingX = Math.cos(agent.headingRad);
+  const headingY = Math.sin(agent.headingRad);
+
+  // Perpendicular vector (90 degrees counterclockwise)
+  const perpX = -headingY;
+  const perpY = headingX;
 
   for (const other of allAgents) {
     if (other._id === agent._id) continue; // Skip self
 
+    // Vector from agent to target
     const dx = other.pos.x - agent.pos.x;
     const dy = other.pos.y - agent.pos.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
 
-    // Check distance
-    if (distance > FOV_RADIUS) continue;
+    // Project onto heading direction (forward distance)
+    const forwardDist = dx * headingX + dy * headingY;
 
-    // Check FOV cone
-    const bearing = Math.atan2(dy, dx);
-    const angleDiff = Math.abs(normalizeAngle(bearing - agent.headingRad));
+    // Project onto perpendicular direction (sideways distance)
+    const sidewaysDist = Math.abs(dx * perpX + dy * perpY);
 
-    if (angleDiff > FOV_ANGLE / 2) continue;
+    // Check if within rectangular FOV
+    if (forwardDist < 0 || forwardDist > VISION_DEPTH) continue; // Not in forward cone
+    if (sidewaysDist > VISION_WIDTH / 2) continue; // Too far to the side
+
+    // Check line of sight (occlusion by walls and other agents)
+    const hasLineOfSight = await checkLineOfSight(
+      ctx,
+      agent.pos,
+      other.pos,
+      allAgents,
+      agent._id
+    );
+
+    if (!hasLineOfSight) continue;
 
     visible.push({ agent: other, distance });
   }
 
   return visible;
+}
+
+/**
+ * Check if there's a clear line of sight between two points
+ * Uses Bresenham's line algorithm and checks for:
+ * 1. Non-walkable tiles (walls)
+ * 2. Other agents blocking the view
+ */
+async function checkLineOfSight(
+  ctx: any,
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  allAgents: Doc<"agents">[],
+  observerAgentId: Id<"agents">
+): Promise<boolean> {
+  // Bresenham's line algorithm
+  const x0 = Math.round(from.x);
+  const y0 = Math.round(from.y);
+  const x1 = Math.round(to.x);
+  const y1 = Math.round(to.y);
+
+  const dx = Math.abs(x1 - x0);
+  const dy = Math.abs(y1 - y0);
+  const sx = x0 < x1 ? 1 : -1;
+  const sy = y0 < y1 ? 1 : -1;
+  let err = dx - dy;
+
+  let x = x0;
+  let y = y0;
+
+  while (true) {
+    // Don't check start and end points
+    if ((x !== x0 || y !== y0) && (x !== x1 || y !== y1)) {
+      // Check if this tile is walkable
+      const tile = await ctx.db
+        .query("map_tiles")
+        .withIndex("by_coordinates", (q: any) => q.eq("x", x).eq("y", y))
+        .first();
+
+      if (tile && !tile.isWalkable) {
+        return false; // Wall blocks line of sight
+      }
+
+      // Check if any agent is blocking at this position
+      const blockingAgent = allAgents.find(
+        (a) =>
+          a._id !== observerAgentId &&
+          Math.round(a.pos.x) === x &&
+          Math.round(a.pos.y) === y
+      );
+
+      if (blockingAgent) {
+        return false; // Agent blocks line of sight
+      }
+    }
+
+    // Reached end point
+    if (x === x1 && y === y1) break;
+
+    const e2 = 2 * err;
+    if (e2 > -dy) {
+      err -= dy;
+      x += sx;
+    }
+    if (e2 < dx) {
+      err += dx;
+      y += sy;
+    }
+  }
+
+  return true; // Clear line of sight
+}
+
+function getAgentsInFOV(
+  agent: Doc<"agents">,
+  allAgents: Doc<"agents">[]
+): Array<{ agent: Doc<"agents">; distance: number }> {
+  // This is now deprecated - using getAgentsInVision instead
+  // Keeping for backwards compatibility temporarily
+  return [];
 }
 
 /**
@@ -335,7 +441,7 @@ function calculateSalience(
   _observer: Doc<"agents">
 ): number {
   // Closer = more salient
-  const distanceFactor = 1 - distance / FOV_RADIUS;
+  const distanceFactor = 1 - distance / VISION_DEPTH;
 
   // Emotional arousal of target increases salience
   const arousalFactor = target.emotions.arousal;
