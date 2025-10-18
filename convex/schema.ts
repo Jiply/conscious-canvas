@@ -67,8 +67,7 @@ export default defineSchema({
     salience: v.number(), // 0 to 1, how important/memorable
   })
     .index("by_agent", ["agentId"])
-    .index("by_target", ["targetId"])
-    .index("by_agent_and_time", ["agentId", "_creationTime"]),
+    .index("by_target", ["targetId"]),
 
   // ========== OPINIONS ==========
 
@@ -116,7 +115,6 @@ export default defineSchema({
     llmLatencyMs: v.optional(v.number()),
   })
     .index("by_agent", ["agentId"])
-    .index("by_agent_and_time", ["agentId", "_creationTime"])
     .index("by_status", ["agentId", "completedAt"]), // find in-progress decisions
 
   // ========== PLACES (Jeremy is handling, placeholder structure) ==========
@@ -141,5 +139,14 @@ export default defineSchema({
 
     // Entrance points (where agents pathfind to)
     entrances: v.array(v.object({ x: v.number(), y: v.number() })),
+  }),
+
+  // ========== HEARTBEAT SYSTEM ==========
+
+  heartbeat_state: defineTable({
+    isRunning: v.boolean(), // whether a tick is currently processing
+    lastStartedAt: v.number(), // timestamp when last tick started
+    lastCompletedAt: v.number(), // timestamp when last tick completed
+    currentLeaderId: v.string(), // UUID of the current leader client
   }),
 });
