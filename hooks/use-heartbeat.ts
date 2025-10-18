@@ -3,6 +3,21 @@ import { useConvex } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
 /**
+ * Get or create persistent leader ID from localStorage
+ */
+function getLeaderId(): string {
+  if (typeof window !== "undefined") {
+    const stored = localStorage.getItem("heartbeat_leader_id");
+    if (stored) return stored;
+
+    const newId = crypto.randomUUID();
+    localStorage.setItem("heartbeat_leader_id", newId);
+    return newId;
+  }
+  return crypto.randomUUID();
+}
+
+/**
  * Heartbeat hook with automatic leader election
  *
  * The first client to connect becomes the leader and starts ticking every 5s.
@@ -17,7 +32,10 @@ export function useHeartbeat() {
     latencyMs: number;
     lastTickAt: number;
   } | null>(null);
-  const leaderIdRef = useRef<string>(crypto.randomUUID());
+
+  // Persist leader ID across page reloads
+  const leaderIdRef = useRef<string>(getLeaderId());
+
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const mountedRef = useRef(true);
 
