@@ -36,7 +36,6 @@ export const heartbeat = mutation({
           joinedAt: now,
         },
       });
-      console.log(`👁️ New observer joined: ${args.sessionId}`);
 
       // Log observer join event
       await ctx.db.insert("events", {
@@ -77,9 +76,14 @@ export const heartbeat = mutation({
       const wasRunning = worldSettings.isRunning;
       const shouldRun = observerCount > 0 && worldSettings.adminEnabled;
 
-      // Log state transitions
+      // Log state transitions with timestamp
       if (!wasRunning && shouldRun) {
-        console.log(`🌍 World STARTING: ${observerCount} observers present`);
+        const timestamp = new Date(now).toLocaleTimeString("en-US", {
+          hour12: false,
+        });
+        console.log(
+          `⏰ [${timestamp}] 🌍 World AWAKENS: ${observerCount} ${observerCount === 1 ? "observer" : "observers"} watching`
+        );
 
         // Log world start event
         await ctx.db.insert("events", {
@@ -91,7 +95,12 @@ export const heartbeat = mutation({
           },
         });
       } else if (wasRunning && !shouldRun) {
-        console.log(`🧊 World FREEZING: ${observerCount} observers remaining`);
+        const timestamp = new Date(now).toLocaleTimeString("en-US", {
+          hour12: false,
+        });
+        console.log(
+          `⏰ [${timestamp}] 🧊 Universe FROZEN: No observers remain`
+        );
 
         // Log world freeze event
         await ctx.db.insert("events", {
@@ -194,8 +203,6 @@ export const toggleAdmin = mutation({
         isRunning: args.enabled && worldSettings.observerCount > 0,
       });
     }
-
-    console.log(`⚙️ Admin ${args.enabled ? "ENABLED" : "DISABLED"} simulation`);
 
     // Log admin action
     await ctx.db.insert("events", {

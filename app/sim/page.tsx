@@ -69,7 +69,7 @@ const getProfilePicture = (agentName: string): string => {
 
 export default function SimPage() {
   const [isWorldReady, setIsWorldReady] = useState(false);
-  const { isLeader, stats, observerCount, startTime } = useHeartbeat();
+  const { isLeader, stats, startTime } = useHeartbeat();
   const agents = useQuery(api.agents.listAgents) ?? [];
   const places = useQuery(api.map.getPlaces) ?? [];
   const [elapsedTime, setElapsedTime] = useState("00:00:00");
@@ -81,6 +81,9 @@ export default function SimPage() {
   const worldState = hasObserversAPI
     ? useQuery((api as any).observers.getWorldState)
     : { isRunning: true, observerCount: 1, adminEnabled: true };
+
+  // Use reactive observer count from worldState (updates in real-time for all clients)
+  const observerCount = worldState?.observerCount ?? 1;
 
   const toggleAdmin = hasObserversAPI
     ? useMutation((api as any).observers.toggleAdmin)

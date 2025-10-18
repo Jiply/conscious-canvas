@@ -62,7 +62,10 @@ function getLeaderId(): string {
  * - World only runs when observerCount > 0
  * - When last observer leaves, world freezes
  *
- * @returns {{isLeader: boolean, stats: object | null, observerCount: number, startTime: number | null}} Leadership status, stats, observer count, and start time
+ * Note: Observer count should be read from worldState query (reactive) not from this hook.
+ * This hook only registers the observer and manages leader election.
+ *
+ * @returns {{isLeader: boolean, stats: object | null, startTime: number | null}} Leadership status, stats, and start time
  */
 export function useHeartbeat() {
   // Get the Convex client for making mutations
@@ -213,10 +216,10 @@ export function useHeartbeat() {
   }, [convex, observerCount]); // Re-run if observer count changes
 
   // Return leadership status and statistics for display in UI
+  // Note: observerCount should be read from worldState query (reactive)
   return {
     isLeader, // Boolean: true if this client is the leader
     stats, // Object: performance statistics or null if no ticks yet
-    observerCount, // Number: current observer count
     startTime, // Number: timestamp when first heartbeat connected
   };
 }
