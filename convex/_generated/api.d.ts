@@ -15,6 +15,7 @@ import type * as llm from "../llm.js";
 import type * as map from "../map.js";
 import type * as observations from "../observations.js";
 import type * as opinions from "../opinions.js";
+import type * as seed from "../seed.js";
 import type * as seedMap from "../seedMap.js";
 import type * as tasks from "../tasks.js";
 
@@ -40,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   map: typeof map;
   observations: typeof observations;
   opinions: typeof opinions;
+  seed: typeof seed;
   seedMap: typeof seedMap;
   tasks: typeof tasks;
 }>;
