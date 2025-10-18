@@ -8,6 +8,8 @@
  * @module
  */
 
+import type * as map from "../map.js";
+import type * as seedMap from "../seedMap.js";
 import type * as tasks from "../tasks.js";
 
 import type {
@@ -25,6 +27,8 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  map: typeof map;
+  seedMap: typeof seedMap;
   tasks: typeof tasks;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
