@@ -139,6 +139,7 @@ export default defineSchema({
       v.literal("barista")
     ),
     personality: v.optional(v.string()), // LLM-friendly bio
+    profilePicture: v.optional(v.string()), // Base64 encoded image data
 
     // Position & movement
     pos: v.object({ x: v.number(), y: v.number() }),
@@ -189,6 +190,7 @@ export default defineSchema({
 
     location: v.object({ x: v.number(), y: v.number() }),
     distance: v.optional(v.number()),
+    nearestPlaceId: v.optional(v.id("places")), // nearest place to the observation
 
     summary: v.optional(v.string()), // "Saw Bob near library, looking stressed"
     salience: v.number(), // 0 to 1, how important/memorable
