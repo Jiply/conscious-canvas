@@ -18,8 +18,8 @@ export default defineSchema({
    * Singleton table - should only have one document
    */
   map_settings: defineTable({
-    gridWidth: v.number(), // Number of tiles horizontally (default: 80)
-    gridHeight: v.number(), // Number of tiles vertically (default: 50)
+    gridWidth: v.number(), // Number of tiles horizontally (default: 200)
+    gridHeight: v.number(), // Number of tiles vertically (default: 150)
     tileSize: v.number(), // Pixel size of each tile (default: 32)
     metersPerTile: v.number(), // Real-world scale: 1 tile = 1 meter
     version: v.number(), // Schema version for migrations
@@ -29,11 +29,11 @@ export default defineSchema({
 
   /**
    * Map Tiles - Individual tiles in the grid
-   * Full 80×50 grid = 4000 tiles
+   * Full 200×150 grid = 30000 tiles
    */
   map_tiles: defineTable({
-    x: v.number(), // X coordinate (0-79)
-    y: v.number(), // Y coordinate (0-49)
+    x: v.number(), // X coordinate (0-199)
+    y: v.number(), // Y coordinate (0-149)
     tileType: v.union(
       v.literal("floor"), // Indoor floor (inside buildings)
       v.literal("wall"), // Solid wall (buildings, barriers)
@@ -173,6 +173,9 @@ export default defineSchema({
     ),
     nextDecisionAt: v.number(), // timestamp (ms) when LLM should run next
 
+    // Conversation state
+    currentConversationId: v.optional(v.id("conversations")), // active conversation (if any)
+
     // Emotions & needs (all 0-1 for LLM reasoning)
     emotions: v.object({
       valence: v.number(), // -1 to 1 (negative to positive mood)
@@ -263,6 +266,44 @@ export default defineSchema({
   })
     .index("by_agent", ["agentId"])
     .index("by_status", ["agentId", "completedAt"]), // find in-progress decisions
+
+  // ========== CONVERSATIONS ==========
+
+  /**
+   * Conversations - Multi-turn dialogue sessions between agents
+   * Supports 2+ participants for potential group conversations
+   */
+  conversations: defineTable({
+    participantIds: v.array(v.id("agents")), // 2+ agents in conversation
+    status: v.union(v.literal("active"), v.literal("completed")),
+    startedAt: v.number(), // timestamp when conversation began
+    completedAt: v.optional(v.number()), // timestamp when conversation ended
+    location: v.optional(v.object({ x: v.number(), y: v.number() })), // where conversation took place
+    nearestPlaceId: v.optional(v.id("places")), // nearby landmark
+    turnCount: v.number(), // number of messages exchanged (for analytics)
+  })
+    .index("by_status", ["status"]) // find active conversations
+    .index("by_participant", ["participantIds"]), // find agent's conversations
+
+  /**
+   * Messages - Individual utterances within a conversation
+   * Each message represents one agent's turn in the dialogue
+   */
+  messages: defineTable({
+    conversationId: v.id("conversations"), // which conversation this belongs to
+    agentId: v.id("agents"), // who said this
+    content: v.string(), // what they said
+    emotionSnapshot: v.optional(
+      v.object({
+        valence: v.number(), // agent's emotion when they said this
+        arousal: v.number(),
+      })
+    ),
+    continueConversation: v.boolean(), // does speaker want to keep talking?
+    reasonForLeaving: v.optional(v.string()), // why they're ending conversation (if continueConversation=false)
+  })
+    .index("by_conversation", ["conversationId"]) // get all messages in conversation
+    .index("by_agent", ["agentId"]), // get all messages by agent
 
   // ========== HEARTBEAT SYSTEM ==========
 
