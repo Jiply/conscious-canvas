@@ -9,13 +9,16 @@
  */
 
 import type * as agents from "../agents.js";
+import type * as conversations from "../conversations.js";
 import type * as decisions from "../decisions.js";
 import type * as gemini from "../gemini.js";
 import type * as heartbeat from "../heartbeat.js";
 import type * as llm from "../llm.js";
 import type * as map from "../map.js";
 import type * as observations from "../observations.js";
+import type * as opinionGeneration from "../opinionGeneration.js";
 import type * as opinions from "../opinions.js";
+import type * as pathfinding from "../pathfinding.js";
 import type * as seed from "../seed.js";
 import type * as seedMap from "../seedMap.js";
 import type * as seedMapBatched from "../seedMapBatched.js";
@@ -38,13 +41,16 @@ import type {
  */
 declare const fullApi: ApiFromModules<{
   agents: typeof agents;
+  conversations: typeof conversations;
   decisions: typeof decisions;
   gemini: typeof gemini;
   heartbeat: typeof heartbeat;
   llm: typeof llm;
   map: typeof map;
   observations: typeof observations;
+  opinionGeneration: typeof opinionGeneration;
   opinions: typeof opinions;
+  pathfinding: typeof pathfinding;
   seed: typeof seed;
   seedMap: typeof seedMap;
   seedMapBatched: typeof seedMapBatched;
