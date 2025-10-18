@@ -241,8 +241,8 @@ export interface Place {
  * Global map configuration
  */
 export interface MapSettings {
-  gridWidth: number; // Default: 80
-  gridHeight: number; // Default: 50
+  gridWidth: number; // Default: 200
+  gridHeight: number; // Default: 150
   tileSize: number; // Default: 32 pixels
   metersPerTile: number; // Default: 1 meter per tile
   version: number;
@@ -254,8 +254,8 @@ export interface MapSettings {
  * Default map configuration
  */
 export const DEFAULT_MAP_SETTINGS: MapSettings = {
-  gridWidth: 80,
-  gridHeight: 50,
+  gridWidth: 200,
+  gridHeight: 150,
   tileSize: 32,
   metersPerTile: 1,
   version: 1,
