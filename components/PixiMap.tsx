@@ -6,7 +6,6 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { TILE_VISUALS } from "@/lib/mapTypes";
 import { renderTiles, getTileColorString } from "@/lib/tileRenderer";
-import type { Tile, MapSettings, Place } from "@/lib/mapTypes";
 
 interface PixiMapProps {
   className?: string;
@@ -20,6 +19,18 @@ export function PixiMap({ className, onWorldReady }: PixiMapProps) {
   const worldContainerRef = useRef<Container | null>(null);
   const tilesLayerRef = useRef<Graphics | null>(null);
   const placesLayerRef = useRef<Container | null>(null);
+  const agentsLayerRef = useRef<Container | null>(null);
+  const agentContainersRef = useRef<Map<string, {
+    container: Container;
+    targetX: number;
+    targetY: number;
+    startX: number;
+    startY: number;
+    animationStartTime: number;
+    wobbleOffsetX: number;
+    wobbleOffsetY: number;
+    wobbleSpeed: number;
+  }>>(new Map());
 
   const [isInitialized, setIsInitialized] = useState(false);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -47,6 +58,7 @@ export function PixiMap({ className, onWorldReady }: PixiMapProps) {
   // Query map data from Convex
   const mapSettings = useQuery(api.map.getMapSettings);
   const places = useQuery(api.map.getPlaces);
+  const agents = useQuery(api.agents.listAgents);
 
   // Debounce camera for tile queries (reduces query spam while panning)
   useEffect(() => {
@@ -276,12 +288,15 @@ export function PixiMap({ className, onWorldReady }: PixiMapProps) {
         const skeletonLayer = new Graphics();
         const tilesLayer = new Graphics();
         const placesLayer = new Container();
+        const agentsLayer = new Container();
         worldContainer.addChild(skeletonLayer);
         worldContainer.addChild(tilesLayer);
         worldContainer.addChild(placesLayer);
+        worldContainer.addChild(agentsLayer);
         skeletonLayerRef.current = skeletonLayer;
         tilesLayerRef.current = tilesLayer;
         placesLayerRef.current = placesLayer;
+        agentsLayerRef.current = agentsLayer;
 
         // Setup FPS counter
         const fpsUpdate = () => {
@@ -306,6 +321,8 @@ export function PixiMap({ className, onWorldReady }: PixiMapProps) {
         skeletonLayerRef.current = null;
         tilesLayerRef.current = null;
         placesLayerRef.current = null;
+        agentsLayerRef.current = null;
+        agentContainersRef.current.clear();
       }
     };
   }, [dimensions.width, dimensions.height]);
@@ -619,6 +636,178 @@ export function PixiMap({ className, onWorldReady }: PixiMapProps) {
     console.log("✅ Places rendered with fade-in animation");
   }, [places, mapSettings, isCameraReady]);
 
+  // Update agent targets when agent data changes
+  useEffect(() => {
+    if (!agentsLayerRef.current || !agents || !mapSettings || !isCameraReady) {
+      return;
+    }
+
+    const agentsLayer = agentsLayerRef.current;
+    const tileSize = mapSettings.tileSize;
+    const agentContainers = agentContainersRef.current;
+
+    // Helper function to get agent color based on role
+    const getAgentColor = (role: string): number => {
+      const colorMap: Record<string, number> = {
+        student: 0x3b82f6, // blue
+        professor: 0x8b5cf6, // purple
+        staff: 0x10b981, // green
+        visitor: 0xf59e0b, // amber
+      };
+      return colorMap[role.toLowerCase()] || 0x6b7280; // gray default
+    };
+
+    // Track which agents we've seen in this update
+    const activeAgentIds = new Set<string>();
+
+    agents.forEach((agent) => {
+      activeAgentIds.add(agent._id);
+
+      const targetX = agent.pos.x * tileSize;
+      const targetY = agent.pos.y * tileSize;
+
+      let agentData = agentContainers.get(agent._id);
+
+      if (!agentData) {
+        // Create new agent container
+        const agentContainer = new Container();
+        agentsLayer.addChild(agentContainer);
+
+        // Draw agent circle
+        const agentCircle = new Graphics();
+        agentCircle.circle(0, 0, 8);
+        agentCircle.fill({ color: getAgentColor(agent.role) });
+
+        // Add a white border for visibility
+        agentCircle.circle(0, 0, 8);
+        agentCircle.stroke({ width: 2, color: 0xffffff, alpha: 0.8 });
+
+        agentContainer.addChild(agentCircle);
+
+        // Add agent name label
+        const labelStyle = new TextStyle({
+          fontFamily: "Arial, sans-serif",
+          fontSize: 11,
+          fontWeight: "bold",
+          fill: 0xffffff,
+          stroke: { color: 0x000000, width: 2.5 },
+        });
+
+        const label = new Text({
+          text: agent.name,
+          style: labelStyle,
+        });
+        label.anchor.set(0.5);
+        label.y = -14;
+        agentContainer.addChild(label);
+
+        // Set initial position (no animation for first appearance)
+        agentContainer.x = targetX;
+        agentContainer.y = targetY;
+
+        // Store the container with position tracking
+        agentData = {
+          container: agentContainer,
+          targetX,
+          targetY,
+          startX: targetX,
+          startY: targetY,
+          animationStartTime: performance.now(),
+          wobbleOffsetX: Math.random() * Math.PI * 2, // Random phase offset
+          wobbleOffsetY: Math.random() * Math.PI * 2,
+          wobbleSpeed: 0.8 + Math.random() * 0.4, // Random speed between 0.8-1.2
+        };
+        agentContainers.set(agent._id, agentData);
+
+        // Fade in animation
+        agentContainer.alpha = 0;
+        const startTime = Date.now();
+        const duration = 250;
+
+        const fadeIn = () => {
+          const elapsed = Date.now() - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+
+          if (agentContainer.destroyed) return;
+
+          agentContainer.alpha = progress;
+
+          if (progress < 1) {
+            requestAnimationFrame(fadeIn);
+          }
+        };
+        requestAnimationFrame(fadeIn);
+      } else {
+        // Update target position for existing agent (if it changed)
+        const targetChanged = Math.abs(agentData.targetX - targetX) > 0.1 || Math.abs(agentData.targetY - targetY) > 0.1;
+
+        if (targetChanged) {
+          // Start new animation from current position
+          agentData.startX = agentData.container.x;
+          agentData.startY = agentData.container.y;
+          agentData.targetX = targetX;
+          agentData.targetY = targetY;
+          agentData.animationStartTime = performance.now();
+        }
+      }
+    });
+
+    // Remove agents that no longer exist
+    for (const [agentId, agentData] of agentContainers.entries()) {
+      if (!activeAgentIds.has(agentId)) {
+        agentData.container.destroy();
+        agentContainers.delete(agentId);
+      }
+    }
+
+    console.log("✅ Agent targets updated");
+  }, [agents, mapSettings, isCameraReady]);
+
+  // Linear position interpolation (runs every frame) - no easing + wobble
+  useEffect(() => {
+    if (!appRef.current || !isCameraReady) return;
+
+    const app = appRef.current;
+    const agentContainers = agentContainersRef.current;
+
+    const MOVEMENT_DURATION = 5000; // 5 seconds in milliseconds
+    const WOBBLE_AMPLITUDE = 1.5; // Max wobble distance in pixels
+    const WOBBLE_FREQUENCY = 3; // Wobbles per second
+
+    const animate = () => {
+      const now = performance.now();
+
+      for (const agentData of agentContainers.values()) {
+        const { container, targetX, targetY, startX, startY, animationStartTime, wobbleOffsetX, wobbleOffsetY, wobbleSpeed } = agentData;
+
+        if (container.destroyed) continue;
+
+        // Calculate linear progress (0 to 1)
+        const elapsed = now - animationStartTime;
+        const progress = Math.min(elapsed / MOVEMENT_DURATION, 1);
+
+        // Linear interpolation - constant speed, no easing
+        const baseX = startX + (targetX - startX) * progress;
+        const baseY = startY + (targetY - startY) * progress;
+
+        // Add subtle wobble effect
+        const time = now / 1000; // Convert to seconds
+        const wobbleX = Math.sin(time * WOBBLE_FREQUENCY * wobbleSpeed + wobbleOffsetX) * WOBBLE_AMPLITUDE;
+        const wobbleY = Math.cos(time * WOBBLE_FREQUENCY * wobbleSpeed * 1.3 + wobbleOffsetY) * WOBBLE_AMPLITUDE * 0.7; // Slightly different frequency and amplitude for Y
+
+        // Update container position with wobble
+        container.x = baseX + wobbleX;
+        container.y = baseY + wobbleY;
+      }
+    };
+
+    app.ticker.add(animate);
+
+    return () => {
+      app.ticker.remove(animate);
+    };
+  }, [isCameraReady]);
+
   // Update camera transform (separate from rendering)
   useEffect(() => {
     if (!worldContainerRef.current || !isCameraReady) return;
@@ -802,6 +991,9 @@ export function PixiMap({ className, onWorldReady }: PixiMapProps) {
           </div>
           <div className="text-muted-foreground">
             {places?.length || 0} places
+          </div>
+          <div className="text-muted-foreground">
+            {agents?.length || 0} agents
           </div>
           {visibleRegion && (
             <div className="text-muted-foreground mt-1 text-[10px]">

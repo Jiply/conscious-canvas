@@ -170,7 +170,19 @@ async function updateAgentNeeds(ctx: any, agent: Doc<"agents">) {
     ),
   };
 
-  await ctx.db.patch(agent._id, { needs: newNeeds });
+  // Move agent left by 1 tile (wrap around to right edge if needed)
+  const newX = agent.pos.x - 1;
+  const wrappedX = newX < 0 ? 79 : newX; // Assuming 80 tile width (0-79)
+
+  const newPos = {
+    x: wrappedX,
+    y: agent.pos.y,
+  };
+
+  await ctx.db.patch(agent._id, {
+    needs: newNeeds,
+    pos: newPos,
+  });
 }
 
 /**
