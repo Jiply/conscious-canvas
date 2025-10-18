@@ -131,7 +131,25 @@ async function processAgentTick(
   // Prune old observations (keep last 50)
   await pruneOldObservations(ctx, agent._id, 50);
 
-  // 3. OPINIONS: Get or update opinions of visible agents
+  // 3. OPINIONS: Retrieve opinions for visible agents from database
+  const visibleAgentIds = visibleAgents.map((v) => v.agent._id);
+
+  // Get all opinions this agent has
+  const allOpinions = await ctx.db
+    .query("opinions")
+    .withIndex("by_agent", (q: any) => q.eq("agentId", agent._id))
+    .collect();
+
+  // Filter to only opinions about visible agents
+  const visibleOpinions = allOpinions.filter((op) =>
+    visibleAgentIds.includes(op.targetAgentId)
+  );
+
+  // Log opinion retrieval
+  console.log(
+    `Agent ${agent.name} sees ${visibleAgents.length} agents, has ${visibleOpinions.length} opinions`
+  );
+
   const nearbyAgents = visibleAgents.filter((v) => v.distance < TALKING_RANGE);
 
   // 4. DECISION: Decide what to do next
