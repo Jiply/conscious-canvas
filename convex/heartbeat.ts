@@ -1,7 +1,7 @@
 import { mutation } from "./_generated/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 
 // ========== CONSTANTS ==========
 
@@ -153,7 +153,13 @@ async function processAgentTick(
 
   const nearbyAgents = visibleAgents.filter((v) => v.distance < TALKING_RANGE);
 
-  // 3.5. EXECUTE PREVIOUS DECISION: If agent has a path, walk along it
+  // 3.5. CONVERSATION TURN: If agent is in active conversation, process conversation turn
+  if (agent.currentConversationId) {
+    await processConversationTurnForAgent(ctx, agent);
+    return; // Skip other actions while in conversation
+  }
+
+  // 3.6. EXECUTE PREVIOUS DECISION: If agent has a path, walk along it
   if (agent.path && agent.path.length > 0) {
     await executePathMovement(ctx, agent);
     return; // Skip making new decision while executing path
@@ -489,6 +495,23 @@ function getAgentsInFOV(
   // This is now deprecated - using getAgentsInVision instead
   // Keeping for backwards compatibility temporarily
   return [];
+}
+
+/**
+ * Process a conversation turn for an agent
+ * Schedules the LLM action to generate next message
+ */
+async function processConversationTurnForAgent(ctx: any, agent: Doc<"agents">) {
+  if (!agent.currentConversationId) return;
+
+  // Schedule conversation turn processing (non-blocking)
+  // This will call the LLM to generate the next message
+  await ctx.scheduler.runAfter(0, internal.conversations.processConversationTurn, {
+    agentId: agent._id,
+    conversationId: agent.currentConversationId,
+  });
+
+  console.log(`💬 Scheduled conversation turn for ${agent.name}`);
 }
 
 /**
