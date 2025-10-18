@@ -1,33 +1,32 @@
 "use client";
-
-import { useState } from "react";
 import {
   Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarInset,
   SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
   SidebarRail,
-  SidebarSeparator,
+  SidebarInset,
+  SidebarGroup,
+  SidebarHeader,
+  SidebarFooter,
   SidebarTrigger,
+  SidebarContent,
+  SidebarProvider,
+  SidebarMenuItem,
+  SidebarSeparator,
+  SidebarGroupLabel,
+  SidebarMenuButton,
+  SidebarGroupContent,
 } from "@/components/ui/sidebar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
+  TooltipTrigger,
   TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useState, useEffect } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import {
   MapPin,
   Clock,
@@ -39,17 +38,36 @@ import {
   Activity,
   Loader2,
 } from "lucide-react";
-import { useHeartbeat } from "@/hooks/use-heartbeat";
-import { useQuery } from "convex/react";
+import { useMemo } from "react";
 import { api } from "@/convex/_generated/api";
 import { PixiMap } from "@/components/PixiMap";
-import { useMemo } from "react";
+import { EventFeed } from "@/components/EventFeed";
+import { useHeartbeat } from "@/hooks/use-heartbeat";
+import { useQuery, useMutation } from "convex/react";
 
 export default function SimPage() {
   const [isWorldReady, setIsWorldReady] = useState(false);
-  const { isLeader, stats } = useHeartbeat();
+  const { isLeader, stats, observerCount, startTime } = useHeartbeat();
   const agents = useQuery(api.agents.listAgents) ?? [];
+  const places = useQuery(api.map.getPlaces) ?? [];
+  const [elapsedTime, setElapsedTime] = useState("00:00:00");
+
+  // Check if observers API exists (may not if schema hasn't deployed yet)
+  const hasObserversAPI =
+    "observers" in api && "getWorldState" in (api.observers as any);
+
+  const worldState = hasObserversAPI
+    ? useQuery((api as any).observers.getWorldState)
+    : { isRunning: true, observerCount: 1, adminEnabled: true };
+
+  const toggleAdmin = hasObserversAPI
+    ? useMutation((api as any).observers.toggleAdmin)
+    : async () => console.warn("Observers API not deployed yet");
   const [searchQuery, setSearchQuery] = useState("");
+  const [centerOnPlace, setCenterOnPlace] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
   // Filter agents based on search query
   const filteredAgents = useMemo(() => {
@@ -65,6 +83,40 @@ export default function SimPage() {
     );
   }, [agents, searchQuery]);
 
+  // Filter places to show only main landmarks
+  const mainPlaces = useMemo(() => {
+    return places.filter(
+      (place) =>
+        !["dorm_room", "common_room", "study_room"].includes(place.kind)
+    );
+  }, [places]);
+
+  // Handle centering camera on a place
+  const handleCenterOnPlace = (place: (typeof places)[0]) => {
+    // Calculate center of place bounds
+    const centerX = place.bounds.x + place.bounds.width / 2;
+    const centerY = place.bounds.y + place.bounds.height / 2;
+    setCenterOnPlace({ x: centerX, y: centerY });
+  };
+
+  // Update elapsed time every second
+  useEffect(() => {
+    if (!startTime) return;
+
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const hours = Math.floor(elapsed / 3600000);
+      const minutes = Math.floor((elapsed % 3600000) / 60000);
+      const seconds = Math.floor((elapsed % 60000) / 1000);
+
+      setElapsedTime(
+        `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
+      );
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [startTime]);
+
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="flex h-screen w-full">
@@ -77,7 +129,7 @@ export default function SimPage() {
                 </h2>
               </div>
             </div>
-            <div className="px-2 py-1">
+            <div className="px-2 py-1 space-y-2">
               <div className="flex items-center gap-2 text-sm">
                 <Clock className="h-4 w-4 flex-shrink-0" />
                 <span className="text-muted-foreground whitespace-nowrap">
@@ -109,8 +161,20 @@ export default function SimPage() {
                   </Badge>
                 )}
               </div>
-              <div className="mt-2 flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-2 text-sm">
                 <Eye className="h-4 w-4 flex-shrink-0" />
+                <span className="text-muted-foreground whitespace-nowrap">
+                  Observers:
+                </span>
+                <Badge
+                  variant={observerCount > 0 ? "default" : "outline"}
+                  className="text-xs font-mono whitespace-nowrap"
+                >
+                  {observerCount}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Activity className="h-4 w-4 flex-shrink-0" />
                 <span className="text-muted-foreground whitespace-nowrap">
                   {isLeader ? "Leader" : "Follower"}
                 </span>
@@ -130,10 +194,10 @@ export default function SimPage() {
             {/* Fixed Search Section */}
             <div className="flex-shrink-0">
               <SidebarGroup>
-                <SidebarGroupLabel className="px-4">
+                <SidebarGroupLabel className="px-2">
                   Search Agents
                 </SidebarGroupLabel>
-                <SidebarGroupContent className="px-4 py-2">
+                <SidebarGroupContent className="p-2">
                   <div className="relative">
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
                     <Input
@@ -151,7 +215,7 @@ export default function SimPage() {
             {/* Scrollable Agents List */}
             <div className="flex-1 overflow-y-auto">
               <SidebarGroup>
-                <SidebarGroupLabel className="px-4">
+                <SidebarGroupLabel className="px-2">
                   <div className="flex items-center justify-between w-full">
                     <span>Agents</span>
                     <Badge
@@ -176,7 +240,7 @@ export default function SimPage() {
                           <SidebarMenuItem key={agent._id}>
                             <Tooltip delayDuration={300}>
                               <TooltipTrigger asChild>
-                                <SidebarMenuButton className="h-auto py-1.5 px-3">
+                                <SidebarMenuButton className="h-auto py-1.5 px-2.5">
                                   <User className="h-4 w-4 flex-shrink-0" />
                                   <div className="flex flex-col items-start min-w-0 flex-1">
                                     <span className="text-sm font-medium truncate w-full">
@@ -194,6 +258,15 @@ export default function SimPage() {
                                 sideOffset={8}
                               >
                                 <div className="space-y-3">
+                                  {agent.profilePicture && (
+                                    <div className="flex justify-center pb-2">
+                                      <img
+                                        src={agent.profilePicture}
+                                        alt={agent.name}
+                                        className="w-20 h-20 rounded-full object-cover border-2 border-border"
+                                      />
+                                    </div>
+                                  )}
                                   <div className="pb-2 border-b">
                                     <p className="font-semibold text-sm">
                                       {agent.name}
@@ -291,39 +364,20 @@ export default function SimPage() {
             {/* Scrollable Places List */}
             <div className="flex-1 overflow-y-auto">
               <SidebarGroup>
-                <SidebarGroupLabel>Places</SidebarGroupLabel>
-                <SidebarGroupContent>
+                <SidebarGroupLabel className="px-2">Places</SidebarGroupLabel>
+                <SidebarGroupContent className="px-2">
                   <SidebarMenu>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton>
-                        <MapPin className="h-4 w-4" />
-                        <span>Dorm</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton>
-                        <MapPin className="h-4 w-4" />
-                        <span>Lecture Hall</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton>
-                        <MapPin className="h-4 w-4" />
-                        <span>Café</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton>
-                        <MapPin className="h-4 w-4" />
-                        <span>Library</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton>
-                        <MapPin className="h-4 w-4" />
-                        <span>Quad</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
+                    {mainPlaces.map((place) => (
+                      <SidebarMenuItem key={place._id}>
+                        <SidebarMenuButton
+                          onClick={() => handleCenterOnPlace(place)}
+                          className="cursor-pointer"
+                        >
+                          <MapPin className="h-4 w-4 flex-shrink-0" />
+                          <span className="truncate">{place.name}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
@@ -335,21 +389,32 @@ export default function SimPage() {
               <SidebarGroupContent>
                 <div className="flex flex-col gap-2 px-2 py-2">
                   <Button
-                    variant="outline"
+                    variant={worldState?.adminEnabled ? "outline" : "default"}
                     size="sm"
                     className="w-full justify-start gap-2"
+                    onClick={() =>
+                      toggleAdmin({
+                        enabled: !(worldState?.adminEnabled ?? true),
+                      })
+                    }
                   >
-                    <PauseCircle className="h-4 w-4" />
-                    Freeze Universe
+                    {worldState?.adminEnabled ? (
+                      <>
+                        <PauseCircle className="h-4 w-4" />
+                        Freeze Universe
+                      </>
+                    ) : (
+                      <>
+                        <PlayCircle className="h-4 w-4" />
+                        Unfreeze Universe
+                      </>
+                    )}
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start gap-2"
-                  >
-                    <Activity className="h-4 w-4" />
-                    Admin Panel
-                  </Button>
+                  <div className="text-xs text-muted-foreground px-2">
+                    {worldState?.adminEnabled
+                      ? "Admin: Simulation enabled"
+                      : "Admin: Simulation disabled"}
+                  </div>
                 </div>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -368,14 +433,25 @@ export default function SimPage() {
             <div className="ml-auto flex items-center gap-2">
               <Badge variant="outline" className="gap-1">
                 <Clock className="h-3 w-3" />
-                <span className="text-xs font-mono">00:00:00</span>
+                <span className="text-xs font-mono">{elapsedTime}</span>
               </Badge>
             </div>
           </header>
 
-          <main className="flex-1 overflow-hidden bg-muted/20 p-6 flex flex-col">
+          <main className="flex-1 overflow-hidden bg-muted/20 p-6 flex gap-6">
             <div className="flex-1 rounded-lg border border-dashed border-border overflow-hidden">
-              <PixiMap onWorldReady={setIsWorldReady} />
+              <PixiMap
+                onWorldReady={setIsWorldReady}
+                centerOnLocation={centerOnPlace}
+                onCenterComplete={() => setCenterOnPlace(null)}
+                isWorldRunning={observerCount > 0}
+                observerCount={observerCount}
+              />
+            </div>
+
+            {/* Right sidebar for Event Feed */}
+            <div className="w-80 flex-shrink-0 rounded-lg border border-border bg-background overflow-hidden flex flex-col">
+              <EventFeed />
             </div>
           </main>
         </SidebarInset>

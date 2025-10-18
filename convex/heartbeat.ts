@@ -1,7 +1,7 @@
-import { mutation } from "./_generated/server";
 import { v } from "convex/values";
-import type { Doc, Id } from "./_generated/dataModel";
 import { api } from "./_generated/api";
+import { mutation } from "./_generated/server";
+import type { Doc, Id } from "./_generated/dataModel";
 
 // ========== CONSTANTS ==========
 
@@ -71,22 +71,50 @@ export const tick = mutation({
     });
 
     try {
-      // 5. Get all agents
+      // 5. Check if world should be running (observer-dependent time!)
+      const worldSettings = await ctx.db.query("world_settings").first();
+
+      if (
+        !worldSettings ||
+        !worldSettings.isRunning ||
+        worldSettings.observerCount === 0
+      ) {
+        // World is frozen - no observers watching
+        await ctx.db.patch(state._id, {
+          isRunning: false,
+          lastCompletedAt: Date.now(),
+        });
+
+        console.log(
+          `🧊 World FROZEN: ${worldSettings?.observerCount ?? 0} observers, skipping agent processing`
+        );
+
+        return {
+          success: true,
+          processedAgents: 0,
+          latencyMs: Date.now() - startTime,
+          isLeader: true,
+        };
+      }
+
+      // 6. Get all agents
       const agents = await ctx.db.query("agents").collect();
 
-      // 6. Process all agents IN PARALLEL
+      // 7. Process all agents IN PARALLEL
       await Promise.all(
         agents.map((agent) => processAgentTick(ctx, agent, agents))
       );
 
-      // 7. Update needs for all agents (homeostasis)
+      // 8. Update needs for all agents (homeostasis)
       await Promise.all(agents.map((agent) => updateAgentNeeds(ctx, agent)));
 
-      // 8. Release lock
+      // 9. Release lock
       await ctx.db.patch(state._id, {
         isRunning: false,
         lastCompletedAt: Date.now(),
       });
+
+      console.log(`🌍 World RUNNING: Processed ${agents.length} agents`);
 
       return {
         success: true,
