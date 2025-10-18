@@ -1,12 +1,13 @@
 /**
  * Tile Rendering Utilities
  *
- * Provides visual styling for different tile types using Pixi.js Graphics.
- * Designed to be easily replaceable with Sprite-based rendering later.
+ * Provides visual styling for different tile types.
+ * Supports both Graphics API (legacy) and Sprite-based rendering (performance).
  */
 
-import { Graphics } from "pixi.js";
+import { Graphics, Sprite, Container, Renderer } from "pixi.js";
 import type { TileType } from "./mapTypes";
+import { getTileTexture } from "./textureGenerator";
 
 export interface TileRenderStyle {
   baseColor: number;
@@ -198,7 +199,8 @@ function drawPattern(
 }
 
 /**
- * Batch render multiple tiles efficiently
+ * Batch render multiple tiles efficiently using Graphics API (legacy)
+ * Note: This is kept for reference but should be replaced with renderTilesAsSprites
  */
 export function renderTiles(
   graphics: Graphics,
@@ -212,7 +214,7 @@ export function renderTiles(
 ): void {
   graphics.clear();
   console.log(
-    `🎨 renderTiles: Rendering ${tiles.length} tiles at size ${tileSize}px`
+    `🎨 renderTiles (Graphics): Rendering ${tiles.length} tiles at size ${tileSize}px`
   );
 
   // Sample first few tiles for debugging
@@ -233,7 +235,7 @@ export function renderTiles(
     );
   }
 
-  console.log(`✅ renderTiles: Completed rendering`);
+  console.log(`✅ renderTiles (Graphics): Completed rendering`);
 }
 
 /**
@@ -258,4 +260,92 @@ export function getTileDescription(tileType: TileType): string {
 export function getTileColorString(tileType: TileType): string {
   const style = TILE_RENDER_STYLES[tileType];
   return `#${style.baseColor.toString(16).padStart(6, "0")}`;
+}
+
+/**
+ * Render tiles using Sprites with SMART REUSE (incremental updates)
+ * Only creates/updates/removes sprites that changed - much faster for panning!
+ */
+export function renderTilesAsSprites(
+  container: Container,
+  renderer: Renderer,
+  tiles: Array<{
+    x: number;
+    y: number;
+    tileType: TileType;
+    visualVariant?: number;
+  }>,
+  tileSize: number
+): void {
+  const startTime = performance.now();
+
+  console.log(
+    `🎨 renderTilesAsSprites: Rendering ${tiles.length} tiles at size ${tileSize}px`
+  );
+
+  // Build a map of new tiles by coordinate key
+  const newTileMap = new Map<string, (typeof tiles)[0]>();
+  for (const tile of tiles) {
+    const key = `${tile.x},${tile.y}`;
+    newTileMap.set(key, tile);
+  }
+
+  // Track existing sprites by coordinate key
+  const existingSpriteMap = new Map<string, Sprite>();
+  const childrenToRemove: Sprite[] = [];
+
+  // Check existing sprites
+  for (const child of container.children) {
+    if (child instanceof Sprite) {
+      const tileX = Math.round(child.x / tileSize);
+      const tileY = Math.round(child.y / tileSize);
+      const key = `${tileX},${tileY}`;
+
+      if (newTileMap.has(key)) {
+        // Keep this sprite, mark it as existing
+        existingSpriteMap.set(key, child);
+      } else {
+        // This sprite is no longer needed
+        childrenToRemove.push(child);
+      }
+    }
+  }
+
+  // Remove sprites that are no longer visible
+  let removed = 0;
+  for (const child of childrenToRemove) {
+    container.removeChild(child);
+    child.destroy();
+    removed++;
+  }
+
+  // Add new sprites for tiles that don't exist yet
+  let created = 0;
+  let reused = 0;
+  for (const [key, tile] of newTileMap) {
+    if (existingSpriteMap.has(key)) {
+      // Sprite already exists, reuse it
+      reused++;
+    } else {
+      // Create new sprite
+      const texture = getTileTexture(
+        renderer,
+        tile.tileType,
+        tileSize,
+        tile.visualVariant || 0
+      );
+
+      const sprite = new Sprite(texture);
+      sprite.x = tile.x * tileSize;
+      sprite.y = tile.y * tileSize;
+
+      container.addChild(sprite);
+      created++;
+    }
+  }
+
+  const duration = performance.now() - startTime;
+  console.log(
+    `✅ renderTilesAsSprites: Completed in ${duration.toFixed(2)}ms | ♻️ Reused: ${reused} | ➕ Created: ${created} | ➖ Removed: ${removed}`
+  );
 }
