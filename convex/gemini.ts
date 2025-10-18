@@ -30,10 +30,6 @@ Personality: ${args.personality}
 Style: Modern, friendly, cartoon/illustrated style with soft colors and rounded features. The person should be looking at the camera with a warm expression. Square format, centered composition, suitable for a profile picture. Background should be a subtle gradient or solid color that complements the character.`;
 
     try {
-      console.log(
-        `🎨 Generating profile picture for ${args.name} (${args.role})...`
-      );
-
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-image",
         contents: prompt,
@@ -51,7 +47,6 @@ Style: Modern, friendly, cartoon/illustrated style with soft colors and rounded 
 
       for (const part of candidate.content.parts) {
         if (part.inlineData) {
-          console.log(`✅ Profile picture generated for ${args.name}`);
           // Return base64 encoded image data with data URI prefix
           return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
         }
@@ -59,10 +54,6 @@ Style: Modern, friendly, cartoon/illustrated style with soft colors and rounded 
 
       throw new Error("No image data found in Gemini response");
     } catch (error) {
-      console.error(
-        `❌ Failed to generate profile picture for ${args.name}:`,
-        error
-      );
       throw error;
     }
   },
