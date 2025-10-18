@@ -60,10 +60,9 @@ const AGENT_PROFILES = [
     ],
   },
   {
-    name: "Liam O'Brien",
+    name: `Liam O'Brien`,
     role: "student" as const,
-    personality:
-      "Laid-back art major who's always sketching in his notebook. Philosophical and observant.",
+    personality: `Laid-back art major who's always sketching in his notebook. Philosophical and observant.`,
     pos: { x: 25, y: 35 },
     emotions: { valence: 0.7, arousal: 0.3 },
     needs: {
@@ -80,8 +79,7 @@ const AGENT_PROFILES = [
   {
     name: "Sofia Martinez",
     role: "barista" as const,
-    personality:
-      "Friendly barista and part-time psychology student. Knows everyone's coffee order and life story.",
+    personality: `Friendly barista and part-time psychology student. Knows everyone's coffee order and life story.`,
     pos: { x: 45, y: 15 },
     emotions: { valence: 0.8, arousal: 0.6 },
     needs: {
@@ -116,8 +114,7 @@ const AGENT_PROFILES = [
   {
     name: "Emma Kim",
     role: "student" as const,
-    personality:
-      "Biology major who's passionate about environmental conservation. Quiet but determined.",
+    personality: `Biology major who's passionate about environmental conservation. Quiet but determined.`,
     pos: { x: 20, y: 25 },
     emotions: { valence: 0.4, arousal: 0.5 },
     needs: {
@@ -152,19 +149,7 @@ const AGENT_PROFILES = [
 ];
 
 /**
- * Available avatar images in /public folder
- */
-const AVATAR_IMAGES = [
-  "/01.png",
-  "/02.png",
-  "/james.jpg",
-  "/liam.jpg",
-  "/maya.jpg",
-  "/zara.jpg",
-];
-
-/**
- * Seed agents with random profile pictures
+ * Seed agents (profile pictures are handled client-side)
  */
 export const seedAgents = mutation({
   args: {},
@@ -200,22 +185,17 @@ export const seedAgents = mutation({
 
     const agentIds: string[] = [];
 
-    // Create agents with random profile pictures
+    // Create agents (profile pictures mapped client-side)
     for (const profile of AGENT_PROFILES) {
-      // Assign random avatar from available images
-      const randomAvatar =
-        AVATAR_IMAGES[Math.floor(Math.random() * AVATAR_IMAGES.length)];
-
       const agentId = await ctx.db.insert("agents", {
         ...profile,
-        profilePicture: randomAvatar,
         headingRad: Math.random() * Math.PI * 2, // Random facing direction
         state: "Idle",
         nextDecisionAt: Date.now() + Math.random() * 5000,
       });
 
       agentIds.push(agentId);
-      console.log(`✅ Created ${profile.name} with avatar ${randomAvatar}`);
+      console.log(`✅ Created ${profile.name}`);
     }
 
     // Seed some initial opinions between agents
@@ -236,7 +216,7 @@ export const seedAgents = mutation({
           agentId: agentIds[agent1Idx] as any,
           targetAgentId: agentIds[agent2Idx] as any,
           sentiment: Math.max(-1, Math.min(1, sentiment)),
-          summary: "Haven't interacted much yet",
+          summary: `Haven't interacted much yet`,
           traits: {},
         });
       }

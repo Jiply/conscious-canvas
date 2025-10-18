@@ -102,11 +102,8 @@ export function useMapData({
       // Create a unique key for this query to detect changes
       const queryKey = `${visibleRegion.x},${visibleRegion.y},${visibleRegion.width},${visibleRegion.height}`;
 
-      // Only log if the query parameters have changed
+      // Only update last query if the query parameters have changed
       if (queryKey !== lastQueryRef.current) {
-        console.log(
-          `📡 [CLIENT] Querying tiles: region=(${visibleRegion.x},${visibleRegion.y}) size=${visibleRegion.width}x${visibleRegion.height} (expecting ~${expectedTiles} tiles)`
-        );
         // Update last query to prevent duplicate logs
         lastQueryRef.current = queryKey;
       }
@@ -127,15 +124,14 @@ export function useMapData({
       : "skip" // Skip query if visible region hasn't been calculated yet
   );
 
-  // Effect: Log when tiles arrive (only when count changes to avoid spam)
+  // Effect: Track tile count changes
   useEffect(() => {
-    // Only log if we have tiles and the count has changed
+    // Only update if we have tiles and the count has changed
     if (
       tiles &&
       tiles.length > 0 &&
       tiles.length !== lastTileCountRef.current
     ) {
-      console.log(`✅ [CLIENT] Received ${tiles.length} tiles from Convex`);
       // Update last count to prevent duplicate logs
       lastTileCountRef.current = tiles.length;
     }
