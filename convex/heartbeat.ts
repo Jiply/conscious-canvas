@@ -1,6 +1,7 @@
 import { mutation } from "./_generated/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
+import { api } from "./_generated/api";
 
 // ========== CONSTANTS ==========
 
@@ -141,7 +142,7 @@ async function processAgentTick(
     .collect();
 
   // Filter to only opinions about visible agents
-  const visibleOpinions = allOpinions.filter((op) =>
+  const visibleOpinions = allOpinions.filter((op: any) =>
     visibleAgentIds.includes(op.targetAgentId)
   );
 
@@ -152,8 +153,8 @@ async function processAgentTick(
 
   const nearbyAgents = visibleAgents.filter((v) => v.distance < TALKING_RANGE);
 
-  // 4. DECISION: Decide what to do next
-  await makeAgentDecision(ctx, agent, nearbyAgents, visibleAgents);
+  // 4. DECISION: Decide what to do next (passing opinions to decision system)
+  await makeAgentDecision(ctx, agent, nearbyAgents, visibleAgents, visibleOpinions);
 }
 
 /**
@@ -210,7 +211,8 @@ async function makeAgentDecision(
   ctx: any,
   agent: Doc<"agents">,
   nearbyAgents: Array<{ agent: Doc<"agents">; distance: number }>,
-  _visibleAgents: Array<{ agent: Doc<"agents">; distance: number }>
+  _visibleAgents: Array<{ agent: Doc<"agents">; distance: number }>,
+  visibleOpinions: any[]
 ) {
   // Check if agent already has an active decision
   const activeDecision = await ctx.db
@@ -224,82 +226,25 @@ async function makeAgentDecision(
     return;
   }
 
-  // Simple heuristic decision making (will be replaced by LLM later)
-  const { needs } = agent;
+  // Call LLM to make decision based on context
+  // The LLM gets: agent stats, observations, decisions, opinions, available places
+  console.log(`🧠 Calling LLM for ${agent.name}'s decision with ${visibleOpinions.length} opinions...`);
 
-  // Priority 1: Social interaction if someone nearby and high social drive
-  if (nearbyAgents.length > 0 && needs.socialDrive > 0.6) {
-    const target = nearbyAgents[0].agent;
+  try {
+    await ctx.scheduler.runAfter(0, api.llm.makeAgentDecision, {
+      agentId: agent._id,
+    });
+  } catch (error) {
+    console.error(`Error scheduling LLM decision for ${agent.name}:`, error);
 
-    // Get or create opinion
-    const opinion = await ctx.db
-      .query("opinions")
-      .withIndex("by_pair", (q: any) =>
-        q.eq("agentId", agent._id).eq("targetAgentId", target._id)
-      )
-      .unique();
-
-    const sentiment = opinion?.sentiment ?? 0;
-
-    // Only talk if sentiment is neutral or positive
-    if (sentiment >= -0.2) {
-      await ctx.db.insert("decisions", {
-        agentId: agent._id,
-        action: "EngageConversation",
-        targetAgentId: target._id,
-        innerThought: `I should chat with ${target.name}`,
-        utterance: `Hey ${target.name}!`,
-        completedAt: undefined,
-      });
-
-      // Increase social drive satisfaction
-      await ctx.db.patch(agent._id, {
-        needs: { ...needs, socialDrive: Math.max(0, needs.socialDrive - 0.2) },
-      });
-
-      return;
-    }
-  }
-
-  // Priority 2: Urgent needs
-  if (needs.hunger > 0.7) {
+    // Fallback to simple Idle decision if LLM fails
     await ctx.db.insert("decisions", {
       agentId: agent._id,
-      action: "Eat",
-      innerThought: "I'm really hungry, need to grab something to eat.",
+      action: "Idle",
+      innerThought: "Taking a moment to think...",
       completedAt: undefined,
     });
-    return;
   }
-
-  if (needs.sleepiness > 0.8) {
-    await ctx.db.insert("decisions", {
-      agentId: agent._id,
-      action: "Sleep",
-      innerThought: "So tired... need to rest.",
-      completedAt: undefined,
-    });
-    return;
-  }
-
-  // Priority 3: Study pressure
-  if (needs.studyPressure > 0.6) {
-    await ctx.db.insert("decisions", {
-      agentId: agent._id,
-      action: "Study",
-      innerThought: "Better hit the books for a bit.",
-      completedAt: undefined,
-    });
-    return;
-  }
-
-  // Default: Idle
-  await ctx.db.insert("decisions", {
-    agentId: agent._id,
-    action: "Idle",
-    innerThought: "Just taking a moment to myself.",
-    completedAt: undefined,
-  });
 }
 
 // ========== PERCEPTION SYSTEM ==========
