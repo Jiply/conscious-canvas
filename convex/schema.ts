@@ -191,6 +191,7 @@ export default defineSchema({
     location: v.object({ x: v.number(), y: v.number() }),
     distance: v.optional(v.number()),
     nearestPlaceId: v.optional(v.id("places")), // nearest place to the observation
+    timeOfDay: v.optional(v.string()), // "day", "night", etc.
 
     summary: v.optional(v.string()), // "Saw Bob near library, looking stressed"
     salience: v.number(), // 0 to 1, how important/memorable
