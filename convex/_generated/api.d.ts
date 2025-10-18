@@ -18,6 +18,7 @@ import type * as map from "../map.js";
 import type * as observations from "../observations.js";
 import type * as opinionGeneration from "../opinionGeneration.js";
 import type * as opinions from "../opinions.js";
+import type * as pathfinding from "../pathfinding.js";
 import type * as seed from "../seed.js";
 import type * as seedMap from "../seedMap.js";
 import type * as tasks from "../tasks.js";
@@ -47,6 +48,7 @@ declare const fullApi: ApiFromModules<{
   observations: typeof observations;
   opinionGeneration: typeof opinionGeneration;
   opinions: typeof opinions;
+  pathfinding: typeof pathfinding;
   seed: typeof seed;
   seedMap: typeof seedMap;
   tasks: typeof tasks;
