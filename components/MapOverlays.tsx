@@ -217,7 +217,7 @@ export function MapOverlays({
             ))}
           </div>
           <div className="mt-2 pt-2 border-t border-border text-[10px] text-muted-foreground">
-            Press 'S' for stats
+            Press &apos;S&apos; for stats
           </div>
         </div>
       )}
