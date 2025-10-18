@@ -9,7 +9,11 @@ import { v } from "convex/values";
 export const createAgent = mutation({
   args: {
     name: v.string(),
-    role: v.union(v.literal("student"), v.literal("prof"), v.literal("barista")),
+    role: v.union(
+      v.literal("student"),
+      v.literal("prof"),
+      v.literal("barista")
+    ),
     personality: v.optional(v.string()),
     startPos: v.optional(v.object({ x: v.number(), y: v.number() })),
   },
