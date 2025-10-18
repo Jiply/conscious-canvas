@@ -1,9 +1,8 @@
 "use node";
-
-import { internalAction } from "./_generated/server";
+import Groq from "groq-sdk";
 import { v } from "convex/values";
 import { internal, api } from "./_generated/api";
-import Groq from "groq-sdk";
+import { internalAction } from "./_generated/server";
 
 // ========== ACTIONS ==========
 

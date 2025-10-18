@@ -1,5 +1,6 @@
 "use node";
-
+import { v } from "convex/values";
+import { api } from "./_generated/api";
 import { action } from "./_generated/server";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
@@ -46,7 +47,9 @@ export const makeAgentDecision = action({
     });
     if (!agent) throw new Error("Agent not found");
 
-    console.log(`📊 Making decision for ${agent.name} (hunger: ${agent.needs.hunger.toFixed(2)}, sleepiness: ${agent.needs.sleepiness.toFixed(2)})`);
+    console.log(
+      `📊 Making decision for ${agent.name} (hunger: ${agent.needs.hunger.toFixed(2)}, sleepiness: ${agent.needs.sleepiness.toFixed(2)})`
+    );
 
     const recentObservations = await ctx.runQuery(
       api.observations.getRecentObservations,
@@ -87,9 +90,14 @@ export const makeAgentDecision = action({
     try {
       console.log(`🤖 Calling Groq API for ${agent.name}...`);
       decision = await callGroqForDecision(systemPrompt, userPrompt);
-      console.log(`✅ Groq returned decision: ${decision.action} (thought: "${decision.innerThought}")`);
+      console.log(
+        `✅ Groq returned decision: ${decision.action} (thought: "${decision.innerThought}")`
+      );
     } catch (error) {
-      console.error(`❌ Groq API error for ${agent.name}, falling back to heuristic:`, error);
+      console.error(
+        `❌ Groq API error for ${agent.name}, falling back to heuristic:`,
+        error
+      );
       decision = heuristicFallback(agent);
       console.log(`🔄 Heuristic fallback decision: ${decision.action}`);
     }
@@ -152,9 +160,15 @@ export const makeAgentDecision = action({
     if (decision.action === "MoveTo" && decision.targetPlaceId) {
       try {
         // Get the target place
-        const targetPlace = allPlaces.find((p) => p._id === decision.targetPlaceId);
+        const targetPlace = allPlaces.find(
+          (p) => p._id === decision.targetPlaceId
+        );
 
-        if (targetPlace && targetPlace.entrances && targetPlace.entrances.length > 0) {
+        if (
+          targetPlace &&
+          targetPlace.entrances &&
+          targetPlace.entrances.length > 0
+        ) {
           const entrance = targetPlace.entrances[0];
 
           // Calculate path using A* pathfinding
@@ -172,9 +186,13 @@ export const makeAgentDecision = action({
               path,
               state: "Transit",
             });
-            console.log(`🗺️ Set path for ${agent.name} to ${targetPlace.name} (${path.length} steps)`);
+            console.log(
+              `🗺️ Set path for ${agent.name} to ${targetPlace.name} (${path.length} steps)`
+            );
           } else {
-            console.error(`❌ No path found for ${agent.name} to ${targetPlace.name}`);
+            console.error(
+              `❌ No path found for ${agent.name} to ${targetPlace.name}`
+            );
           }
         }
       } catch (error) {
@@ -242,7 +260,9 @@ function buildDecisionPrompt(
     .map((obs, idx) => {
       let line = `${idx + 1}. ${obs.summary ?? "observed something"}`;
       if (obs.targetId) {
-        const opinion = opinions.find((op) => op.targetAgentId === obs.targetId);
+        const opinion = opinions.find(
+          (op) => op.targetAgentId === obs.targetId
+        );
         if (opinion) {
           line += ` [Opinion: ${opinion.summary} (sentiment: ${opinion.sentiment.toFixed(2)})]`;
         }
@@ -359,7 +379,9 @@ async function callGroqForDecision(
 
   // Parse JSON response
   const parsed = JSON.parse(content);
-  console.log(`✓ Parsed decision: action=${parsed.toolName}, thought="${parsed.parameters?.innerThought}"`);
+  console.log(
+    `✓ Parsed decision: action=${parsed.toolName}, thought="${parsed.parameters?.innerThought}"`
+  );
 
   // Map toolName to action and extract parameters
   return {
@@ -376,9 +398,10 @@ async function callGroqForDecision(
 /**
  * Calculate emotion changes based on action type
  */
-function calculateEmotionDelta(
-  action: string
-): { valence: number; arousal: number } {
+function calculateEmotionDelta(action: string): {
+  valence: number;
+  arousal: number;
+} {
   switch (action) {
     case "Eat":
       return { valence: 0.2, arousal: -0.1 };
