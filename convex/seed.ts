@@ -1,5 +1,5 @@
-import { mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { mutation } from "./_generated/server";
 
 /**
  * Agent profile definitions
@@ -8,74 +8,146 @@ const AGENT_PROFILES = [
   {
     name: "Maya Chen",
     role: "student" as const,
-    personality: "Energetic computer science major who loves building apps and hackathons. Always has headphones on and codes late into the night.",
+    personality:
+      "Energetic computer science major who loves building apps and hackathons. Always has headphones on and codes late into the night.",
     pos: { x: 15, y: 12 },
     emotions: { valence: 0.7, arousal: 0.8 },
-    needs: { sleepiness: 0.4, hunger: 0.5, studyPressure: 0.7, socialDrive: 0.6 },
-    goals: [{ name: "win hackathon", weight: 0.9 }, { name: "land internship", weight: 0.8 }],
+    needs: {
+      sleepiness: 0.4,
+      hunger: 0.5,
+      studyPressure: 0.7,
+      socialDrive: 0.6,
+    },
+    goals: [
+      { name: "win hackathon", weight: 0.9 },
+      { name: "land internship", weight: 0.8 },
+    ],
   },
   {
     name: "Prof. James Wilson",
     role: "prof" as const,
-    personality: "Enthusiastic philosophy professor who loves engaging students in Socratic dialogue. Drinks too much coffee.",
+    personality:
+      "Enthusiastic philosophy professor who loves engaging students in Socratic dialogue. Drinks too much coffee.",
     pos: { x: 35, y: 20 },
     emotions: { valence: 0.6, arousal: 0.5 },
-    needs: { sleepiness: 0.3, hunger: 0.6, studyPressure: 0.4, socialDrive: 0.7 },
-    goals: [{ name: "inspire students", weight: 0.9 }, { name: "finish book", weight: 0.6 }],
+    needs: {
+      sleepiness: 0.3,
+      hunger: 0.6,
+      studyPressure: 0.4,
+      socialDrive: 0.7,
+    },
+    goals: [
+      { name: "inspire students", weight: 0.9 },
+      { name: "finish book", weight: 0.6 },
+    ],
   },
   {
     name: "Zara Ahmed",
     role: "student" as const,
-    personality: "Pre-med student juggling organic chemistry and volunteering. Stressed but incredibly organized with color-coded planners.",
+    personality:
+      "Pre-med student juggling organic chemistry and volunteering. Stressed but incredibly organized with color-coded planners.",
     pos: { x: 55, y: 28 },
     emotions: { valence: 0.3, arousal: 0.8 },
-    needs: { sleepiness: 0.8, hunger: 0.4, studyPressure: 0.9, socialDrive: 0.3 },
-    goals: [{ name: "ace MCAT", weight: 1.0 }, { name: "maintain GPA", weight: 0.9 }],
+    needs: {
+      sleepiness: 0.8,
+      hunger: 0.4,
+      studyPressure: 0.9,
+      socialDrive: 0.3,
+    },
+    goals: [
+      { name: "ace MCAT", weight: 1.0 },
+      { name: "maintain GPA", weight: 0.9 },
+    ],
   },
   {
     name: "Liam O'Brien",
     role: "student" as const,
-    personality: "Laid-back art major who's always sketching in his notebook. Philosophical and observant.",
+    personality:
+      "Laid-back art major who's always sketching in his notebook. Philosophical and observant.",
     pos: { x: 25, y: 35 },
     emotions: { valence: 0.7, arousal: 0.3 },
-    needs: { sleepiness: 0.2, hunger: 0.7, studyPressure: 0.3, socialDrive: 0.8 },
-    goals: [{ name: "finish portfolio", weight: 0.7 }, { name: "make friends", weight: 0.9 }],
+    needs: {
+      sleepiness: 0.2,
+      hunger: 0.7,
+      studyPressure: 0.3,
+      socialDrive: 0.8,
+    },
+    goals: [
+      { name: "finish portfolio", weight: 0.7 },
+      { name: "make friends", weight: 0.9 },
+    ],
   },
   {
     name: "Sofia Martinez",
     role: "barista" as const,
-    personality: "Friendly barista and part-time psychology student. Knows everyone's coffee order and life story.",
+    personality:
+      "Friendly barista and part-time psychology student. Knows everyone's coffee order and life story.",
     pos: { x: 45, y: 15 },
     emotions: { valence: 0.8, arousal: 0.6 },
-    needs: { sleepiness: 0.5, hunger: 0.3, studyPressure: 0.5, socialDrive: 0.9 },
-    goals: [{ name: "connect with customers", weight: 0.9 }, { name: "study psychology", weight: 0.6 }],
+    needs: {
+      sleepiness: 0.5,
+      hunger: 0.3,
+      studyPressure: 0.5,
+      socialDrive: 0.9,
+    },
+    goals: [
+      { name: "connect with customers", weight: 0.9 },
+      { name: "study psychology", weight: 0.6 },
+    ],
   },
   {
     name: "Raj Patel",
     role: "student" as const,
-    personality: "Economics major and debate team captain. Competitive, analytical, always ready for a good argument.",
+    personality:
+      "Economics major and debate team captain. Competitive, analytical, always ready for a good argument.",
     pos: { x: 65, y: 18 },
     emotions: { valence: 0.5, arousal: 0.7 },
-    needs: { sleepiness: 0.4, hunger: 0.6, studyPressure: 0.6, socialDrive: 0.7 },
-    goals: [{ name: "win debate tournament", weight: 0.9 }, { name: "network", weight: 0.7 }],
+    needs: {
+      sleepiness: 0.4,
+      hunger: 0.6,
+      studyPressure: 0.6,
+      socialDrive: 0.7,
+    },
+    goals: [
+      { name: "win debate tournament", weight: 0.9 },
+      { name: "network", weight: 0.7 },
+    ],
   },
   {
     name: "Emma Kim",
     role: "student" as const,
-    personality: "Biology major who's passionate about environmental conservation. Quiet but determined.",
+    personality:
+      "Biology major who's passionate about environmental conservation. Quiet but determined.",
     pos: { x: 20, y: 25 },
     emotions: { valence: 0.4, arousal: 0.5 },
-    needs: { sleepiness: 0.6, hunger: 0.5, studyPressure: 0.7, socialDrive: 0.4 },
-    goals: [{ name: "research project", weight: 0.8 }, { name: "join conservation club", weight: 0.7 }],
+    needs: {
+      sleepiness: 0.6,
+      hunger: 0.5,
+      studyPressure: 0.7,
+      socialDrive: 0.4,
+    },
+    goals: [
+      { name: "research project", weight: 0.8 },
+      { name: "join conservation club", weight: 0.7 },
+    ],
   },
   {
     name: "Marcus Johnson",
     role: "student" as const,
-    personality: "Engineering student and varsity athlete. Balancing practice, classes, and social life with impressive discipline.",
+    personality:
+      "Engineering student and varsity athlete. Balancing practice, classes, and social life with impressive discipline.",
     pos: { x: 50, y: 32 },
     emotions: { valence: 0.6, arousal: 0.7 },
-    needs: { sleepiness: 0.5, hunger: 0.8, studyPressure: 0.6, socialDrive: 0.8 },
-    goals: [{ name: "maintain athletic performance", weight: 0.8 }, { name: "pass thermodynamics", weight: 0.7 }],
+    needs: {
+      sleepiness: 0.5,
+      hunger: 0.8,
+      studyPressure: 0.6,
+      socialDrive: 0.8,
+    },
+    goals: [
+      { name: "maintain athletic performance", weight: 0.8 },
+      { name: "pass thermodynamics", weight: 0.7 },
+    ],
   },
 ];
 

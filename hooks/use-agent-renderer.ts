@@ -158,11 +158,16 @@ export function useAgentRenderer({
       }
     });
 
-    // Remove agents that no longer exist
+    // Hide agents that no longer exist (don't destroy them)
     for (const [agentId, agentData] of agentContainers.entries()) {
       if (!activeAgentIds.has(agentId)) {
-        agentData.container.destroy();
-        agentContainers.delete(agentId);
+        // Hide the container instead of destroying it
+        agentData.container.visible = false;
+        agentData.container.alpha = 0;
+      } else {
+        // Show the container if it exists
+        agentData.container.visible = true;
+        agentData.container.alpha = 1;
       }
     }
 
@@ -182,28 +187,47 @@ export function useAgentRenderer({
       const now = performance.now();
       const agentContainers = agentContainersRef.current;
 
+      // Clean up invalid agent data and animate valid ones
+      const validAgentData: AgentData[] = [];
+
       for (const agentData of agentContainers.values()) {
+        // Skip if container is null, destroyed, or not visible
+        if (
+          !agentData.container ||
+          agentData.container.destroyed ||
+          !agentData.container.visible
+        ) {
+          continue;
+        }
+
+        validAgentData.push(agentData);
+
         const elapsed = now - agentData.animationStartTime;
         const progress = Math.min(elapsed / ANIMATION_DURATION, 1);
 
         // Linear interpolation for position
         const currentX =
-          agentData.startX +
-          (agentData.targetX - agentData.startX) * progress;
+          agentData.startX + (agentData.targetX - agentData.startX) * progress;
         const currentY =
-          agentData.startY +
-          (agentData.targetY - agentData.startY) * progress;
+          agentData.startY + (agentData.targetY - agentData.startY) * progress;
 
         // Add subtle wobble effect
         const wobbleX =
-          Math.sin(now * 0.001 * WOBBLE_FREQUENCY * agentData.wobbleSpeed + agentData.wobbleOffsetX) *
-          WOBBLE_AMPLITUDE;
+          Math.sin(
+            now * 0.001 * WOBBLE_FREQUENCY * agentData.wobbleSpeed +
+              agentData.wobbleOffsetX
+          ) * WOBBLE_AMPLITUDE;
         const wobbleY =
-          Math.sin(now * 0.001 * WOBBLE_FREQUENCY * agentData.wobbleSpeed + agentData.wobbleOffsetY) *
-          WOBBLE_AMPLITUDE;
+          Math.sin(
+            now * 0.001 * WOBBLE_FREQUENCY * agentData.wobbleSpeed +
+              agentData.wobbleOffsetY
+          ) * WOBBLE_AMPLITUDE;
 
-        agentData.container.x = currentX + wobbleX;
-        agentData.container.y = currentY + wobbleY;
+        // Double-check container is still valid before setting position
+        if (agentData.container && !agentData.container.destroyed) {
+          agentData.container.x = currentX + wobbleX;
+          agentData.container.y = currentY + wobbleY;
+        }
       }
 
       animationFrameId = requestAnimationFrame(animate);

@@ -1,9 +1,8 @@
 "use node";
-
-import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { api } from "./_generated/api";
 import Groq from "groq-sdk";
+import { internalAction } from "./_generated/server";
 
 // ========== INTERNAL ACTIONS (LLM-POWERED) ==========
 
@@ -24,21 +23,31 @@ export const processConversationTurn = internalAction({
     const startTime = Date.now();
 
     // 1. Gather context
-    const agent = await ctx.runQuery(api.agents.getAgent, { agentId: args.agentId });
-    if (!agent) throw new Error("Agent not found");
-
-    const conversation = await ctx.runQuery(api.conversationsMutations.getAgentActiveConversation, {
+    const agent = await ctx.runQuery(api.agents.getAgent, {
       agentId: args.agentId,
     });
+    if (!agent) throw new Error("Agent not found");
+
+    const conversation = await ctx.runQuery(
+      api.conversationsMutations.getAgentActiveConversation,
+      {
+        agentId: args.agentId,
+      }
+    );
     if (!conversation) throw new Error("No active conversation");
 
     // Get conversation history
-    const messages = await ctx.runQuery(api.conversationsMutations.getConversationMessages, {
-      conversationId: args.conversationId,
-    });
+    const messages = await ctx.runQuery(
+      api.conversationsMutations.getConversationMessages,
+      {
+        conversationId: args.conversationId,
+      }
+    );
 
     // Get the other participant
-    const otherParticipantId = conversation.participantIds.find((id) => id !== args.agentId);
+    const otherParticipantId = conversation.participantIds.find(
+      (id) => id !== args.agentId
+    );
     if (!otherParticipantId) throw new Error("No other participant found");
 
     const otherAgent = await ctx.runQuery(api.agents.getAgent, {
@@ -50,13 +59,18 @@ export const processConversationTurn = internalAction({
     const opinions = await ctx.runQuery(api.opinions.getAgentOpinions, {
       agentId: args.agentId,
     });
-    const opinionOfOther = opinions.find((op) => op.targetAgentId === otherParticipantId);
+    const opinionOfOther = opinions.find(
+      (op) => op.targetAgentId === otherParticipantId
+    );
 
     // Get recent observations
-    const observations = await ctx.runQuery(api.observations.getRecentObservations, {
-      agentId: args.agentId,
-      limit: 5,
-    });
+    const observations = await ctx.runQuery(
+      api.observations.getRecentObservations,
+      {
+        agentId: args.agentId,
+        limit: 5,
+      }
+    );
 
     // Get recent decisions
     const decisions = await ctx.runQuery(api.decisions.getDecisionHistory, {
@@ -64,7 +78,9 @@ export const processConversationTurn = internalAction({
       limit: 3,
     });
 
-    console.log(`💬 Processing conversation turn for ${agent.name} with ${otherAgent.name}`);
+    console.log(
+      `💬 Processing conversation turn for ${agent.name} with ${otherAgent.name}`
+    );
 
     // 2. Call LLM to generate next message
     let response;
@@ -77,7 +93,9 @@ export const processConversationTurn = internalAction({
         observations,
         decisions
       );
-      console.log(`✅ LLM response: "${response.message}" (continue: ${response.continueConversation})`);
+      console.log(
+        `✅ LLM response: "${response.message}" (continue: ${response.continueConversation})`
+      );
     } catch (error) {
       console.error(`❌ LLM error for ${agent.name}, using fallback:`, error);
       response = fallbackConversationResponse(agent);
@@ -99,8 +117,14 @@ export const processConversationTurn = internalAction({
     if (response.emotionDelta) {
       await ctx.runMutation(api.agents.updateAgentEmotions, {
         agentId: args.agentId,
-        valence: Math.max(-1, Math.min(1, agent.emotions.valence + response.emotionDelta.valence)),
-        arousal: Math.max(0, Math.min(1, agent.emotions.arousal + response.emotionDelta.arousal)),
+        valence: Math.max(
+          -1,
+          Math.min(1, agent.emotions.valence + response.emotionDelta.valence)
+        ),
+        arousal: Math.max(
+          0,
+          Math.min(1, agent.emotions.arousal + response.emotionDelta.arousal)
+        ),
       });
     }
 
@@ -109,7 +133,9 @@ export const processConversationTurn = internalAction({
       await ctx.runMutation(api.conversationsMutations.completeConversation, {
         conversationId: args.conversationId,
       });
-      console.log(`👋 ${agent.name} left conversation: ${response.reasonForLeaving}`);
+      console.log(
+        `👋 ${agent.name} left conversation: ${response.reasonForLeaving}`
+      );
     }
 
     return {

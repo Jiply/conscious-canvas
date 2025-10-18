@@ -22,6 +22,8 @@ import type * as opinions from "../opinions.js";
 import type * as pathfinding from "../pathfinding.js";
 import type * as seed from "../seed.js";
 import type * as seedMap from "../seedMap.js";
+import type * as seedMapBatched from "../seedMapBatched.js";
+import type * as seedMapContinue from "../seedMapContinue.js";
 import type * as tasks from "../tasks.js";
 
 import type {
@@ -53,6 +55,8 @@ declare const fullApi: ApiFromModules<{
   pathfinding: typeof pathfinding;
   seed: typeof seed;
   seedMap: typeof seedMap;
+  seedMapBatched: typeof seedMapBatched;
+  seedMapContinue: typeof seedMapContinue;
   tasks: typeof tasks;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
