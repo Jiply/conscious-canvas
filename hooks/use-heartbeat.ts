@@ -57,7 +57,7 @@ function getLeaderId(): string {
  * Heartbeat hook with observer tracking and automatic leader election
  *
  * Implements a distributed observer + leader election system where:
- * - Every client sends observer heartbeat every 5s (tracks "who's watching")
+ * - Every client sends observer heartbeat every 5s (tracks "who is watching")
  * - The first client to connect becomes the leader and processes ticks
  * - World only runs when observerCount > 0
  * - When last observer leaves, world freezes
@@ -106,15 +106,12 @@ export function useHeartbeat() {
       "observers" in api && "heartbeat" in (api.observers as any);
 
     if (!hasObserversAPI) {
-      console.warn(
-        "⚠️ Observers API not deployed yet. Run 'npx convex dev' to deploy."
-      );
       // Set default observer count of 1 (this client)
       setObserverCount(1);
       return;
     }
 
-    // Send observer heartbeat to track "who's watching"
+    // Send observer heartbeat to track "who is watching"
     async function sendObserverHeartbeat() {
       if (!mountedRef.current) return;
 
@@ -131,12 +128,7 @@ export function useHeartbeat() {
         if (startTime === null) {
           setStartTime(Date.now());
         }
-
-        console.log(
-          `👁️ Observer heartbeat: ${result.observerCount} observers, world ${result.isWorldRunning ? "RUNNING" : "FROZEN"}`
-        );
       } catch (err) {
-        console.error("Observer heartbeat error:", err);
         // Fallback: assume we're the only observer
         setObserverCount(1);
         // Set start time on first connection attempt
@@ -190,16 +182,10 @@ export function useHeartbeat() {
             observerCount: observerCount, // Current observer count
           });
 
-          // Log success for debugging
-          console.log(
-            `✓ Heartbeat: ${result.processedAgents} agents in ${result.latencyMs}ms`
-          );
-
           // Schedule next tick in 5 seconds
           timeoutRef.current = setTimeout(heartbeat, 5000);
         } else if (!result.isLeader) {
           // Another client is leader, stop trying to become leader
-          console.log("Not leader, stopping tick processing");
           setIsLeader(false);
         }
       } catch (err) {
@@ -208,7 +194,6 @@ export function useHeartbeat() {
 
         // Heartbeat collision (another tick already running) → retry in 1s
         // This happens when multiple clients try to become leader simultaneously
-        console.warn("Heartbeat collision, retrying in 1s");
         timeoutRef.current = setTimeout(heartbeat, 1000);
       }
     }

@@ -42,7 +42,9 @@ export const createConversation = mutation({
       state: "Interact",
     });
 
-    console.log(`💬 Started conversation ${conversationId} between ${initiator.name} and ${target.name}`);
+    console.log(
+      `💬 Started conversation ${conversationId} between ${initiator.name} and ${target.name}`
+    );
 
     return conversationId;
   },
@@ -93,7 +95,9 @@ export const addMessage = mutation({
       turnCount: conversation.turnCount + 1,
     });
 
-    console.log(`💬 ${agent.name}: "${args.content}" (continue: ${args.continueConversation})`);
+    console.log(
+      `💬 ${agent.name}: "${args.content}" (continue: ${args.continueConversation})`
+    );
 
     return messageId;
   },
@@ -130,7 +134,9 @@ export const completeConversation = mutation({
       }
     }
 
-    console.log(`✓ Completed conversation ${args.conversationId} (${conversation.turnCount} turns)`);
+    console.log(
+      `✓ Completed conversation ${args.conversationId} (${conversation.turnCount} turns)`
+    );
 
     return null;
   },
@@ -165,7 +171,9 @@ export const getConversationMessages = query({
   handler: async (ctx, args) => {
     return await ctx.db
       .query("messages")
-      .withIndex("by_conversation", (q) => q.eq("conversationId", args.conversationId))
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", args.conversationId)
+      )
       .order("asc")
       .collect();
   },
