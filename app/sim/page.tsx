@@ -45,6 +45,28 @@ import { EventFeed } from "@/components/EventFeed";
 import { useHeartbeat } from "@/hooks/use-heartbeat";
 import { useQuery, useMutation } from "convex/react";
 
+/**
+ * Map agent names to profile picture assets in /public folder
+ * Only use the actual PNG files that exist: 01.png through 10.png
+ */
+const AGENT_PROFILE_PICTURES: Record<string, string> = {
+  "Maya Chen": "/01.png",
+  "Prof. James Wilson": "/02.png",
+  "Zara Ahmed": "/03.png",
+  "Liam O'Brien": "/04.png",
+  "Sofia Martinez": "/05.png",
+  "Raj Patel": "/06.png",
+  "Emma Kim": "/07.png",
+  "Marcus Johnson": "/08.png",
+};
+
+/**
+ * Get profile picture URL for an agent
+ */
+const getProfilePicture = (agentName: string): string => {
+  return AGENT_PROFILE_PICTURES[agentName] || "/01.png"; // Default to 01.png
+};
+
 export default function SimPage() {
   const [isWorldReady, setIsWorldReady] = useState(false);
   const { isLeader, stats, observerCount, startTime } = useHeartbeat();
@@ -258,15 +280,13 @@ export default function SimPage() {
                                 sideOffset={8}
                               >
                                 <div className="space-y-3">
-                                  {agent.profilePicture && (
-                                    <div className="flex justify-center pb-2">
-                                      <img
-                                        src={agent.profilePicture}
-                                        alt={agent.name}
-                                        className="w-20 h-20 rounded-full object-cover border-2 border-border"
-                                      />
-                                    </div>
-                                  )}
+                                  <div className="flex justify-center pb-2">
+                                    <img
+                                      src={getProfilePicture(agent.name)}
+                                      alt={agent.name}
+                                      className="w-20 h-20 rounded-full object-cover border-2 border-border"
+                                    />
+                                  </div>
                                   <div className="pb-2 border-b">
                                     <p className="font-semibold text-sm">
                                       {agent.name}
