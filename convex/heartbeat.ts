@@ -71,40 +71,22 @@ export const tick = mutation({
     });
 
     try {
-      // 5. Check if world should be running (observer-dependent time!)
-      const worldSettings = await ctx.db.query("world_settings").first();
-
-      if (
-        !worldSettings ||
-        !worldSettings.isRunning ||
-        worldSettings.observerCount === 0
-      ) {
-        // World is frozen - no observers watching
-        await ctx.db.patch(state._id, {
-          isRunning: false,
-          lastCompletedAt: Date.now(),
-        });
-
-        return {
-          success: true,
-          processedAgents: 0,
-          latencyMs: Date.now() - startTime,
-          isLeader: true,
-        };
-      }
-
-      // 6. Get all agents
+      // 5. Get all agents
       const agents = await ctx.db.query("agents").collect();
 
-      // 7. Process all agents IN PARALLEL
+      // 6. Process all agents IN PARALLEL
       await Promise.all(
         agents.map((agent) => processAgentTick(ctx, agent, agents))
       );
 
-      // 8. Update needs for all agents (homeostasis)
-      await Promise.all(agents.map((agent) => updateAgentNeeds(ctx, agent)));
+      // 7. Update needs for all agents (homeostasis)
+      // IMPORTANT: Fetch fresh agent data since processAgentTick may have modified needs
+      const freshAgents = await ctx.db.query("agents").collect();
+      await Promise.all(
+        freshAgents.map((agent) => updateAgentNeeds(ctx, agent))
+      );
 
-      // 9. Release lock
+      // 8. Release lock
       await ctx.db.patch(state._id, {
         isRunning: false,
         lastCompletedAt: Date.now(),
@@ -210,10 +192,11 @@ async function updateAgentNeeds(ctx: any, agent: Doc<"agents">) {
 
   // Simple linear decay/growth rates (per simulated hour)
   // These happen 20x faster now, so agents get hungry/tired much quicker
-  const hungerGrowthRate = 0.3 / HOUR_IN_SECONDS; // grow by 0.3 per hour
-  const sleepinessGrowthRate = 0.2 / HOUR_IN_SECONDS;
-  const studyPressureGrowthRate = 0.1 / HOUR_IN_SECONDS;
-  const socialDriveGrowthRate = 0.15 / HOUR_IN_SECONDS;
+  // Increased rates for more visible changes: 0→1 in ~2-3 minutes real time
+  const hungerGrowthRate = 1.0 / HOUR_IN_SECONDS; // grow by 1.0 per hour (full in ~3 mins)
+  const sleepinessGrowthRate = 0.8 / HOUR_IN_SECONDS; // grow by 0.8 per hour (full in ~4 mins)
+  const studyPressureGrowthRate = 0.6 / HOUR_IN_SECONDS; // grow by 0.6 per hour (full in ~5 mins)
+  const socialDriveGrowthRate = 0.5 / HOUR_IN_SECONDS; // grow by 0.5 per hour (full in ~6 mins)
 
   const newNeeds = {
     hunger: Math.min(
@@ -233,6 +216,10 @@ async function updateAgentNeeds(ctx: any, agent: Doc<"agents">) {
       agent.needs.socialDrive + socialDriveGrowthRate * SIMULATED_SECONDS
     ),
   };
+
+  console.log(
+    `🔄 ${agent.name} needs: hunger ${agent.needs.hunger.toFixed(3)} → ${newNeeds.hunger.toFixed(3)}, sleep ${agent.needs.sleepiness.toFixed(3)} → ${newNeeds.sleepiness.toFixed(3)}`
+  );
 
   // Update needs only (movement will be handled by decision executor)
   await ctx.db.patch(agent._id, {
