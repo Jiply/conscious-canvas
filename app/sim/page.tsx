@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -32,10 +33,12 @@ import {
   Search,
   User,
   Activity,
+  Loader2,
 } from "lucide-react";
 import { PixiMap } from "@/components/PixiMap";
 
 export default function SimPage() {
+  const [isWorldReady, setIsWorldReady] = useState(false);
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="flex h-screen w-full">
@@ -43,7 +46,6 @@ export default function SimPage() {
           <SidebarHeader className="border-b">
             <div className="flex items-center justify-between px-2 py-1">
               <div className="flex items-center gap-2">
-                <Eye className="h-5 w-5" />
                 <h2 className="text-lg font-semibold">Conscious Campus</h2>
               </div>
             </div>
@@ -51,10 +53,17 @@ export default function SimPage() {
               <div className="flex items-center gap-2 text-sm">
                 <Clock className="h-4 w-4" />
                 <span className="text-muted-foreground">World: </span>
-                <Badge variant="secondary" className="gap-1">
-                  <PlayCircle className="h-3 w-3" />
-                  Running
-                </Badge>
+                {isWorldReady ? (
+                  <Badge variant="secondary" className="gap-1">
+                    <PlayCircle className="h-3 w-3" />
+                    Running
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="gap-1">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Loading
+                  </Badge>
+                )}
               </div>
               <div className="mt-2 flex items-center gap-2 text-sm">
                 <Eye className="h-4 w-4" />
@@ -90,9 +99,13 @@ export default function SimPage() {
                 </div>
               </SidebarGroupLabel>
               <SidebarGroupContent>
-                <div className="px-2 py-4 text-center text-sm text-muted-foreground">
-                  No agents yet. They will appear here when the simulation
-                  starts.
+                <div className="px-2">
+                  <Card className="bg-muted/30">
+                    <CardContent className="py-4 text-center text-sm text-muted-foreground">
+                      No agents yet. They will appear here when the simulation
+                      starts.
+                    </CardContent>
+                  </Card>
                 </div>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -182,8 +195,8 @@ export default function SimPage() {
           </header>
 
           <main className="flex-1 overflow-hidden bg-muted/20 p-6 flex flex-col">
-            <div className="flex-1 rounded-lg border-2 border-dashed border-border overflow-hidden">
-              <PixiMap />
+            <div className="flex-1 rounded-lg border border-dashed border-border overflow-hidden">
+              <PixiMap onWorldReady={setIsWorldReady} />
             </div>
           </main>
         </SidebarInset>
