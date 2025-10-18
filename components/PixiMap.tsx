@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { usePixiApp } from "@/hooks/use-pixi-app";
 import { useCamera } from "@/hooks/use-camera";
 import { useMapData } from "@/hooks/use-map-data";
 import { useTileRenderer } from "@/hooks/use-tile-renderer";
 import { usePlaceRenderer } from "@/hooks/use-place-renderer";
+import { useAgentRenderer } from "@/hooks/use-agent-renderer";
 import { MapOverlays } from "@/components/MapOverlays";
 
 interface PixiMapProps {
@@ -91,6 +94,9 @@ export function PixiMap({ className, onWorldReady }: PixiMapProps) {
   const tiles = tilesData.tiles;
   const visibleRegion = tilesData.visibleRegion;
 
+  // Query agents
+  const agents = useQuery(api.agents.listAgents);
+
   // Initialize camera position to Central Green (ONCE)
   useEffect(() => {
     if (!mapSettings || !places || isCameraReady || dimensions.width === 0)
@@ -140,6 +146,14 @@ export function PixiMap({ className, onWorldReady }: PixiMapProps) {
   usePlaceRenderer({
     placesLayer: refs.placesLayer,
     places: places as any, // Type cast to handle Convex document types
+    mapSettings: mapSettings ?? undefined,
+    isCameraReady,
+  });
+
+  // Render agents
+  useAgentRenderer({
+    agentsLayer: refs.agentsLayer,
+    agents: agents,
     mapSettings: mapSettings ?? undefined,
     isCameraReady,
   });
