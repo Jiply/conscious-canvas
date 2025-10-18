@@ -8,7 +8,14 @@
  * @module
  */
 
+import type * as agents from "../agents.js";
+import type * as decisions from "../decisions.js";
+import type * as heartbeat from "../heartbeat.js";
+import type * as llm from "../llm.js";
 import type * as map from "../map.js";
+import type * as observations from "../observations.js";
+import type * as opinions from "../opinions.js";
+import type * as seed from "../seed.js";
 import type * as seedMap from "../seedMap.js";
 import type * as tasks from "../tasks.js";
 
@@ -27,7 +34,14 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  agents: typeof agents;
+  decisions: typeof decisions;
+  heartbeat: typeof heartbeat;
+  llm: typeof llm;
   map: typeof map;
+  observations: typeof observations;
+  opinions: typeof opinions;
+  seed: typeof seed;
   seedMap: typeof seedMap;
   tasks: typeof tasks;
 }>;
