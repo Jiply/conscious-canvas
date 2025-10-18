@@ -10,9 +10,10 @@ import type { Tile, MapSettings, Place } from "@/lib/mapTypes";
 
 interface PixiMapProps {
   className?: string;
+  onWorldReady?: (isReady: boolean) => void;
 }
 
-export function PixiMap({ className }: PixiMapProps) {
+export function PixiMap({ className, onWorldReady }: PixiMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const appRef = useRef<Application | null>(null);
@@ -36,6 +37,12 @@ export function PixiMap({ className }: PixiMapProps) {
   const [showStats, setShowStats] = useState(false);
   const [fps, setFps] = useState(60);
   const lastFrameTimeRef = useRef(performance.now());
+  const [initialCameraPos, setInitialCameraPos] = useState({
+    x: 0,
+    y: 0,
+    scale: 1,
+  });
+  const skeletonLayerRef = useRef<Graphics | null>(null);
 
   // Query map data from Convex
   const mapSettings = useQuery(api.map.getMapSettings);
@@ -100,14 +107,47 @@ export function PixiMap({ className }: PixiMapProps) {
       : "skip"
   );
 
-  // Debug: Log tile data
+  // Debug: Log tile data and rendering state
   useEffect(() => {
     if (tiles && tiles.length > 0) {
-      console.log("📊 Tiles loaded:", tiles.length);
+      const loadTime = performance.now();
+      const canRender =
+        !!tilesLayerRef.current &&
+        !!skeletonLayerRef.current &&
+        !!mapSettings &&
+        isCameraReady;
+
+      console.log(
+        `📊 Tiles loaded from DB: ${tiles.length} tiles (t=${loadTime.toFixed(0)}ms)`
+      );
       console.log("📊 Sample tile:", tiles[0]);
       console.log("📊 Tile types:", [...new Set(tiles.map((t) => t.tileType))]);
+
+      if (!canRender) {
+        console.warn(
+          "⏳ Tiles loaded but WAITING to render (WHITE SCREEN GAP):",
+          {
+            hasTilesLayer: !!tilesLayerRef.current,
+            hasSkeletonLayer: !!skeletonLayerRef.current,
+            hasMapSettings: !!mapSettings,
+            isCameraReady,
+            message:
+              "Tiles are in memory but not yet visible - THIS IS THE WHITE SCREEN DELAY!",
+          }
+        );
+      } else {
+        console.log(
+          `✅ Tiles loaded and READY to render immediately (no white screen gap)`
+        );
+      }
     }
-  }, [tiles]);
+  }, [
+    tiles,
+    tilesLayerRef.current,
+    skeletonLayerRef.current,
+    mapSettings,
+    isCameraReady,
+  ]);
 
   // Measure container size
   useEffect(() => {
@@ -153,7 +193,7 @@ export function PixiMap({ className }: PixiMapProps) {
   // Wheel event for zooming (non-passive)
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !mapSettings) return;
 
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
@@ -172,8 +212,22 @@ export function PixiMap({ className }: PixiMapProps) {
         const worldX = (mouseX - prev.x) / prev.scale;
         const worldY = (mouseY - prev.y) / prev.scale;
 
-        const newX = mouseX - worldX * newScale;
-        const newY = mouseY - worldY * newScale;
+        let newX = mouseX - worldX * newScale;
+        let newY = mouseY - worldY * newScale;
+
+        // Constrain camera to map boundaries
+        const worldWidth =
+          mapSettings.gridWidth * mapSettings.tileSize * newScale;
+        const worldHeight =
+          mapSettings.gridHeight * mapSettings.tileSize * newScale;
+
+        const maxX = 0;
+        const minX = dimensions.width - worldWidth;
+        const maxY = 0;
+        const minY = dimensions.height - worldHeight;
+
+        newX = Math.max(minX, Math.min(maxX, newX));
+        newY = Math.max(minY, Math.min(maxY, newY));
 
         return { x: newX, y: newY, scale: newScale };
       });
@@ -181,27 +235,17 @@ export function PixiMap({ className }: PixiMapProps) {
 
     canvas.addEventListener("wheel", handleWheel, { passive: false });
     return () => canvas.removeEventListener("wheel", handleWheel);
-  }, []);
+  }, [mapSettings, dimensions]);
 
   // Initialize Pixi application ONCE
   useEffect(() => {
-    console.log("🔍 Pixi init effect triggered:", {
-      hasCanvasRef: !!canvasRef.current,
-      hasAppRef: !!appRef.current,
-      width: dimensions.width,
-      height: dimensions.height,
-    });
-
-    if (!canvasRef.current) {
-      console.warn("❌ No canvas ref for Pixi");
-      return;
-    }
-    if (appRef.current) {
-      console.warn("⚠️ Pixi app already exists");
-      return;
-    }
-    if (dimensions.width === 0 || dimensions.height === 0) {
-      console.warn("❌ Invalid dimensions:", dimensions);
+    // Silent early returns for invalid state (normal during component lifecycle)
+    if (
+      !canvasRef.current ||
+      appRef.current ||
+      dimensions.width === 0 ||
+      dimensions.height === 0
+    ) {
       return;
     }
 
@@ -212,7 +256,7 @@ export function PixiMap({ className }: PixiMapProps) {
       .init({
         width: dimensions.width,
         height: dimensions.height,
-        backgroundColor: 0x1a1a1a,
+        backgroundColor: 0xffffff, // White background
         antialias: true, // Enable antialiasing for smoother graphics
         resolution: window.devicePixelRatio * 1.5 || 2, // Higher resolution
         autoDensity: true,
@@ -229,10 +273,13 @@ export function PixiMap({ className }: PixiMapProps) {
         worldContainerRef.current = worldContainer;
 
         // Create layers (persistent)
+        const skeletonLayer = new Graphics();
         const tilesLayer = new Graphics();
         const placesLayer = new Container();
+        worldContainer.addChild(skeletonLayer);
         worldContainer.addChild(tilesLayer);
         worldContainer.addChild(placesLayer);
+        skeletonLayerRef.current = skeletonLayer;
         tilesLayerRef.current = tilesLayer;
         placesLayerRef.current = placesLayer;
 
@@ -256,6 +303,7 @@ export function PixiMap({ className }: PixiMapProps) {
         appRef.current.destroy(true, { children: true });
         appRef.current = null;
         worldContainerRef.current = null;
+        skeletonLayerRef.current = null;
         tilesLayerRef.current = null;
         placesLayerRef.current = null;
       }
@@ -289,59 +337,173 @@ export function PixiMap({ className }: PixiMapProps) {
       const centerY =
         (centralGreen.bounds.y + centralGreen.bounds.height / 2) * tileSize;
 
-      console.log("📍 Centering camera on Central Green:", centerX, centerY);
-      setCamera({
+      const initialPos = {
         x: dimensions.width / 2 - centerX,
         y: dimensions.height / 2 - centerY,
         scale: 1,
-      });
+      };
+
+      console.log("📍 Centering camera on Central Green:", centerX, centerY);
+      setCamera(initialPos);
+      setInitialCameraPos(initialPos);
       setIsCameraReady(true);
     }
   }, [mapSettings, places, dimensions.width, dimensions.height, isCameraReady]);
 
   // Render tiles (update layer, don't recreate container)
   useEffect(() => {
-    console.log("🔍 Render tiles effect triggered:", {
-      hasTilesLayer: !!tilesLayerRef.current,
-      tilesCount: tiles?.length || 0,
-      hasMapSettings: !!mapSettings,
-      isCameraReady,
-    });
+    // Silent early returns for invalid state (normal during component lifecycle)
+    if (!tilesLayerRef.current || !skeletonLayerRef.current) return;
+    if (!tiles || tiles.length === 0) return;
+    if (!mapSettings) return;
+    if (!isCameraReady) return;
 
-    if (!tilesLayerRef.current) {
-      console.warn("❌ No tiles layer ref");
-      return;
-    }
-    if (!tiles || tiles.length === 0) {
-      console.warn("❌ No tiles data");
-      return;
-    }
-    if (!mapSettings) {
-      console.warn("❌ No map settings");
-      return;
-    }
-    if (!isCameraReady) {
-      console.warn("❌ Camera not ready");
-      return;
-    }
+    const perfStart = performance.now();
+    console.log(
+      `\n🎨 ========== RENDER EFFECT TRIGGERED (t=${perfStart.toFixed(0)}ms) ==========`
+    );
+    console.log(`   Rendering ${tiles.length} tiles`);
+    console.log("   ⏱️  Performance timing enabled - watch for delays!");
 
-    console.log("🎨 Rendering", tiles.length, "tiles");
     const tilesLayer = tilesLayerRef.current;
+    const skeletonLayer = skeletonLayerRef.current;
     const tileSize = mapSettings.tileSize;
 
     try {
-      // Use the new tile renderer with visual styles and patterns
-      renderTiles(tilesLayer, tiles, tileSize);
+      // IMMEDIATE: Draw a simple loading overlay first (non-blocking)
+      const overlayStart = performance.now();
+      skeletonLayer.clear();
+      skeletonLayer.rect(0, 0, 10000, 10000); // Cover entire view
+      skeletonLayer.fill({ color: 0xf5f5f5, alpha: 0.5 });
+      console.log(
+        `   ✓ Initial overlay drawn (${(performance.now() - overlayStart).toFixed(2)}ms)`
+      );
 
-      // MANUAL TEST: Draw test rectangles AFTER renderTiles
-      console.log("🧪 Drawing manual test rectangles on top...");
-      tilesLayer.rect(100, 100, 200, 200);
-      tilesLayer.fill({ color: 0xff0000 }); // Red square
-      tilesLayer.rect(350, 100, 200, 200);
-      tilesLayer.fill({ color: 0x00ff00 }); // Green square
-      console.log("✅ Manual test rectangles drawn");
+      // Use requestAnimationFrame to avoid blocking
+      requestAnimationFrame(() => {
+        const skeletonStart = performance.now();
+        console.log(
+          "   → Step 1: Drawing",
+          tiles.length,
+          "skeleton placeholders (this may take time...)"
+        );
 
-      console.log("✅ Tiles rendered successfully");
+        skeletonLayer.clear();
+        skeletonLayer.alpha = 1;
+
+        // Draw skeleton tiles in batches to avoid blocking
+        const batchSize = 500; // Draw 500 tiles at a time
+        let currentBatch = 0;
+
+        const drawBatch = () => {
+          const startIdx = currentBatch * batchSize;
+          const endIdx = Math.min(startIdx + batchSize, tiles.length);
+
+          for (let i = startIdx; i < endIdx; i++) {
+            const tile = tiles[i];
+            const x = tile.x * tileSize;
+            const y = tile.y * tileSize;
+
+            // Draw more visible gray placeholder with shimmer effect
+            skeletonLayer.rect(x, y, tileSize, tileSize);
+            skeletonLayer.fill({ color: 0xe8e8e8, alpha: 0.8 });
+
+            // Add more visible border
+            skeletonLayer.rect(x, y, tileSize, tileSize);
+            skeletonLayer.stroke({ width: 1, color: 0xd0d0d0, alpha: 0.6 });
+          }
+
+          currentBatch++;
+
+          if (endIdx < tiles.length) {
+            console.log(
+              `      ⏳ Batch ${currentBatch}/${Math.ceil(tiles.length / batchSize)} (${endIdx}/${tiles.length} tiles)`
+            );
+            requestAnimationFrame(drawBatch);
+          } else {
+            const skeletonTime = performance.now() - skeletonStart;
+            console.log(
+              `   ✓ Skeleton placeholders drawn (${skeletonTime.toFixed(2)}ms for ${tiles.length} tiles = ${(skeletonTime / tiles.length).toFixed(3)}ms/tile)`
+            );
+            console.log(
+              "   → Step 2: Animating pulse effect (600ms visible pulsing)"
+            );
+            startPulseAnimation();
+          }
+        };
+
+        const startPulseAnimation = () => {
+          // Animate skeleton pulse with more pronounced effect
+          let pulseTime = 0;
+          const pulseInterval = setInterval(() => {
+            if (!skeletonLayer.destroyed) {
+              pulseTime += 0.12; // Faster pulse
+              skeletonLayer.alpha = 0.6 + Math.sin(pulseTime) * 0.3; // More pronounced (0.3 to 0.9)
+            }
+          }, 40); // Slightly slower interval for smoother pulse
+
+          // Step 2: Render actual tiles (with longer delay to show pulsing skeletons)
+          setTimeout(() => {
+            const renderStart = performance.now();
+            console.log(
+              "   → Step 3: Rendering actual tiles with textures/patterns (after",
+              tiles.length,
+              "tiles pulsed)"
+            );
+            // Animate tile layer fade-in
+            tilesLayer.alpha = 0;
+            const startTime = Date.now();
+            const duration = 400; // 400ms fade-in (faster now that we show skeletons longer)
+
+            const animate = () => {
+              const elapsed = Date.now() - startTime;
+              const progress = Math.min(elapsed / duration, 1);
+
+              if (tilesLayer.destroyed) return;
+
+              tilesLayer.alpha = progress;
+              // Fade out skeleton as tiles fade in (starting from last pulse state)
+              if (!skeletonLayer.destroyed) {
+                const currentAlpha = 0.6 + Math.sin(pulseTime) * 0.3;
+                skeletonLayer.alpha = Math.max(
+                  0,
+                  currentAlpha - progress * currentAlpha
+                );
+              }
+
+              if (progress < 1) {
+                requestAnimationFrame(animate);
+              } else {
+                clearInterval(pulseInterval);
+                if (!skeletonLayer.destroyed) {
+                  skeletonLayer.clear();
+                }
+              }
+            };
+
+            // Use the new tile renderer with visual styles and patterns
+            renderTiles(tilesLayer, tiles, tileSize);
+            const renderTime = performance.now() - renderStart;
+            console.log(
+              `   ✓ Actual tiles drawn to canvas (${renderTime.toFixed(2)}ms = ${(renderTime / tiles.length).toFixed(3)}ms/tile)`
+            );
+            console.log(
+              "   → Step 4: Fading in tiles (400ms) & fading out skeletons"
+            );
+
+            // Start fade-in animation
+            animate();
+
+            const totalTime = performance.now() - perfStart;
+            console.log(
+              `✅ Complete render pipeline finished (${totalTime.toFixed(2)}ms total) - tiles now visible!`
+            );
+          }, 600); // 600ms delay to show pulsing skeletons before real tiles
+        };
+
+        // Start drawing batches
+        drawBatch();
+      });
     } catch (error) {
       console.error("❌ Error rendering tiles:", error);
     }
@@ -359,19 +521,24 @@ export function PixiMap({ className }: PixiMapProps) {
 
     const tileSize = mapSettings.tileSize;
 
-    for (const place of places) {
-      // Skip dorm_room and other small subdivisions for main labels
-      if (
-        place.kind === "dorm_room" ||
-        place.kind === "common_room" ||
-        place.kind === "study_room"
-      ) {
-        continue;
-      }
+    // Filter out small subdivisions
+    const mainPlaces = places.filter(
+      (p) =>
+        p.kind !== "dorm_room" &&
+        p.kind !== "common_room" &&
+        p.kind !== "study_room"
+    );
 
+    // Render places with staggered fade-in animation
+    mainPlaces.forEach((place, index) => {
       const bounds = place.bounds;
       const centerX = (bounds.x + bounds.width / 2) * tileSize;
       const centerY = (bounds.y + bounds.height / 2) * tileSize;
+
+      // Container for this place (for animation)
+      const placeContainer = new Container();
+      placeContainer.alpha = 0;
+      placesLayer.addChild(placeContainer);
 
       // Draw place outline with new v8 API
       const outline = new Graphics();
@@ -382,7 +549,7 @@ export function PixiMap({ className }: PixiMapProps) {
         bounds.height * tileSize
       );
       outline.stroke({ width: 2, color: 0xffffff, alpha: 0.6 });
-      placesLayer.addChild(outline);
+      placeContainer.addChild(outline);
 
       // Add place label
       const labelStyle = new TextStyle({
@@ -407,7 +574,7 @@ export function PixiMap({ className }: PixiMapProps) {
       label.anchor.set(0.5);
       label.x = centerX;
       label.y = centerY;
-      placesLayer.addChild(label);
+      placeContainer.addChild(label);
 
       // Add capacity/info label for indoor places
       if (place.isIndoor && place.capacity) {
@@ -425,10 +592,31 @@ export function PixiMap({ className }: PixiMapProps) {
         infoLabel.anchor.set(0.5);
         infoLabel.x = centerX;
         infoLabel.y = centerY + 18;
-        placesLayer.addChild(infoLabel);
+        placeContainer.addChild(infoLabel);
       }
-    }
-    console.log("✅ Places rendered");
+
+      // Staggered fade-in animation
+      setTimeout(() => {
+        const startTime = Date.now();
+        const duration = 300; // 300ms fade-in
+
+        const animate = () => {
+          const elapsed = Date.now() - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+
+          if (placeContainer.destroyed) return;
+
+          placeContainer.alpha = progress;
+
+          if (progress < 1) {
+            requestAnimationFrame(animate);
+          }
+        };
+        animate();
+      }, index * 50); // 50ms delay between each place
+    });
+
+    console.log("✅ Places rendered with fade-in animation");
   }, [places, mapSettings, isCameraReady]);
 
   // Update camera transform (separate from rendering)
@@ -442,31 +630,47 @@ export function PixiMap({ className }: PixiMapProps) {
   }, [camera, isCameraReady]);
 
   // Mouse interaction handlers
-  const handleMouseDown = (e: React.MouseEvent) => {
+  function handleMouseDown(e: React.MouseEvent) {
     isDraggingRef.current = true;
     lastPosRef.current = { x: e.clientX, y: e.clientY };
-  };
+  }
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDraggingRef.current) return;
+  function handleMouseMove(e: React.MouseEvent) {
+    if (!isDraggingRef.current || !mapSettings) return;
 
     const dx = e.clientX - lastPosRef.current.x;
     const dy = e.clientY - lastPosRef.current.y;
 
-    setCamera((prev) => ({
-      ...prev,
-      x: prev.x + dx,
-      y: prev.y + dy,
-    }));
+    setCamera((prev) => {
+      const newX = prev.x + dx;
+      const newY = prev.y + dy;
+
+      // Constrain camera to map boundaries
+      const worldWidth =
+        mapSettings.gridWidth * mapSettings.tileSize * prev.scale;
+      const worldHeight =
+        mapSettings.gridHeight * mapSettings.tileSize * prev.scale;
+
+      const maxX = 0;
+      const minX = dimensions.width - worldWidth;
+      const maxY = 0;
+      const minY = dimensions.height - worldHeight;
+
+      return {
+        ...prev,
+        x: Math.max(minX, Math.min(maxX, newX)),
+        y: Math.max(minY, Math.min(maxY, newY)),
+      };
+    });
 
     lastPosRef.current = { x: e.clientX, y: e.clientY };
-  };
+  }
 
-  const handleMouseUp = () => {
+  function handleMouseUp() {
     isDraggingRef.current = false;
-  };
+  }
 
-  const handleResetCamera = () => {
+  function handleResetCamera() {
     if (!mapSettings || !places || dimensions.width === 0) return;
 
     const tileSize = mapSettings.tileSize;
@@ -484,9 +688,14 @@ export function PixiMap({ className }: PixiMapProps) {
         scale: 1,
       });
     }
-  };
+  }
 
   const isLoading = !mapSettings || !isCameraReady;
+
+  // Notify parent when world is ready
+  useEffect(() => {
+    onWorldReady?.(!isLoading && isInitialized);
+  }, [isLoading, isInitialized, onWorldReady]);
 
   return (
     <div
@@ -511,21 +720,50 @@ export function PixiMap({ className }: PixiMapProps) {
         className="rounded-lg overflow-hidden"
       />
 
-      {/* Loading overlay */}
+      {/* Loading overlay with tile grid animation */}
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-muted/20 rounded-lg">
-          <div className="text-center">
-            <div className="text-muted-foreground">Initializing map...</div>
-            {!mapSettings && (
-              <div className="text-xs text-muted-foreground mt-2">
-                Fetching map settings
+        <div className="absolute inset-0 bg-background overflow-hidden rounded-lg">
+          {/* Animated tile grid */}
+          <div className="grid grid-cols-12 gap-1 h-full w-full p-4">
+            {Array.from({ length: 120 }).map((_, i) => (
+              <div
+                key={i}
+                className="bg-muted/60 rounded-sm animate-pulse"
+                style={{
+                  animationDelay: `${(i % 12) * 0.08}s`,
+                  animationDuration: "1.5s",
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Loading text overlay */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center bg-background/95 backdrop-blur-md px-8 py-6 rounded-lg border border-border shadow-xl">
+              <div className="text-lg font-semibold mb-3">
+                Initializing map...
               </div>
-            )}
-            {!places && (
-              <div className="text-xs text-muted-foreground mt-2">
-                Fetching places
+              <div className="space-y-2 text-sm">
+                {!mapSettings && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                    Fetching map settings
+                  </div>
+                )}
+                {!places && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                    Fetching places
+                  </div>
+                )}
+                {!isCameraReady && mapSettings && places && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <div className="h-2 w-2 rounded-full bg-purple-500 animate-pulse" />
+                    Centering camera
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </div>
       )}
@@ -535,7 +773,12 @@ export function PixiMap({ className }: PixiMapProps) {
         <div className="absolute top-4 right-4 flex flex-col gap-2 pointer-events-auto">
           <button
             onClick={handleResetCamera}
-            className="px-3 py-2 bg-background/90 backdrop-blur-sm border border-border rounded-md text-sm hover:bg-accent transition-colors"
+            disabled={
+              Math.abs(camera.x - initialCameraPos.x) < 5 &&
+              Math.abs(camera.y - initialCameraPos.y) < 5 &&
+              Math.abs(camera.scale - initialCameraPos.scale) < 0.01
+            }
+            className="px-3 py-2 bg-background/90 backdrop-blur-sm border border-border rounded-md text-sm hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-background/90"
           >
             Reset View
           </button>
@@ -569,7 +812,7 @@ export function PixiMap({ className }: PixiMapProps) {
       )}
 
       {/* Stats overlay (toggle with 'S' key) */}
-      {showStats && !isLoading && (
+      {showStats && !isLoading && mapSettings && (
         <div className="absolute top-4 left-4 px-3 py-2 bg-black/80 backdrop-blur-sm border border-green-500/50 rounded-md text-xs font-mono text-green-400 pointer-events-none">
           <div className="font-semibold mb-2 text-green-300">
             📊 Stats for Nerds
@@ -582,9 +825,38 @@ export function PixiMap({ className }: PixiMapProps) {
             </div>
             <div>Tiles: {tiles?.length || 0} loaded</div>
             <div>
-              Viewport: {visibleRegion?.width}×{visibleRegion?.height}
+              Viewport: {visibleRegion?.width}×{visibleRegion?.height} tiles
             </div>
             <div>Resolution: {(window.devicePixelRatio * 1.5).toFixed(1)}x</div>
+            <div className="pt-1 border-t border-green-500/30 mt-1">
+              <div className="text-cyan-300 font-semibold mb-1">📏 Scale</div>
+              <div>1 tile = {mapSettings.metersPerTile}m</div>
+              {visibleRegion && (
+                <>
+                  <div>
+                    View:{" "}
+                    {(visibleRegion.width * mapSettings.metersPerTile).toFixed(
+                      0
+                    )}
+                    m ×{" "}
+                    {(visibleRegion.height * mapSettings.metersPerTile).toFixed(
+                      0
+                    )}
+                    m
+                  </div>
+                  <div className="text-muted-foreground">
+                    (
+                    {(
+                      visibleRegion.width *
+                      visibleRegion.height *
+                      mapSettings.metersPerTile *
+                      mapSettings.metersPerTile
+                    ).toFixed(0)}
+                    m²)
+                  </div>
+                </>
+              )}
+            </div>
             <div className="pt-1 border-t border-green-500/30">
               {camera.x !== debouncedCamera.x ||
               camera.y !== debouncedCamera.y ? (
