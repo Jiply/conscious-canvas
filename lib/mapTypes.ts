@@ -19,7 +19,24 @@ export type TileType =
   | "grass" // Grass/lawn (walkable)
   | "water" // Water feature (not walkable)
   | "path" // Paved walkway (walkable)
-  | "void"; // Empty/boundary (not walkable)
+  | "void" // Empty/boundary (not walkable)
+  // Terrain variety
+  | "tall_tree" // Tall trees (not walkable)
+  | "short_tree" // Short trees (not walkable)
+  | "bush" // Bushes (walkable)
+  | "flower_bed" // Flower beds (walkable)
+  | "concrete" // Concrete areas (walkable)
+  | "brick_path" // Decorative brick paths (walkable)
+  // Building interiors
+  | "cafe_stall" // Café food stalls
+  | "study_desk" // Study desks
+  | "bookshelf" // Library bookshelves
+  | "lounge_chair" // Lounge seating
+  | "laundry_machine" // Laundry facilities
+  | "lecture_seat" // Lecture hall seating
+  | "library_desk" // Library study desks
+  | "dorm_bed" // Dorm room beds
+  | "kitchen_counter"; // Kitchen areas
 
 /**
  * Visual configuration for rendering tiles
@@ -42,6 +59,93 @@ export const TILE_VISUALS: Record<TileType, TileVisualConfig> = {
   water: { tileType: "water", color: "#42A5F5", walkable: false, variants: 2 },
   path: { tileType: "path", color: "#BDBDBD", walkable: true, variants: 2 },
   void: { tileType: "void", color: "#212121", walkable: false, variants: 1 },
+  // Terrain variety
+  tall_tree: {
+    tileType: "tall_tree",
+    color: "#2E7D32",
+    walkable: false,
+    variants: 3,
+  },
+  short_tree: {
+    tileType: "short_tree",
+    color: "#558B2F",
+    walkable: false,
+    variants: 3,
+  },
+  bush: { tileType: "bush", color: "#689F38", walkable: true, variants: 2 },
+  flower_bed: {
+    tileType: "flower_bed",
+    color: "#F48FB1",
+    walkable: true,
+    variants: 2,
+  },
+  concrete: {
+    tileType: "concrete",
+    color: "#9E9E9E",
+    walkable: true,
+    variants: 2,
+  },
+  brick_path: {
+    tileType: "brick_path",
+    color: "#A1887F",
+    walkable: true,
+    variants: 2,
+  },
+  // Building interiors
+  cafe_stall: {
+    tileType: "cafe_stall",
+    color: "#D7CCC8",
+    walkable: false,
+    variants: 2,
+  },
+  study_desk: {
+    tileType: "study_desk",
+    color: "#BCAAA4",
+    walkable: false,
+    variants: 2,
+  },
+  bookshelf: {
+    tileType: "bookshelf",
+    color: "#8D6E63",
+    walkable: false,
+    variants: 2,
+  },
+  lounge_chair: {
+    tileType: "lounge_chair",
+    color: "#B39DDB",
+    walkable: false,
+    variants: 2,
+  },
+  laundry_machine: {
+    tileType: "laundry_machine",
+    color: "#90CAF9",
+    walkable: false,
+    variants: 1,
+  },
+  lecture_seat: {
+    tileType: "lecture_seat",
+    color: "#9FA8DA",
+    walkable: false,
+    variants: 2,
+  },
+  library_desk: {
+    tileType: "library_desk",
+    color: "#A1887F",
+    walkable: false,
+    variants: 2,
+  },
+  dorm_bed: {
+    tileType: "dorm_bed",
+    color: "#CE93D8",
+    walkable: false,
+    variants: 2,
+  },
+  kitchen_counter: {
+    tileType: "kitchen_counter",
+    color: "#FFE082",
+    walkable: false,
+    variants: 2,
+  },
 };
 
 /**
