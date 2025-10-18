@@ -16,6 +16,7 @@ interface PixiAppRefs {
   tilesLayer: Container | null; // Container for tile sprites (changed from Graphics to Container for Sprite support)
   skeletonLayer: Graphics | null; // Graphics layer for drawing skeleton outlines (debugging)
   placesLayer: Container | null; // Container for place labels and outlines
+  agentsLayer: Container | null; // Container for agent sprites
   renderer: any | null; // PixiJS WebGL renderer (needed for texture generation)
 }
 
@@ -42,6 +43,9 @@ export function usePixiApp({ width, height }: UsePixiAppOptions) {
 
   // Ref: Store the places layer container (for labels and building outlines)
   const placesLayerRef = useRef<Container | null>(null);
+
+  // Ref: Store the agents layer container (for agent sprites)
+  const agentsLayerRef = useRef<Container | null>(null);
 
   // Ref: Track last frame time for FPS calculation
   const lastFrameTimeRef = useRef(performance.now());
@@ -96,16 +100,19 @@ export function usePixiApp({ width, height }: UsePixiAppOptions) {
         const skeletonLayer = new Graphics(); // For debugging tile outlines
         const tilesLayer = new Container(); // For tile sprites (changed from Graphics for better performance)
         const placesLayer = new Container(); // For place labels and outlines
+        const agentsLayer = new Container(); // For agent sprites
 
         // Add layers to world container in correct order
         worldContainer.addChild(skeletonLayer); // Bottom layer
-        worldContainer.addChild(tilesLayer); // Middle layer
-        worldContainer.addChild(placesLayer); // Top layer
+        worldContainer.addChild(tilesLayer); // Layer 2
+        worldContainer.addChild(placesLayer); // Layer 3
+        worldContainer.addChild(agentsLayer); // Top layer (agents on top)
 
         // Store references to layers
         skeletonLayerRef.current = skeletonLayer;
         tilesLayerRef.current = tilesLayer;
         placesLayerRef.current = placesLayer;
+        agentsLayerRef.current = agentsLayer;
 
         // Setup FPS counter function (runs every frame)
         const fpsUpdate = () => {
@@ -140,6 +147,7 @@ export function usePixiApp({ width, height }: UsePixiAppOptions) {
         skeletonLayerRef.current = null;
         tilesLayerRef.current = null;
         placesLayerRef.current = null;
+        agentsLayerRef.current = null;
       }
     };
   }, [width, height]); // Re-run if dimensions change (will recreate canvas)
@@ -161,6 +169,7 @@ export function usePixiApp({ width, height }: UsePixiAppOptions) {
     tilesLayer: tilesLayerRef.current, // Tiles layer
     skeletonLayer: skeletonLayerRef.current, // Skeleton layer
     placesLayer: placesLayerRef.current, // Places layer
+    agentsLayer: agentsLayerRef.current, // Agents layer
     renderer: appRef.current?.renderer || null, // WebGL renderer
   };
 
