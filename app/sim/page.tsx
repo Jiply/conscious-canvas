@@ -227,30 +227,26 @@ export default function SimPage() {
             </div>
           </SidebarHeader>
 
-          <SidebarContent className="flex flex-col">
+          <SidebarContent className="flex flex-col divide-y">
             {/* Fixed Search Section */}
-            <div className="flex-shrink-0">
-              <SidebarGroup>
-                <SidebarGroupLabel className="px-2">
-                  Search Agents
-                </SidebarGroupLabel>
-                <SidebarGroupContent className="px-2 pb-2">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
-                    <Input
-                      placeholder="Search by name, role, state..."
-                      className="pl-9 h-9"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-                </SidebarGroupContent>
-              </SidebarGroup>
-              <SidebarSeparator />
-            </div>
-
+            <SidebarGroup className="flex-shrink-0">
+              <SidebarGroupLabel className="px-2">
+                Search Agents
+              </SidebarGroupLabel>
+              <SidebarGroupContent className="px-2 pb-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    placeholder="Search by name, role, state..."
+                    className="pl-9 h-9"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+              </SidebarGroupContent>
+            </SidebarGroup>
             {/* Scrollable Agents List */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto pb-2">
               <SidebarGroup>
                 <SidebarGroupLabel className="px-2">
                   <div className="flex items-center justify-between w-full">
@@ -394,10 +390,8 @@ export default function SimPage() {
               </SidebarGroup>
             </div>
 
-            <SidebarSeparator />
-
             {/* Scrollable Places List */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto pb-2">
               <SidebarGroup>
                 <SidebarGroupLabel className="px-2">Places</SidebarGroupLabel>
                 <SidebarGroupContent className="px-2">
