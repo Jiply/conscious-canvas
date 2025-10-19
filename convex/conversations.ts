@@ -89,12 +89,20 @@ export const processConversationTurn = internalAction({
         observations,
         decisions
       );
-      // Log conversation message for public display
+      // Log conversation thoughts and message for public display
+      if ((response as any).thoughts) {
+        console.log(
+          `💭 ${agent.name} (thinking): ${(response as any).thoughts}`
+        );
+      }
       console.log(
         `💬 ${agent.name} → ${otherAgent.name}: "${response.message}"`
       );
     } catch (error) {
       response = fallbackConversationResponse(agent);
+      console.log(
+        `💬 ${agent.name} → ${otherAgent.name}: "${response.message}" (fallback)`
+      );
     }
 
     const latency = Date.now() - startTime;
@@ -392,9 +400,9 @@ async function generateConversationMessage(
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ],
-    model: "kimi-k2",
-    temperature: 1.0,
     max_tokens: 200,
+    temperature: 1.0,
+    model: "moonshotai/kimi-k2-instruct",
     response_format: { type: "json_object" },
   });
 

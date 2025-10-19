@@ -130,11 +130,16 @@ async function processAgentTick(
     salience: calculateSalience(visible.distance, visible.agent, agent),
   }));
 
-  // Batch insert observations
+  // Batch insert observations with logging
   if (observations.length > 0) {
     await Promise.all(
       observations.map((obs) => ctx.db.insert("observations", obs))
     );
+
+    // Log observations for visibility
+    for (const obs of observations) {
+      console.log(`👁️  ${agent.name}: ${obs.summary}`);
+    }
   }
 
   // Prune old observations (keep last 50)
@@ -186,17 +191,17 @@ async function processAgentTick(
  */
 async function updateAgentNeeds(ctx: any, agent: Doc<"agents">) {
   const TICK_INTERVAL = 5; // 5 real seconds
-  const TIME_COMPRESSION = 20; // 20x faster than real-time
-  const SIMULATED_SECONDS = TICK_INTERVAL * TIME_COMPRESSION; // 100 simulated seconds per tick
+  const TIME_COMPRESSION = 2; // 2x faster than real-time (SLOWED DOWN for hackathon demo)
+  const SIMULATED_SECONDS = TICK_INTERVAL * TIME_COMPRESSION; // 10 simulated seconds per tick
   const HOUR_IN_SECONDS = 3600;
 
   // Simple linear decay/growth rates (per simulated hour)
-  // These happen 20x faster now, so agents get hungry/tired much quicker
-  // Increased rates for more visible changes: 0→1 in ~2-3 minutes real time
-  const hungerGrowthRate = 1.0 / HOUR_IN_SECONDS; // grow by 1.0 per hour (full in ~3 mins)
-  const sleepinessGrowthRate = 0.8 / HOUR_IN_SECONDS; // grow by 0.8 per hour (full in ~4 mins)
-  const studyPressureGrowthRate = 0.6 / HOUR_IN_SECONDS; // grow by 0.6 per hour (full in ~5 mins)
-  const socialDriveGrowthRate = 0.5 / HOUR_IN_SECONDS; // grow by 0.5 per hour (full in ~6 mins)
+  // SLOWED DOWN: Agents should be able to have multiple conversations before getting hungry
+  // Growth rates are now much more realistic for demo purposes
+  const hungerGrowthRate = 0.1 / HOUR_IN_SECONDS; // grow by 0.1 per hour (full in ~20 mins real time)
+  const sleepinessGrowthRate = 0.08 / HOUR_IN_SECONDS; // grow by 0.08 per hour (full in ~25 mins real time)
+  const studyPressureGrowthRate = 0.05 / HOUR_IN_SECONDS; // grow by 0.05 per hour (full in ~40 mins real time)
+  const socialDriveGrowthRate = 0.15 / HOUR_IN_SECONDS; // grow by 0.15 per hour (full in ~13 mins real time)
 
   const newNeeds = {
     hunger: Math.min(
@@ -336,6 +341,9 @@ async function performActionAtPlace(
     await ctx.db.patch(agent._id, {
       needs: newNeeds,
     });
+
+    // Log the action
+    console.log(`🍽️  ${agent.name}: ${decisionAction} at ${place.name}`);
 
     // Create and immediately complete the action decision (Eat/Sleep/Study)
     const actionDecisionId = await ctx.db.insert("decisions", {
