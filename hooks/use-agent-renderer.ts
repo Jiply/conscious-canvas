@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Container, Graphics, Text, TextStyle, Sprite, Assets } from "pixi.js";
-import type { Doc } from "@/convex/_generated/dataModel";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
 
 interface AgentRendererProps {
   agentsLayer: Container | null;
@@ -13,6 +13,7 @@ interface AgentRendererProps {
       }
     | undefined;
   isCameraReady: boolean;
+  onAgentClick?: (agentId: Id<"agents">) => void;
 }
 
 /**
@@ -55,6 +56,7 @@ export function useAgentRenderer({
   agents,
   mapSettings,
   isCameraReady,
+  onAgentClick,
 }: AgentRendererProps) {
   const agentContainersRef = useRef<Map<string, AgentData>>(new Map());
 
@@ -82,6 +84,19 @@ export function useAgentRenderer({
         // Create new agent container
         const agentContainer = new Container();
         agentsLayer.addChild(agentContainer);
+
+        // Make container interactive and clickable
+        agentContainer.eventMode = "static";
+        agentContainer.cursor = "pointer";
+
+        // Add click handler
+        if (onAgentClick) {
+          agentContainer.on("pointerdown", (event) => {
+            // Stop event propagation to prevent map dragging
+            event.stopPropagation();
+            onAgentClick(agent._id as Id<"agents">);
+          });
+        }
 
         // Draw vision radius (20 tiles = 20 * tileSize pixels)
         const visionRadius = new Graphics();

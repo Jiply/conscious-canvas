@@ -40,8 +40,10 @@ import {
 } from "lucide-react";
 import { useMemo } from "react";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import { PixiMap } from "@/components/PixiMap";
 import { EventFeed } from "@/components/EventFeed";
+import { ConversationSheet } from "@/components/ConversationSheet";
 import { useHeartbeat } from "@/hooks/use-heartbeat";
 import { useQuery, useMutation } from "convex/react";
 
@@ -93,6 +95,10 @@ export default function SimPage() {
     x: number;
     y: number;
   } | null>(null);
+  const [selectedAgentId, setSelectedAgentId] = useState<Id<"agents"> | null>(
+    null
+  );
+  const [isConversationSheetOpen, setIsConversationSheetOpen] = useState(false);
 
   // Filter agents based on search query
   const filteredAgents = useMemo(() => {
@@ -122,6 +128,12 @@ export default function SimPage() {
     const centerX = place.bounds.x + place.bounds.width / 2;
     const centerY = place.bounds.y + place.bounds.height / 2;
     setCenterOnPlace({ x: centerX, y: centerY });
+  };
+
+  // Handle clicking on an agent
+  const handleAgentClick = (agentId: Id<"agents">) => {
+    setSelectedAgentId(agentId);
+    setIsConversationSheetOpen(true);
   };
 
   // Update elapsed time every second
@@ -469,6 +481,7 @@ export default function SimPage() {
                 onCenterComplete={() => setCenterOnPlace(null)}
                 isWorldRunning={observerCount > 0}
                 observerCount={observerCount}
+                onAgentClick={handleAgentClick}
               />
             </div>
 
@@ -479,6 +492,13 @@ export default function SimPage() {
           </main>
         </SidebarInset>
       </div>
+
+      {/* Conversation Sheet */}
+      <ConversationSheet
+        agentId={selectedAgentId}
+        open={isConversationSheetOpen}
+        onOpenChange={setIsConversationSheetOpen}
+      />
     </SidebarProvider>
   );
 }
