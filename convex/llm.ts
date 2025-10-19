@@ -64,6 +64,40 @@ export const makeAgentDecision = action({
     // Get available places
     const allPlaces = await ctx.runQuery(api.map.getPlaces, {});
 
+    // Get all agents to find nearby ones
+    const allAgents = await ctx.runQuery(api.agents.listAgents, {});
+
+    // Filter for nearby agents (within 2 tiles) who are NOT in active conversations
+    const TALKING_RANGE = 2;
+    const nearbyAgents = allAgents
+      .filter((other) => {
+        if (other._id === args.agentId) return false; // Skip self
+        if (other.currentConversationId) return false; // Skip agents already in conversation
+
+        const dx = other.pos.x - agent.pos.x;
+        const dy = other.pos.y - agent.pos.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        return distance <= TALKING_RANGE;
+      })
+      .map((other) => {
+        const dx = other.pos.x - agent.pos.x;
+        const dy = other.pos.y - agent.pos.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        // Get opinion of this agent
+        const opinion = agentOpinions.find(
+          (op) => op.targetAgentId === other._id
+        );
+
+        return {
+          agent: other,
+          distance,
+          opinion,
+        };
+      })
+      .sort((a, b) => a.distance - b.distance); // Sort by distance, closest first
+
     // 2. Build LLM prompt with stats and consequences
     const systemPrompt = buildSystemPrompt();
     const userPrompt = buildDecisionPrompt(
@@ -71,12 +105,35 @@ export const makeAgentDecision = action({
       recentObservations,
       recentDecisions,
       agentOpinions,
-      allPlaces
+      allPlaces,
+      nearbyAgents
     );
 
-    // 3. Check for critical needs that require immediate action
+    // 3. PROXIMITY HEURISTIC: Force conversation when agents are within 2 tiles
+    // This is the hackathon testing feature - agents MUST talk when close
     let decision: any;
-    if (agent.needs.hunger >= 0.95) {
+    if (
+      nearbyAgents.length > 0 &&
+      agent.needs.hunger < 0.95 &&
+      agent.needs.sleepiness < 0.95
+    ) {
+      // There's someone within 2 tiles and no critical needs
+      // Force them to engage in conversation (this is the heuristic!)
+      const closestAgent = nearbyAgents[0]; // Already sorted by distance
+      console.log(
+        `🎯 PROXIMITY HEURISTIC: ${agent.name} MUST talk to ${closestAgent.agent.name} (distance: ${closestAgent.distance.toFixed(1)} tiles)`
+      );
+
+      decision = {
+        action: "EngageConversation" as const,
+        targetAgentId: closestAgent.agent._id,
+        utterance: "Hey!",
+        innerThought: `${closestAgent.agent.name} is right here - I should say hi and talk to them!`,
+        emotionDelta: { valence: 0.1, arousal: 0.15 },
+      };
+    }
+    // 4. Check for critical needs that require immediate action (override proximity heuristic)
+    else if (agent.needs.hunger >= 0.95) {
       // Critical hunger - force MoveTo cafe
       const cafe = allPlaces.find((p: any) => p.kind.toLowerCase() === "cafe");
       if (cafe) {
@@ -113,7 +170,7 @@ export const makeAgentDecision = action({
       }
     }
 
-    // 4. If no critical need, call LLM for decision-making
+    // 5. If no critical need or proximity heuristic, call LLM for decision-making
     if (!decision) {
       try {
         decision = await callGroqForDecision(systemPrompt, userPrompt);
@@ -121,19 +178,27 @@ export const makeAgentDecision = action({
         console.log(
           `🤖 ${agent.name}: "${decision.innerThought}" → ${decision.action}`
         );
+        // Log utterance if present
+        if (decision.utterance) {
+          console.log(`💭 ${agent.name}: "${decision.utterance}"`);
+        }
       } catch (error) {
         decision = heuristicFallback(agent);
       }
     } else {
-      // Log critical need decisions for public display
+      // Log heuristic decisions for public display
       console.log(
         `🤖 ${agent.name}: "${decision.innerThought}" → ${decision.action}`
       );
+      // Log utterance if present
+      if (decision.utterance) {
+        console.log(`💭 ${agent.name}: "${decision.utterance}"`);
+      }
     }
 
     const latency = Date.now() - startTime;
 
-    // 4. Record decision in Convex
+    // 6. Record decision in Convex
     const decisionId = await ctx.runMutation(api.decisions.addDecision, {
       agentId: args.agentId,
       action: decision.action,
@@ -144,14 +209,14 @@ export const makeAgentDecision = action({
       llmLatencyMs: latency,
     });
 
-    // 4.5. If decision is Idle, mark it as complete immediately
+    // 7. If decision is Idle, mark it as complete immediately
     if (decision.action === "Idle") {
       await ctx.runMutation(api.decisions.completeDecision, {
         decisionId,
       });
     }
 
-    // 4.6. If decision is EngageConversation, create conversation
+    // 8. If decision is EngageConversation, create conversation
     if (decision.action === "EngageConversation" && decision.targetAgentId) {
       try {
         // Check if target agent is available (not already in a conversation)
@@ -184,7 +249,7 @@ export const makeAgentDecision = action({
       }
     }
 
-    // 5. Execute MoveTo decision by calculating path
+    // 9. Execute MoveTo decision by calculating path
     if (decision.action === "MoveTo" && decision.targetPlaceId) {
       try {
         // Get the target place
@@ -221,7 +286,7 @@ export const makeAgentDecision = action({
       }
     }
 
-    // 6. Update agent state
+    // 10. Update agent state
     if (decision.emotionDelta) {
       await ctx.runMutation(api.agents.updateAgentEmotions, {
         agentId: args.agentId,
@@ -230,7 +295,7 @@ export const makeAgentDecision = action({
       });
     }
 
-    // Schedule next decision (5-15 seconds from now)
+    // 11. Schedule next decision (5-15 seconds from now)
     const nextDecisionDelay = 5000 + Math.random() * 10000;
     await ctx.runMutation(api.agents.setNextDecisionTime, {
       agentId: args.agentId,
@@ -276,7 +341,8 @@ function buildDecisionPrompt(
   observations: any[],
   decisions: any[],
   opinions: any[],
-  places: any[]
+  places: any[],
+  nearbyAgents: Array<{ agent: any; distance: number; opinion?: any }>
 ): string {
   // Format observations with opinions
   const observationsSummary = observations
@@ -306,6 +372,42 @@ function buildDecisionPrompt(
   const placesList = places
     .map((p) => `- ${p.name} (${p.kind}) [ID: ${p._id}]`)
     .join("\n");
+
+  // Format nearby agents with opinions and conversation encouragement
+  let nearbyAgentsSummary = "";
+  let conversationBias = "";
+
+  if (nearbyAgents.length > 0) {
+    nearbyAgentsSummary = nearbyAgents
+      .map((nearby, idx) => {
+        const opinionText = nearby.opinion
+          ? ` [You feel: ${nearby.opinion.summary} (sentiment: ${nearby.opinion.sentiment.toFixed(2)})]`
+          : " [You haven't formed an opinion about them yet]";
+
+        return `${idx + 1}. ${nearby.agent.name} (${nearby.agent.role}) - ${nearby.distance.toFixed(1)} tiles away${opinionText} [ID: ${nearby.agent._id}]`;
+      })
+      .join("\n");
+
+    conversationBias = `
+⚠️ IMPORTANT - PROXIMITY BIAS:
+There ${nearbyAgents.length === 1 ? "is 1 person" : `are ${nearbyAgents.length} people`} VERY CLOSE TO YOU (within 2 tiles)!
+As a social being, you should strongly consider engaging in conversation with nearby people, especially if:
+- You're not urgently busy with critical needs (hunger > 0.9, sleepiness > 0.9, etc.)
+- You have social drive (socialDrive > 0.3) or just want to be social
+- They're available and not already in a conversation
+- You find them interesting or want to get to know them better
+
+This is a PRIME OPPORTUNITY for social interaction! Don't let it pass by unless you have a very good reason.
+Use "EngageConversation" action with their ID to start talking to them.
+`;
+  } else {
+    nearbyAgentsSummary = "None - you're alone right now";
+    conversationBias = `
+No one is nearby at the moment. Consider:
+- Moving to a social location (Café, Quad, Library) to meet people
+- Or focusing on your needs (eating, sleeping, studying)
+`;
+  }
 
   return `
 AGENT: ${agent.name}
@@ -346,6 +448,13 @@ EMOTIONS:
 - Mood (valence): ${agent.emotions.valence.toFixed(2)} (${agent.emotions.valence > 0 ? "positive" : "negative"})
 - Energy (arousal): ${agent.emotions.arousal.toFixed(2)} (${agent.emotions.arousal > 0.5 ? "excited" : "calm"})
 
+═══════════════════════════════════════════════════════════
+NEARBY AGENTS (within 2 tiles - AVAILABLE FOR CONVERSATION):
+${nearbyAgentsSummary}
+
+${conversationBias}
+═══════════════════════════════════════════════════════════
+
 RECENT OBSERVATIONS (last 10):
 ${observationsSummary || "None"}
 
@@ -355,7 +464,10 @@ ${recentActions || "None"}
 AVAILABLE PLACES:
 ${placesList || "None"}
 
-TASK: Analyze your stats and decide your next action. Consider the consequences of letting any stat reach 1.0. Respond with JSON only.
+TASK: Analyze your stats and decide your next action. 
+- If there are nearby agents and you don't have critical needs, strongly consider starting a conversation!
+- Consider the consequences of letting any stat reach 1.0.
+- Respond with JSON only.
   `.trim();
 }
 

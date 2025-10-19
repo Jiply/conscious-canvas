@@ -1,6 +1,7 @@
 "use client";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import { useCamera } from "@/hooks/use-camera";
 import { usePixiApp } from "@/hooks/use-pixi-app";
 import { useEffect, useRef, useState } from "react";
@@ -17,6 +18,7 @@ interface PixiMapProps {
   onCenterComplete?: () => void;
   isWorldRunning?: boolean;
   observerCount?: number;
+  onAgentClick?: (agentId: Id<"agents">) => void;
 }
 
 export function PixiMap({
@@ -26,6 +28,7 @@ export function PixiMap({
   onCenterComplete,
   isWorldRunning,
   observerCount,
+  onAgentClick,
 }: PixiMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -155,6 +158,7 @@ export function PixiMap({
     agents: agents,
     mapSettings: mapSettings ?? undefined,
     isCameraReady,
+    onAgentClick,
   });
 
   // Update camera transform
