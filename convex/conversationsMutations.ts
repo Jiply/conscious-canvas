@@ -223,3 +223,55 @@ export const getActiveConversations = query({
       .collect();
   },
 });
+
+/**
+ * Get recent conversations with participant names
+ * Used for displaying recent activity in the UI
+ */
+export const getRecentConversations = query({
+  args: {
+    limit: v.number(),
+  },
+  returns: v.array(
+    v.object({
+      _id: v.id("conversations"),
+      _creationTime: v.number(),
+      participantNames: v.array(v.string()),
+      status: v.union(v.literal("active"), v.literal("completed")),
+      startedAt: v.number(),
+      completedAt: v.optional(v.number()),
+      turnCount: v.number(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    // Get recent conversations sorted by creation time (most recent first)
+    const conversations = await ctx.db
+      .query("conversations")
+      .order("desc")
+      .take(args.limit);
+
+    // Fetch participant names for each conversation
+    const conversationsWithNames = [];
+    for (const conversation of conversations) {
+      const participantNames: Array<string> = [];
+      for (const participantId of conversation.participantIds) {
+        const agent = await ctx.db.get(participantId);
+        if (agent) {
+          participantNames.push(agent.name);
+        }
+      }
+
+      conversationsWithNames.push({
+        _id: conversation._id,
+        _creationTime: conversation._creationTime,
+        participantNames,
+        status: conversation.status,
+        startedAt: conversation.startedAt,
+        completedAt: conversation.completedAt,
+        turnCount: conversation.turnCount,
+      });
+    }
+
+    return conversationsWithNames;
+  },
+});
