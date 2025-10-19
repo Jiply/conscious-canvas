@@ -85,29 +85,32 @@ export function useAgentRenderer({
         const agentContainer = new Container();
         agentsLayer.addChild(agentContainer);
 
-        // Make container interactive and clickable
-        agentContainer.eventMode = "static";
-        agentContainer.cursor = "pointer";
-
-        // Add click handler
-        if (onAgentClick) {
-          agentContainer.on("pointerdown", (event) => {
-            // Stop event propagation to prevent map dragging
-            event.stopPropagation();
-            onAgentClick(agent._id as Id<"agents">);
-          });
-        }
-
         // Draw vision radius (20 tiles = 20 * tileSize pixels)
+        // This should NOT be interactive - it's just visual
         const visionRadius = new Graphics();
         const radiusInPixels = 20 * tileSize;
         visionRadius.circle(0, 0, radiusInPixels);
         visionRadius.fill({ color: 0x3b82f6, alpha: 0.08 }); // Blue with low opacity
         visionRadius.stroke({ width: 2, color: 0x3b82f6, alpha: 0.25 }); // Blue border
+        visionRadius.eventMode = "none"; // Make it non-interactive
         agentContainer.addChild(visionRadius);
 
         // Create profile picture sprite using client-side mapping
         const profilePicUrl = getProfilePicture(agent.name);
+
+        // Create a clickable container for the profile picture and border
+        const profileContainer = new Container();
+        profileContainer.eventMode = "static";
+        profileContainer.cursor = "pointer";
+
+        // Add click handler to profile container
+        if (onAgentClick) {
+          profileContainer.on("pointerdown", (event) => {
+            // Stop event propagation to prevent map dragging
+            event.stopPropagation();
+            onAgentClick(agent._id as Id<"agents">);
+          });
+        }
 
         // Create a placeholder sprite first
         const profileSprite = new Sprite();
@@ -120,9 +123,9 @@ export function useAgentRenderer({
         circleMask.fill(0xffffff);
         circleMask.alpha = 0; // Hide the mask but keep it functional
 
-        // Add to container
-        agentContainer.addChild(profileSprite);
-        agentContainer.addChild(circleMask);
+        // Add to profile container
+        profileContainer.addChild(profileSprite);
+        profileContainer.addChild(circleMask);
         profileSprite.mask = circleMask;
 
         Assets.load(profilePicUrl)
@@ -147,7 +150,17 @@ export function useAgentRenderer({
         const border = new Graphics();
         border.circle(0, 0, 16);
         border.stroke({ width: 2, color: 0xffffff, alpha: 0.8 });
-        agentContainer.addChild(border);
+        profileContainer.addChild(border);
+
+        // Set hit area to a circle slightly larger than the visible profile (for easier clicking)
+        profileContainer.hitArea = {
+          contains: (x: number, y: number) => {
+            return Math.sqrt(x * x + y * y) <= 18; // 18px radius
+          },
+        };
+
+        // Add profile container to agent container
+        agentContainer.addChild(profileContainer);
 
         // Add agent name label
         const labelStyle = new TextStyle({
@@ -164,6 +177,7 @@ export function useAgentRenderer({
         });
         label.anchor.set(0.5);
         label.y = -22; // Moved further up to accommodate larger circle
+        label.eventMode = "none"; // Make label non-interactive
         agentContainer.addChild(label);
 
         // Set initial position (no animation for first appearance)
