@@ -198,10 +198,10 @@ async function updateAgentNeeds(ctx: any, agent: Doc<"agents">) {
   // Simple linear decay/growth rates (per simulated hour)
   // SLOWED DOWN: Agents should be able to have multiple conversations before getting hungry
   // Growth rates are now much more realistic for demo purposes
-  const hungerGrowthRate = 0.1 / HOUR_IN_SECONDS; // grow by 0.1 per hour (full in ~20 mins real time)
-  const sleepinessGrowthRate = 0.08 / HOUR_IN_SECONDS; // grow by 0.08 per hour (full in ~25 mins real time)
-  const studyPressureGrowthRate = 0.05 / HOUR_IN_SECONDS; // grow by 0.05 per hour (full in ~40 mins real time)
-  const socialDriveGrowthRate = 0.15 / HOUR_IN_SECONDS; // grow by 0.15 per hour (full in ~13 mins real time)
+  const hungerGrowthRate = 0.01 / HOUR_IN_SECONDS; // grow by 0.01 per hour (full in ~50 hours real time)
+  const sleepinessGrowthRate = 0.008 / HOUR_IN_SECONDS; // grow by 0.008 per hour (full in ~62 hours real time)
+  const studyPressureGrowthRate = 0.005 / HOUR_IN_SECONDS; // grow by 0.005 per hour (full in ~100 hours real time)
+  const socialDriveGrowthRate = 0.015 / HOUR_IN_SECONDS; // grow by 0.015 per hour (full in ~33 hours real time)
 
   const newNeeds = {
     hunger: Math.min(
