@@ -115,7 +115,8 @@ export const makeAgentDecision = action({
     if (
       nearbyAgents.length > 0 &&
       agent.needs.hunger < 0.95 &&
-      agent.needs.sleepiness < 0.95
+      agent.needs.sleepiness < 0.95 &&
+      Math.random() < 0.5
     ) {
       // There's someone within 2 tiles and no critical needs
       // Force them to engage in conversation (this is the heuristic!)
