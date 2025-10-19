@@ -1,12 +1,12 @@
 "use client";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
 import { useCamera } from "@/hooks/use-camera";
 import { usePixiApp } from "@/hooks/use-pixi-app";
 import { useEffect, useRef, useState } from "react";
 import { useTileCache } from "@/hooks/use-tile-cache";
 import { MapOverlays } from "@/components/MapOverlays";
+import type { Id } from "@/convex/_generated/dataModel";
 import { usePlaceRenderer } from "@/hooks/use-place-renderer";
 import { useAgentRenderer } from "@/hooks/use-agent-renderer";
 import { useTileRendererCached } from "@/hooks/use-tile-renderer-cached";

@@ -1,17 +1,16 @@
 "use client";
-
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
 import {
   Sheet,
-  SheetContent,
-  SheetHeader,
   SheetTitle,
+  SheetHeader,
+  SheetContent,
   SheetDescription,
 } from "@/components/ui/sheet";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import type { Id } from "@/convex/_generated/dataModel";
 
 /**
  * Map agent names to profile picture assets in /public folder

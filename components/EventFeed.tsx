@@ -1,8 +1,8 @@
 "use client";
 import { useQuery } from "convex/react";
+import { MessageCircle } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle } from "lucide-react";
 
 export function EventFeed() {
   const conversations = useQuery(
