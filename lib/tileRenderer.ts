@@ -5,18 +5,18 @@
  * Supports both Graphics API (legacy) and Sprite-based rendering (performance).
  */
 
-import { Graphics, Sprite, Container, Renderer } from "pixi.js";
-import type { TileType } from "./mapTypes";
-import { getTileTexture } from "./textureGenerator";
+import type { TileType } from "@/lib/mapTypes";
+import { getTileTexture } from "@/lib/textureGenerator";
+import { Sprite, Renderer, Graphics, Container } from "pixi.js";
 
 export interface TileRenderStyle {
+  shadow?: boolean;
   baseColor: number;
   borderColor: number;
   borderWidth: number;
+  patternColor?: number;
   opacity?: number; // Alpha transparency (0-1)
   pattern?: "solid" | "grid" | "diagonal" | "dots" | "brick";
-  patternColor?: number;
-  shadow?: boolean;
 }
 
 /**
@@ -24,162 +24,162 @@ export interface TileRenderStyle {
  */
 export const TILE_RENDER_STYLES: Record<TileType, TileRenderStyle> = {
   floor: {
+    borderWidth: 1,
+    pattern: "grid",
     baseColor: 0xe8e4d9,
     borderColor: 0xd0ccc0,
-    borderWidth: 1,
-    opacity: 0.95, // Higher opacity for buildings
-    pattern: "grid",
     patternColor: 0xd5d1c6,
+    opacity: 0.95, // Higher opacity for buildings
   },
   wall: {
+    shadow: true,
+    borderWidth: 2,
+    pattern: "brick",
     baseColor: 0x8b7355,
     borderColor: 0x6a5544,
-    borderWidth: 2,
-    opacity: 1.0, // Fully opaque for walls
-    pattern: "brick",
     patternColor: 0x755f4a,
-    shadow: true,
+    opacity: 1.0, // Fully opaque for walls
   },
   door: {
+    borderWidth: 2,
+    pattern: "solid",
     baseColor: 0xa0826d,
     borderColor: 0x8b7355,
-    borderWidth: 2,
     opacity: 0.95, // Higher opacity for buildings
-    pattern: "solid",
   },
   grass: {
+    pattern: "dots",
+    borderWidth: 0.5,
     baseColor: 0x7cb342,
     borderColor: 0x689f38,
-    borderWidth: 0.5,
-    pattern: "dots",
     patternColor: 0x8bc34a,
   },
   water: {
-    baseColor: 0x42a5f5,
-    borderColor: 0x2196f3,
     borderWidth: 1,
     pattern: "diagonal",
+    baseColor: 0x42a5f5,
+    borderColor: 0x2196f3,
     patternColor: 0x64b5f6,
   },
   path: {
-    baseColor: 0xbdbdbd,
-    borderColor: 0x9e9e9e,
     borderWidth: 1,
     pattern: "grid",
+    baseColor: 0xbdbdbd,
+    borderColor: 0x9e9e9e,
     patternColor: 0xa8a8a8,
   },
   void: {
-    baseColor: 0x212121,
-    borderColor: 0x000000,
     borderWidth: 0,
     pattern: "solid",
+    baseColor: 0x212121,
+    borderColor: 0x000000,
   },
   // Terrain variety
   tall_tree: {
+    shadow: true,
+    borderWidth: 1,
+    pattern: "solid",
     baseColor: 0x2e7d32,
     borderColor: 0x1b5e20,
-    borderWidth: 1,
-    pattern: "solid",
-    shadow: true,
   },
   short_tree: {
-    baseColor: 0x558b2f,
-    borderColor: 0x33691e,
     borderWidth: 1,
     pattern: "solid",
+    baseColor: 0x558b2f,
+    borderColor: 0x33691e,
   },
   bush: {
+    pattern: "dots",
+    borderWidth: 0.5,
     baseColor: 0x689f38,
     borderColor: 0x558b2f,
-    borderWidth: 0.5,
-    pattern: "dots",
     patternColor: 0x7cb342,
   },
   flower_bed: {
-    baseColor: 0xf48fb1,
-    borderColor: 0xf06292,
     borderWidth: 1,
     pattern: "dots",
+    baseColor: 0xf48fb1,
+    borderColor: 0xf06292,
     patternColor: 0xf8bbd0,
   },
   concrete: {
-    baseColor: 0x9e9e9e,
-    borderColor: 0x757575,
     borderWidth: 1,
     pattern: "grid",
+    baseColor: 0x9e9e9e,
+    borderColor: 0x757575,
     patternColor: 0xbdbdbd,
   },
   brick_path: {
-    baseColor: 0xa1887f,
-    borderColor: 0x8d6e63,
     borderWidth: 1,
     pattern: "brick",
+    baseColor: 0xa1887f,
+    borderColor: 0x8d6e63,
     patternColor: 0xbcaaa4,
   },
   // Building interiors
   cafe_stall: {
+    opacity: 0.95,
+    borderWidth: 2,
+    pattern: "solid",
     baseColor: 0xd7ccc8,
     borderColor: 0xbcaaa4,
-    borderWidth: 2,
-    pattern: "solid",
-    opacity: 0.95,
   },
   study_desk: {
+    opacity: 0.95,
+    borderWidth: 1,
+    pattern: "solid",
     baseColor: 0xbcaaa4,
     borderColor: 0xa1887f,
-    borderWidth: 1,
-    pattern: "solid",
-    opacity: 0.95,
   },
   bookshelf: {
+    shadow: true,
+    opacity: 1.0,
+    borderWidth: 2,
+    pattern: "solid",
     baseColor: 0x8d6e63,
     borderColor: 0x6d4c41,
-    borderWidth: 2,
-    pattern: "solid",
-    opacity: 1.0,
-    shadow: true,
   },
   lounge_chair: {
+    opacity: 0.95,
+    borderWidth: 1,
+    pattern: "solid",
     baseColor: 0xb39ddb,
     borderColor: 0x9575cd,
-    borderWidth: 1,
-    pattern: "solid",
-    opacity: 0.95,
   },
   laundry_machine: {
-    baseColor: 0x90caf9,
-    borderColor: 0x64b5f6,
+    opacity: 1.0,
     borderWidth: 2,
     pattern: "solid",
-    opacity: 1.0,
+    baseColor: 0x90caf9,
+    borderColor: 0x64b5f6,
   },
   lecture_seat: {
+    opacity: 0.95,
+    borderWidth: 1,
+    pattern: "solid",
     baseColor: 0x9fa8da,
     borderColor: 0x7986cb,
-    borderWidth: 1,
-    pattern: "solid",
-    opacity: 0.95,
   },
   library_desk: {
+    opacity: 0.95,
+    borderWidth: 1,
+    pattern: "solid",
     baseColor: 0xa1887f,
     borderColor: 0x8d6e63,
-    borderWidth: 1,
-    pattern: "solid",
-    opacity: 0.95,
   },
   dorm_bed: {
+    opacity: 0.95,
+    borderWidth: 1,
+    pattern: "solid",
     baseColor: 0xce93d8,
     borderColor: 0xba68c8,
-    borderWidth: 1,
-    pattern: "solid",
-    opacity: 0.95,
   },
   kitchen_counter: {
-    baseColor: 0xffe082,
-    borderColor: 0xffd54f,
+    opacity: 0.95,
     borderWidth: 1,
     pattern: "solid",
-    opacity: 0.95,
+    baseColor: 0xffe082,
+    borderColor: 0xffd54f,
   },
 };
 
@@ -197,9 +197,9 @@ export function renderTile(
   const style = TILE_RENDER_STYLES[tileType];
 
   // Apply variant-based color variation
+  const alpha = style.opacity ?? 1.0;
   const colorVariation = variant * 0x0a0a0a;
   const baseColor = Math.max(0, style.baseColor - colorVariation);
-  const alpha = style.opacity ?? 1.0;
 
   // Draw base rectangle
   graphics.rect(x, y, tileSize, tileSize);

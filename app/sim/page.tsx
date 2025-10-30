@@ -11,7 +11,6 @@ import {
   SidebarContent,
   SidebarProvider,
   SidebarMenuItem,
-  SidebarSeparator,
   SidebarGroupLabel,
   SidebarMenuButton,
   SidebarGroupContent,
@@ -22,30 +21,29 @@ import {
   TooltipContent,
   TooltipProvider,
 } from "@/components/ui/tooltip";
-import { useState, useEffect } from "react";
+import {
+  EyeIcon,
+  UserIcon,
+  ClockIcon,
+  MapPinIcon,
+  SearchIcon,
+  Loader2Icon,
+  ActivityIcon,
+  PlayCircleIcon,
+  PauseCircleIcon,
+} from "lucide-react";
+import { api } from "@/convex/_generated/api";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import {
-  MapPin,
-  Clock,
-  Eye,
-  PlayCircle,
-  PauseCircle,
-  Search,
-  User,
-  Activity,
-  Loader2,
-} from "lucide-react";
-import { useMemo } from "react";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
 import { PixiMap } from "@/components/PixiMap";
+import { Button } from "@/components/ui/button";
 import { EventFeed } from "@/components/EventFeed";
-import { ConversationSheet } from "@/components/ConversationSheet";
 import { useHeartbeat } from "@/hooks/use-heartbeat";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
+import { Separator } from "@/components/ui/separator";
+import type { Id } from "@/convex/_generated/dataModel";
+import { ConversationSheet } from "@/components/ConversationSheet";
 
 /**
  * Map agent names to profile picture assets in /public folder
@@ -158,17 +156,13 @@ export default function SimPage() {
     <SidebarProvider defaultOpen={true}>
       <div className="flex h-screen w-full">
         <Sidebar side="left" variant="sidebar" collapsible="offcanvas">
-          <SidebarHeader className="border-b space-y-1">
-            <div className="flex items-center justify-between px-2 pt-2">
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-semibold whitespace-nowrap">
-                  Conscious Campus
-                </h2>
-              </div>
-            </div>
-            <div className="px-2 pb-2 space-y-2">
+          <SidebarHeader>
+            <h2 className="text-lg font-semibold whitespace-nowrap">
+              Conscious Campus
+            </h2>
+            <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm">
-                <Clock className="h-4 w-4 flex-shrink-0" />
+                <ClockIcon className="size-4 flex-shrink-0" />
                 <span className="text-muted-foreground whitespace-nowrap">
                   World:
                 </span>
@@ -177,7 +171,7 @@ export default function SimPage() {
                     variant="outline"
                     className="gap-1.5 whitespace-nowrap"
                   >
-                    <Loader2 className="h-3 w-3 animate-spin" />
+                    <Loader2Icon className="size-3 animate-spin" />
                     Loading
                   </Badge>
                 ) : isLeader ? (
@@ -185,7 +179,7 @@ export default function SimPage() {
                     variant="secondary"
                     className="gap-1.5 whitespace-nowrap"
                   >
-                    <PlayCircle className="h-3 w-3" />
+                    <PlayCircleIcon className="size-3" />
                     Running
                   </Badge>
                 ) : (
@@ -193,13 +187,13 @@ export default function SimPage() {
                     variant="outline"
                     className="gap-1.5 whitespace-nowrap"
                   >
-                    <PauseCircle className="h-3 w-3" />
+                    <PauseCircleIcon className="size-3" />
                     Paused
                   </Badge>
                 )}
               </div>
               <div className="flex items-center gap-2 text-sm">
-                <Eye className="h-4 w-4 flex-shrink-0" />
+                <EyeIcon className="size-4 flex-shrink-0" />
                 <span className="text-muted-foreground whitespace-nowrap">
                   Observers:
                 </span>
@@ -211,46 +205,43 @@ export default function SimPage() {
                 </Badge>
               </div>
               <div className="flex items-center gap-2 text-sm">
-                <Activity className="h-4 w-4 flex-shrink-0" />
+                <ActivityIcon className="size-4 flex-shrink-0" />
                 <span className="text-muted-foreground whitespace-nowrap">
                   {isLeader ? "Leader" : "Follower"}
                 </span>
-                {stats && (
+                {stats ? (
                   <Badge
                     variant="outline"
                     className="text-xs font-mono whitespace-nowrap"
                   >
                     {stats.latencyMs}ms
                   </Badge>
-                )}
+                ) : null}
               </div>
             </div>
           </SidebarHeader>
-
-          <SidebarContent className="flex flex-col divide-y">
-            {/* Fixed Search Section */}
-            <SidebarGroup className="flex-shrink-0">
+          <SidebarContent>
+            <SidebarGroup className="flex-shrink-0 pb-4">
               <SidebarGroupLabel className="px-2">
                 Search Agents
               </SidebarGroupLabel>
-              <SidebarGroupContent className="px-2 pb-2">
+              <SidebarGroupContent className="px-2">
                 <div className="relative">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <SearchIcon className="absolute left-3 top-2.5 size-4 text-muted-foreground pointer-events-none" />
                   <Input
-                    placeholder="Search by name, role, state..."
-                    className="pl-9 h-9"
                     value={searchQuery}
+                    className="pl-9 h-9"
+                    placeholder="Search by name, role, state..."
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
               </SidebarGroupContent>
             </SidebarGroup>
-            {/* Scrollable Agents List */}
-            <div className="flex-1 overflow-y-auto pb-2">
-              <SidebarGroup>
-                <SidebarGroupLabel className="px-2">
+            <div className="grow border-y">
+              <SidebarGroup className="h-0 min-h-full pb-4">
+                <SidebarGroupLabel>
                   <div className="flex items-center justify-between w-full">
-                    <span>Agents</span>
+                    Agents
                     <Badge
                       variant="secondary"
                       className="ml-auto font-mono text-xs whitespace-nowrap"
@@ -259,164 +250,166 @@ export default function SimPage() {
                     </Badge>
                   </div>
                 </SidebarGroupLabel>
-                <SidebarGroupContent className="px-2">
-                  {filteredAgents.length === 0 ? (
-                    <div className="px-4 py-4 text-center text-sm text-muted-foreground leading-relaxed">
-                      {agents.length === 0
-                        ? "No agents yet. They will appear here when the simulation starts."
-                        : "No agents match your search."}
-                    </div>
-                  ) : (
-                    <TooltipProvider>
-                      <SidebarMenu>
-                        {filteredAgents.map((agent) => (
-                          <SidebarMenuItem key={agent._id}>
-                            <Tooltip delayDuration={300}>
-                              <TooltipTrigger asChild>
-                                <SidebarMenuButton className="h-auto py-1.5 px-2.5">
-                                  <User className="h-4 w-4 flex-shrink-0" />
-                                  <div className="flex flex-col items-start min-w-0 flex-1">
-                                    <span className="text-sm font-medium truncate w-full">
-                                      {agent.name}
-                                    </span>
-                                    <span className="text-xs text-muted-foreground truncate w-full">
-                                      {agent.state} • {agent.role}
-                                    </span>
-                                  </div>
-                                </SidebarMenuButton>
-                              </TooltipTrigger>
-                              <TooltipContent
-                                side="right"
-                                className="max-w-xs p-4"
-                                sideOffset={8}
-                              >
-                                <div className="space-y-3">
-                                  <div className="flex justify-center pb-2">
-                                    <img
-                                      src={getProfilePicture(agent.name)}
-                                      alt={agent.name}
-                                      className="w-20 h-20 rounded-full object-cover border-2 border-border"
-                                    />
-                                  </div>
-                                  <div className="pb-2 border-b">
-                                    <p className="font-semibold text-sm">
-                                      {agent.name}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground mt-0.5">
-                                      {agent.role}
-                                    </p>
-                                  </div>
-                                  {agent.personality && (
+                <div className="grow overflow-y-auto px-2">
+                  <SidebarGroupContent className="h-full">
+                    {filteredAgents.length < 1 ? (
+                      <div className="h-full p-4 flex flex-col justify-center items-center text-xs text-muted-foreground bg-muted rounded-md">
+                        {agents.length < 1 ? (
+                          <Loader2Icon className="size-4 animate-spin" />
+                        ) : (
+                          "No agents match your search."
+                        )}
+                      </div>
+                    ) : (
+                      <TooltipProvider>
+                        <SidebarMenu>
+                          {filteredAgents.map((a) => (
+                            <SidebarMenuItem key={a._id}>
+                              <Tooltip delayDuration={300}>
+                                <TooltipTrigger asChild>
+                                  <SidebarMenuButton className="h-auto py-1 px-2">
+                                    <UserIcon className="size-4 flex-shrink-0" />
+                                    <div className="flex flex-col items-start min-w-0 flex-1">
+                                      <span className="text-sm font-medium truncate w-full">
+                                        {a.name}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground truncate w-full">
+                                        {a.state} • {a.role}
+                                      </span>
+                                    </div>
+                                  </SidebarMenuButton>
+                                </TooltipTrigger>
+                                <TooltipContent
+                                  side="right"
+                                  sideOffset={8}
+                                  className="max-w-xs p-4"
+                                >
+                                  <div className="space-y-3">
+                                    <div className="flex justify-center pb-2">
+                                      <img
+                                        alt={a.name}
+                                        src={getProfilePicture(a.name)}
+                                        className="w-20 h-20 rounded-full object-cover border-2 border-border"
+                                      />
+                                    </div>
+                                    <div className="pb-2 border-b">
+                                      <p className="font-semibold text-sm">
+                                        {a.name}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground mt-0.5">
+                                        {a.role}
+                                      </p>
+                                    </div>
+                                    {a.personality ? (
+                                      <div className="space-y-1">
+                                        <p className="text-xs font-medium">
+                                          Personality
+                                        </p>
+                                        <p className="text-xs text-muted-foreground leading-relaxed">
+                                          {a.personality}
+                                        </p>
+                                      </div>
+                                    ) : null}
                                     <div className="space-y-1">
                                       <p className="text-xs font-medium">
-                                        Personality
+                                        Position
                                       </p>
-                                      <p className="text-xs text-muted-foreground leading-relaxed">
-                                        {agent.personality}
+                                      <p className="text-xs text-muted-foreground font-mono">
+                                        ({a.pos.x}, {a.pos.y})
                                       </p>
                                     </div>
-                                  )}
-                                  <div className="space-y-1">
-                                    <p className="text-xs font-medium">
-                                      Position
-                                    </p>
-                                    <p className="text-xs text-muted-foreground font-mono">
-                                      ({agent.pos.x}, {agent.pos.y})
-                                    </p>
-                                  </div>
-                                  <div className="space-y-1">
-                                    <p className="text-xs font-medium">State</p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {agent.state}
-                                    </p>
-                                  </div>
-                                  <div className="space-y-1.5">
-                                    <p className="text-xs font-medium">
-                                      Emotions
-                                    </p>
-                                    <div className="flex gap-3 text-xs flex-wrap">
-                                      <span className="whitespace-nowrap">
-                                        Mood:{" "}
-                                        {agent.emotions.valence > 0
-                                          ? "😊"
-                                          : "😔"}{" "}
-                                        {agent.emotions.valence.toFixed(2)}
-                                      </span>
-                                      <span className="whitespace-nowrap">
-                                        Energy: ⚡{" "}
-                                        {agent.emotions.arousal.toFixed(2)}
-                                      </span>
+                                    <div className="space-y-1">
+                                      <p className="text-xs font-medium">
+                                        State
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {a.state}
+                                      </p>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                      <p className="text-xs font-medium">
+                                        Emotions
+                                      </p>
+                                      <div className="flex gap-3 text-xs flex-wrap">
+                                        <span className="whitespace-nowrap">
+                                          Mood:&nbsp;
+                                          {a.emotions.valence > 0 ? "😊" : "😔"}
+                                          &nbsp;
+                                          {a.emotions.valence.toFixed(2)}
+                                        </span>
+                                        <span className="whitespace-nowrap">
+                                          Energy: ⚡&nbsp;
+                                          {a.emotions.arousal.toFixed(2)}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                      <p className="text-xs font-medium">
+                                        Needs
+                                      </p>
+                                      <div className="grid grid-cols-2 gap-2 text-xs">
+                                        <span className="whitespace-nowrap">
+                                          😴&nbsp;
+                                          {(a.needs.sleepiness * 100).toFixed(
+                                            0
+                                          )}
+                                          %
+                                        </span>
+                                        <span className="whitespace-nowrap">
+                                          🍔&nbsp;
+                                          {(a.needs.hunger * 100).toFixed(0)}%
+                                        </span>
+                                        <span className="whitespace-nowrap">
+                                          📚&nbsp;
+                                          {(
+                                            a.needs.studyPressure * 100
+                                          ).toFixed(0)}
+                                          %
+                                        </span>
+                                        <span className="whitespace-nowrap">
+                                          👥&nbsp;
+                                          {(a.needs.socialDrive * 100).toFixed(
+                                            0
+                                          )}
+                                          %
+                                        </span>
+                                      </div>
                                     </div>
                                   </div>
-                                  <div className="space-y-1.5">
-                                    <p className="text-xs font-medium">Needs</p>
-                                    <div className="grid grid-cols-2 gap-2 text-xs">
-                                      <span className="whitespace-nowrap">
-                                        😴{" "}
-                                        {(agent.needs.sleepiness * 100).toFixed(
-                                          0
-                                        )}
-                                        %
-                                      </span>
-                                      <span className="whitespace-nowrap">
-                                        🍔{" "}
-                                        {(agent.needs.hunger * 100).toFixed(0)}%
-                                      </span>
-                                      <span className="whitespace-nowrap">
-                                        📚{" "}
-                                        {(
-                                          agent.needs.studyPressure * 100
-                                        ).toFixed(0)}
-                                        %
-                                      </span>
-                                      <span className="whitespace-nowrap">
-                                        👥{" "}
-                                        {(
-                                          agent.needs.socialDrive * 100
-                                        ).toFixed(0)}
-                                        %
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </SidebarMenuItem>
-                        ))}
-                      </SidebarMenu>
-                    </TooltipProvider>
-                  )}
-                </SidebarGroupContent>
+                                </TooltipContent>
+                              </Tooltip>
+                            </SidebarMenuItem>
+                          ))}
+                        </SidebarMenu>
+                      </TooltipProvider>
+                    )}
+                  </SidebarGroupContent>
+                </div>
               </SidebarGroup>
             </div>
-
-            {/* Scrollable Places List */}
-            <div className="flex-1 overflow-y-auto pb-2">
-              <SidebarGroup>
-                <SidebarGroupLabel className="px-2">Places</SidebarGroupLabel>
-                <SidebarGroupContent className="px-2">
-                  <SidebarMenu>
-                    {mainPlaces.map((place) => (
-                      <SidebarMenuItem key={place._id}>
-                        <SidebarMenuButton
-                          onClick={() => handleCenterOnPlace(place)}
-                          className="cursor-pointer"
-                        >
-                          <MapPin className="h-4 w-4 flex-shrink-0" />
-                          <span className="truncate">{place.name}</span>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </SidebarGroup>
-            </div>
+            <SidebarGroup className="h-52 pb-4">
+              <SidebarGroupLabel>Places</SidebarGroupLabel>
+              <SidebarGroupContent className="grow overflow-y-auto px-2">
+                <SidebarMenu>
+                  {mainPlaces.map((place) => (
+                    <SidebarMenuItem key={place._id}>
+                      <SidebarMenuButton
+                        className="cursor-pointer"
+                        onClick={() => handleCenterOnPlace(place)}
+                      >
+                        <MapPinIcon className="size-4 flex-shrink-0" />
+                        <span className="truncate">{place.name}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
           </SidebarContent>
-
-          <SidebarFooter className="border-t">
+          <SidebarFooter>
             <SidebarGroup>
               <SidebarGroupContent>
-                <div className="flex flex-col gap-2 px-2 py-2">
+                <div className="flex flex-col gap-2 p-2">
                   <Button
                     variant={worldState?.adminEnabled ? "outline" : "default"}
                     size="sm"
@@ -429,12 +422,12 @@ export default function SimPage() {
                   >
                     {worldState?.adminEnabled ? (
                       <>
-                        <PauseCircle className="h-4 w-4" />
+                        <PauseCircleIcon className="h-4 w-4" />
                         Freeze Universe
                       </>
                     ) : (
                       <>
-                        <PlayCircle className="h-4 w-4" />
+                        <PlayCircleIcon className="h-4 w-4" />
                         Unfreeze Universe
                       </>
                     )}
@@ -448,45 +441,39 @@ export default function SimPage() {
               </SidebarGroupContent>
             </SidebarGroup>
           </SidebarFooter>
-
           <SidebarRail />
         </Sidebar>
-
         <SidebarInset>
           <header className="flex h-14 items-center gap-4 border-b bg-background px-4">
             <SidebarTrigger />
-            <Separator orientation="vertical" className="h-6" />
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-semibold">Campus Simulation</h1>
-            </div>
+            <Separator className="h-6" orientation="vertical" />
+            <h1 className="text-lg font-semibold">Campus Simulation</h1>
             <div className="ml-auto flex items-center gap-2">
               <Badge variant="outline" className="gap-1">
-                <Clock className="h-3 w-3" />
+                <ClockIcon className="size-3" />
                 <span className="text-xs font-mono">{elapsedTime}</span>
               </Badge>
             </div>
           </header>
-
           <main className="flex-1 overflow-hidden bg-muted/20 p-6 flex gap-6">
             <div className="flex-1 rounded-lg border border-dashed border-border overflow-hidden">
               <PixiMap
-                onWorldReady={setIsWorldReady}
-                centerOnLocation={centerOnPlace}
-                onCenterComplete={() => setCenterOnPlace(null)}
-                isWorldRunning={observerCount > 0}
                 observerCount={observerCount}
+                onWorldReady={setIsWorldReady}
                 onAgentClick={handleAgentClick}
+                centerOnLocation={centerOnPlace}
+                isWorldRunning={observerCount > 0}
+                onCenterComplete={() => setCenterOnPlace(null)}
               />
             </div>
-
-            {/* Right sidebar for Event Feed */}
             <div className="w-80 flex-shrink-0 rounded-lg border border-border bg-background overflow-hidden flex flex-col">
-              <EventFeed />
+              <div className="flex flex-col h-full">
+                <EventFeed />
+              </div>
             </div>
           </main>
         </SidebarInset>
       </div>
-
       {/* Conversation Sheet */}
       <ConversationSheet
         agentId={selectedAgentId}

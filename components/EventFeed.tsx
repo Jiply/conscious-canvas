@@ -1,4 +1,5 @@
 "use client";
+import { Fragment } from "react";
 import { useQuery } from "convex/react";
 import { MessageCircle } from "lucide-react";
 import { api } from "@/convex/_generated/api";
@@ -32,14 +33,13 @@ export function EventFeed() {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <Fragment>
       <div className="flex items-center justify-between px-4 py-2 border-b">
         <h3 className="text-sm font-semibold">Recent Conversations</h3>
         <Badge variant="outline" className="font-mono text-xs">
           {conversations?.length ?? 0}
         </Badge>
       </div>
-
       <div className="flex-1 overflow-y-auto">
         <div className="p-2 space-y-1.5">
           {!conversations || conversations.length === 0 ? (
@@ -80,6 +80,6 @@ export function EventFeed() {
           )}
         </div>
       </div>
-    </div>
+    </Fragment>
   );
 }

@@ -1,5 +1,5 @@
 "use node";
-import Groq from "groq-sdk";
+import OpenAI from "openai";
 import { v } from "convex/values";
 import { api } from "./_generated/api";
 import { internalAction } from "./_generated/server";
@@ -7,7 +7,7 @@ import { internalAction } from "./_generated/server";
 // ========== ACTIONS ==========
 
 /**
- * Generate a new opinion using Groq LLM
+ * Generate a new opinion using OpenAI LLM
  * Called when an agent observes someone they don't have an opinion about
  */
 export const generateOpinion: any = internalAction({
@@ -42,7 +42,7 @@ export const generateOpinion: any = internalAction({
       (obs) => obs.targetId === args.targetAgentId
     );
 
-    // Build prompt for Groq
+    // Build prompt for OpenAI
     const systemPrompt = buildOpinionSystemPrompt();
     const userPrompt = buildOpinionUserPrompt(
       observer,
@@ -50,8 +50,8 @@ export const generateOpinion: any = internalAction({
       targetObservations
     );
 
-    // Call Groq API
-    const opinion = await callGroqForOpinion(systemPrompt, userPrompt);
+    // Call OpenAI API
+    const opinion = await callOpenAIForOpinion(systemPrompt, userPrompt);
 
     // Store the opinion in the database
     const opinionId: any = await ctx.runMutation(api.opinions.upsertOpinion, {
@@ -129,9 +129,9 @@ TASK: Generate ${observer.name}'s first impression and opinion of ${target.name}
 }
 
 /**
- * Call Groq API to generate opinion
+ * Call OpenAI API to generate opinion
  */
-async function callGroqForOpinion(
+async function callOpenAIForOpinion(
   systemPrompt: string,
   userPrompt: string
 ): Promise<{
@@ -139,16 +139,21 @@ async function callGroqForOpinion(
   summary: string;
   traits: Record<string, number>;
 }> {
-  const groq = new Groq({
-    apiKey: process.env.GROQ_API_KEY,
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY environment variable is not set");
+  }
+
+  const openai = new OpenAI({
+    apiKey: apiKey,
   });
 
-  const completion = await groq.chat.completions.create({
+  const completion = await openai.chat.completions.create({
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ],
-    model: "llama-3.3-70b-versatile",
+    model: "gpt-3.5-turbo",
     temperature: 0.7,
     max_tokens: 200,
     response_format: { type: "json_object" },
@@ -156,7 +161,7 @@ async function callGroqForOpinion(
 
   const content = completion.choices[0].message.content;
   if (!content) {
-    throw new Error("No content in Groq response");
+    throw new Error("No content in OpenAI response");
   }
 
   const parsed = JSON.parse(content);
