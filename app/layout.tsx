@@ -1,7 +1,8 @@
-import "./globals.css";
+import "@/app/globals.css";
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
-import { ConvexClientProvider } from "./ConvexClientProvider";
+import { ConvexClientProvider } from "@/app/ConvexClientProvider";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 
@@ -11,16 +12,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Conscious Campus",
-  description:
-    "Observer-dependent, real-time campus simulation where emotionally-motivated agents form relationships and culture while the universe only runs when someone is watching.",
+  title: `Conscious Campus`,
+  description: `Observer-dependent, real-time campus simulation where emotionally-motivated agents form relationships and culture while the universe only runs when someone is watching.`,
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className="overscroll-none">
       <body
