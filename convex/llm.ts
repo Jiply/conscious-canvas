@@ -1,5 +1,5 @@
 "use node";
-import Groq from "groq-sdk";
+import OpenAI from "openai";
 import { v } from "convex/values";
 import { api } from "./_generated/api";
 import { action } from "./_generated/server";
@@ -174,7 +174,7 @@ export const makeAgentDecision = action({
     // 5. If no critical need or proximity heuristic, call LLM for decision-making
     if (!decision) {
       try {
-        decision = await callGroqForDecision(systemPrompt, userPrompt);
+        decision = await callOpenAIForDecision(systemPrompt, userPrompt);
         // Log the agent's decision for public display
         console.log(
           `🤖 ${agent.name}: "${decision.innerThought}" → ${decision.action}`
@@ -473,9 +473,9 @@ TASK: Analyze your stats and decide your next action.
 }
 
 /**
- * Call Groq API for decision-making with JSON mode
+ * Call OpenAI API for decision-making with JSON mode
  */
-async function callGroqForDecision(
+async function callOpenAIForDecision(
   systemPrompt: string,
   userPrompt: string
 ): Promise<{
@@ -486,21 +486,21 @@ async function callGroqForDecision(
   innerThought?: string;
   emotionDelta?: { valence: number; arousal: number };
 }> {
-  const apiKey = process.env.GROQ_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    throw new Error("GROQ_API_KEY environment variable is not set");
+    throw new Error("OPENAI_API_KEY environment variable is not set");
   }
 
-  const groq = new Groq({
+  const openai = new OpenAI({
     apiKey: apiKey,
   });
 
-  const completion = await groq.chat.completions.create({
+  const completion = await openai.chat.completions.create({
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ],
-    model: "kimi-k2",
+    model: "gpt-3.5-turbo",
     temperature: 1.0,
     max_tokens: 300,
     response_format: { type: "json_object" },
@@ -508,7 +508,7 @@ async function callGroqForDecision(
 
   const content = completion.choices[0].message.content;
   if (!content) {
-    throw new Error("No content in Groq response");
+    throw new Error("No content in OpenAI response");
   }
 
   // Parse JSON response
@@ -578,19 +578,11 @@ function heuristicFallback(agent: any): {
 }
 
 /**
- * TODO: Integrate actual LLM call
- * Example with Groq (you'll need to add API key and install SDK):
- *
- * import Groq from "groq-sdk";
- *
- * async function callGroq(prompt: string) {
- *   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
- *   const completion = await groq.chat.completions.create({
- *     messages: [{ role: "user", content: prompt }],
- *     model: "llama-3.3-70b-versatile",
- *     temperature: 0.7,
- *     max_tokens: 200,
- *   });
- *   return completion.choices[0].message.content;
- * }
+ * OpenAI integration for LLM calls
+ * Using OpenAI's gpt-3.5-turbo model for cost-effective decisions
+ * 
+ * The implementation uses:
+ * - JSON mode for structured responses
+ * - Chat completions API with system and user messages
+ * - Temperature 1.0 for creative agent decisions
  */

@@ -1,14 +1,4 @@
 "use client";
-import * as React from "react";
-import { cn } from "@/lib/utils";
-import { Slot } from "@radix-ui/react-slot";
-import { PanelLeftIcon } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
-import { cva, type VariantProps } from "class-variance-authority";
 import {
   Sheet,
   SheetTitle,
@@ -22,10 +12,20 @@ import {
   TooltipContent,
   TooltipProvider,
 } from "@/components/ui/tooltip";
+import * as React from "react";
+import { cn } from "@/lib/utils";
+import { Slot } from "@radix-ui/react-slot";
+import { PanelLeftIcon } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
+import { type VariantProps, cva } from "class-variance-authority";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
-const SIDEBAR_WIDTH = "16rem";
+const SIDEBAR_WIDTH = "18rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
@@ -333,9 +333,9 @@ function SidebarInput({
 function SidebarHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
-      data-slot="sidebar-header"
       data-sidebar="header"
-      className={cn("flex flex-col gap-2 p-2", className)}
+      data-slot="sidebar-header"
+      className={cn("flex flex-col p-4 space-y-1", className)}
       {...props}
     />
   );
@@ -344,8 +344,8 @@ function SidebarHeader({ className, ...props }: React.ComponentProps<"div">) {
 function SidebarFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
-      data-slot="sidebar-footer"
       data-sidebar="footer"
+      data-slot="sidebar-footer"
       className={cn("flex flex-col gap-2 p-2", className)}
       {...props}
     />
@@ -358,8 +358,8 @@ function SidebarSeparator({
 }: React.ComponentProps<typeof Separator>) {
   return (
     <Separator
-      data-slot="sidebar-separator"
       data-sidebar="separator"
+      data-slot="sidebar-separator"
       className={cn("bg-sidebar-border mx-2 w-auto", className)}
       {...props}
     />
@@ -369,10 +369,10 @@ function SidebarSeparator({
 function SidebarContent({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
-      data-slot="sidebar-content"
       data-sidebar="content"
+      data-slot="sidebar-content"
       className={cn(
-        "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden",
+        "flex min-h-0 grow flex-col border-y group-data-[collapsible=icon]:overflow-hidden",
         className
       )}
       {...props}
@@ -383,8 +383,8 @@ function SidebarContent({ className, ...props }: React.ComponentProps<"div">) {
 function SidebarGroup({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
-      data-slot="sidebar-group"
       data-sidebar="group"
+      data-slot="sidebar-group"
       className={cn("relative flex w-full min-w-0 flex-col p-2", className)}
       {...props}
     />
@@ -400,8 +400,8 @@ function SidebarGroupLabel({
 
   return (
     <Comp
-      data-slot="sidebar-group-label"
       data-sidebar="group-label"
+      data-slot="sidebar-group-label"
       className={cn(
         "text-sidebar-foreground/70 ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
         "group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0",
@@ -421,8 +421,8 @@ function SidebarGroupAction({
 
   return (
     <Comp
-      data-slot="sidebar-group-action"
       data-sidebar="group-action"
+      data-slot="sidebar-group-action"
       className={cn(
         "text-sidebar-foreground ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground absolute top-3.5 right-3 flex aspect-square w-5 items-center justify-center rounded-md p-0 outline-hidden transition-transform focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
         // Increases the hit area of the button on mobile.
@@ -441,8 +441,8 @@ function SidebarGroupContent({
 }: React.ComponentProps<"div">) {
   return (
     <div
-      data-slot="sidebar-group-content"
       data-sidebar="group-content"
+      data-slot="sidebar-group-content"
       className={cn("w-full text-sm", className)}
       {...props}
     />
@@ -452,8 +452,8 @@ function SidebarGroupContent({
 function SidebarMenu({ className, ...props }: React.ComponentProps<"ul">) {
   return (
     <ul
-      data-slot="sidebar-menu"
       data-sidebar="menu"
+      data-slot="sidebar-menu"
       className={cn("flex w-full min-w-0 flex-col gap-1", className)}
       {...props}
     />
@@ -463,8 +463,8 @@ function SidebarMenu({ className, ...props }: React.ComponentProps<"ul">) {
 function SidebarMenuItem({ className, ...props }: React.ComponentProps<"li">) {
   return (
     <li
-      data-slot="sidebar-menu-item"
       data-sidebar="menu-item"
+      data-slot="sidebar-menu-item"
       className={cn("group/menu-item relative", className)}
       {...props}
     />

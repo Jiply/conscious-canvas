@@ -4,9 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
-    "start": "next start",
-    "lint": "eslint"
+    "build": "next build --turbopack"
   },
   "dependencies": {
     "@google/genai": "^1.25.0",
@@ -19,7 +17,7 @@
     "cmdk": "^1.1.1",
     "convex": "^1.28.0",
     "date-fns": "^4.1.0",
-    "groq-sdk": "^0.33.0",
+    "openai": "^4.77.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.546.0",
     "next": "15.5.6",
