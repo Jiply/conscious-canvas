@@ -1,32 +1,32 @@
 "use client";
 import {
-  Home,
-  MapPin,
-  Loader2,
-  Building2,
-  AlertCircle,
-  CheckCircle2,
-} from "lucide-react";
-import {
   Card,
   CardTitle,
   CardHeader,
   CardContent,
   CardDescription,
 } from "@/components/ui/card";
-import { useState } from "react";
+import {
+  HomeIcon,
+  MapPinIcon,
+  Loader2Icon,
+  Building2Icon,
+  AlertCircleIcon,
+  CheckCircle2Icon,
+} from "lucide-react";
+import { Fragment, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQuery } from "convex/react";
 
 export default function InitPage() {
-  const [isInitializing, setIsInitializing] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [isInitializing, setIsInitializing] = useState(false);
 
+  const places = useQuery(api.map.getPlaces);
   const initMap = useMutation(api.map.initMap);
   const settings = useQuery(api.map.getMapSettings);
-  const places = useQuery(api.map.getPlaces);
 
   async function handleInit(force: boolean = false) {
     setIsInitializing(true);
@@ -57,7 +57,6 @@ export default function InitPage() {
             rooms
           </p>
         </div>
-
         {/* Status Card */}
         <Card>
           <CardHeader>
@@ -69,18 +68,17 @@ export default function InitPage() {
               <span className="text-sm font-medium">Map Initialized:</span>
               {isMapInitialized ? (
                 <Badge variant="default" className="gap-1">
-                  <CheckCircle2 className="h-3 w-3" />
+                  <CheckCircle2Icon className="size-3" />
                   Yes
                 </Badge>
               ) : (
                 <Badge variant="secondary" className="gap-1">
-                  <AlertCircle className="h-3 w-3" />
+                  <AlertCircleIcon className="size-3" />
                   No
                 </Badge>
               )}
             </div>
-
-            {settings && (
+            {settings ? (
               <div className="grid grid-cols-2 gap-4 pt-4 border-t">
                 <div>
                   <div className="text-sm font-medium text-muted-foreground">
@@ -105,9 +103,8 @@ export default function InitPage() {
                   </div>
                 </div>
               </div>
-            )}
-
-            {places && places.length > 0 && (
+            ) : null}
+            {places && places.length > 0 ? (
               <div className="pt-4 border-t">
                 <div className="text-sm font-medium text-muted-foreground mb-2">
                   Places Created
@@ -117,7 +114,7 @@ export default function InitPage() {
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm">
-                    <Building2 className="h-4 w-4" />
+                    <Building2Icon className="h-4 w-4" />
                     <span className="font-medium">Main Landmarks:</span>
                     <Badge variant="outline">
                       {
@@ -134,14 +131,14 @@ export default function InitPage() {
                     </Badge>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <Home className="h-4 w-4" />
+                    <HomeIcon className="h-4 w-4" />
                     <span className="font-medium">Dorm Rooms:</span>
                     <Badge variant="outline">
                       {places.filter((p) => p.kind === "dorm_room").length}
                     </Badge>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="h-4 w-4" />
+                    <MapPinIcon className="h-4 w-4" />
                     <span className="font-medium">Common Areas:</span>
                     <Badge variant="outline">
                       {
@@ -153,42 +150,40 @@ export default function InitPage() {
                   </div>
                 </div>
               </div>
-            )}
+            ) : null}
           </CardContent>
         </Card>
-
         {/* Result Card */}
-        {result && (
+        {result ? (
           <Card
             className={result.success ? "border-green-500" : "border-red-500"}
           >
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 {result.success ? (
-                  <>
-                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+                  <Fragment>
+                    <CheckCircle2Icon className="size-5 text-green-500" />
                     Success!
-                  </>
+                  </Fragment>
                 ) : (
-                  <>
-                    <AlertCircle className="h-5 w-5 text-red-500" />
+                  <Fragment>
+                    <AlertCircleIcon className="size-5 text-red-500" />
                     Error
-                  </>
+                  </Fragment>
                 )}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm mb-2">{result.message}</p>
-              {result.tilesCreated && (
+              {result.tilesCreated ? (
                 <div className="space-y-1 text-sm text-muted-foreground">
                   <div>✓ Tiles created: {result.tilesCreated}</div>
                   <div>✓ Places created: {result.placesCreated}</div>
                 </div>
-              )}
+              ) : null}
             </CardContent>
           </Card>
-        )}
-
+        ) : null}
         {/* Actions */}
         <Card>
           <CardHeader>
@@ -199,44 +194,42 @@ export default function InitPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <Button
+              size="lg"
+              className="w-full"
               onClick={() => handleInit(false)}
               disabled={isInitializing || isMapInitialized}
-              className="w-full"
-              size="lg"
             >
               {isInitializing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Fragment>
+                  <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
                   Initializing...
-                </>
+                </Fragment>
               ) : (
                 "Initialize Map"
               )}
             </Button>
-
-            {isMapInitialized && (
+            {isMapInitialized ? (
               <Button
-                onClick={() => handleInit(true)}
-                disabled={isInitializing}
-                variant="destructive"
-                className="w-full"
                 size="lg"
+                className="w-full"
+                variant="destructive"
+                disabled={isInitializing}
+                onClick={() => handleInit(true)}
               >
                 {isInitializing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Fragment>
+                    <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
                     Regenerating...
-                  </>
+                  </Fragment>
                 ) : (
                   "Force Regenerate"
                 )}
               </Button>
-            )}
+            ) : null}
           </CardContent>
         </Card>
-
         {/* Place List */}
-        {places && places.length > 0 && (
+        {places && places.length > 0 ? (
           <Card>
             <CardHeader>
               <CardTitle>Generated Places</CardTitle>
@@ -265,7 +258,7 @@ export default function InitPage() {
               </div>
             </CardContent>
           </Card>
-        )}
+        ) : null}
       </div>
     </div>
   );
