@@ -1,6 +1,6 @@
-import { useEffect, useRef } from "react";
-import { Container, Graphics, Text, TextStyle, Sprite, Assets } from "pixi.js";
-import type { Doc, Id } from "@/convex/_generated/dataModel";
+import { useRef, useEffect } from "react";
+import type { Id, Doc } from "@/convex/_generated/dataModel";
+import { Text, Assets, Sprite, Graphics, Container, TextStyle } from "pixi.js";
 
 interface AgentRendererProps {
   agentsLayer: Container | null;

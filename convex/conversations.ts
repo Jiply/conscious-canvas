@@ -1,5 +1,5 @@
 "use node";
-import Groq from "groq-sdk";
+import OpenAI from "openai";
 import { v } from "convex/values";
 import { api } from "./_generated/api";
 import { internalAction } from "./_generated/server";
@@ -363,7 +363,7 @@ function renderMeter(value: number): string {
 }
 
 /**
- * Call Groq API for conversation message generation
+ * Call OpenAI API for conversation message generation
  */
 async function generateConversationMessage(
   agent: any,
@@ -378,12 +378,12 @@ async function generateConversationMessage(
   reasonForLeaving?: string;
   emotionDelta?: { valence: number; arousal: number };
 }> {
-  const apiKey = process.env.GROQ_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    throw new Error("GROQ_API_KEY environment variable is not set");
+    throw new Error("OPENAI_API_KEY environment variable is not set");
   }
 
-  const groq = new Groq({ apiKey });
+  const openai = new OpenAI({ apiKey });
 
   const systemPrompt = buildConversationSystemPrompt();
   const userPrompt = buildConversationPrompt(
@@ -395,20 +395,20 @@ async function generateConversationMessage(
     decisions
   );
 
-  const completion = await groq.chat.completions.create({
+  const completion = await openai.chat.completions.create({
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ],
     max_tokens: 200,
     temperature: 1.0,
-    model: "moonshotai/kimi-k2-instruct",
+    model: "gpt-3.5-turbo",
     response_format: { type: "json_object" },
   });
 
   const content = completion.choices[0].message.content;
   if (!content) {
-    throw new Error("No content in Groq response");
+    throw new Error("No content in OpenAI response");
   }
 
   const parsed = JSON.parse(content);

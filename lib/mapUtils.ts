@@ -4,13 +4,10 @@
  * Helper functions for coordinate conversion, boundary checking,
  * and tile manipulation for the campus map system.
  */
+import { DEFAULT_MAP_SETTINGS } from "@/lib/mapTypes";
+import type { Rect, Point, TileType } from "@/lib/mapTypes";
 
-import type { Point, Rect, Tile, TileType } from "./mapTypes";
-import { DEFAULT_MAP_SETTINGS } from "./mapTypes";
-
-// ========================================
 // COORDINATE CONVERSION
-// ========================================
 
 /**
  * Convert 2D tile coordinates to 1D array index
@@ -19,7 +16,7 @@ import { DEFAULT_MAP_SETTINGS } from "./mapTypes";
  * @param gridWidth - Width of the grid
  * @returns 1D index
  */
-export function coordsToIndex(x: number, y: number, gridWidth: number): number {
+export function coordsToIndex(x: number, y: number, gridWidth: number) {
   return y * gridWidth + x;
 }
 
@@ -29,11 +26,11 @@ export function coordsToIndex(x: number, y: number, gridWidth: number): number {
  * @param gridWidth - Width of the grid
  * @returns {x, y} coordinates
  */
-export function indexToCoords(index: number, gridWidth: number): Point {
+export function indexToCoords(index: number, gridWidth: number) {
   return {
     x: index % gridWidth,
     y: Math.floor(index / gridWidth),
-  };
+  } satisfies Point;
 }
 
 /**
@@ -47,11 +44,11 @@ export function pixelToTile(
   px: number,
   py: number,
   tileSize: number = DEFAULT_MAP_SETTINGS.tileSize
-): Point {
+) {
   return {
     x: Math.floor(px / tileSize),
     y: Math.floor(py / tileSize),
-  };
+  } satisfies Point;
 }
 
 /**
@@ -65,11 +62,11 @@ export function tileToPixel(
   x: number,
   y: number,
   tileSize: number = DEFAULT_MAP_SETTINGS.tileSize
-): Point {
+) {
   return {
     x: x * tileSize,
     y: y * tileSize,
-  };
+  } satisfies Point;
 }
 
 /**
@@ -83,16 +80,14 @@ export function tileToCenterPixel(
   x: number,
   y: number,
   tileSize: number = DEFAULT_MAP_SETTINGS.tileSize
-): Point {
+) {
   return {
     x: x * tileSize + tileSize / 2,
     y: y * tileSize + tileSize / 2,
-  };
+  } satisfies Point;
 }
 
-// ========================================
 // BOUNDARY CHECKING
-// ========================================
 
 /**
  * Check if tile coordinates are within grid bounds
@@ -107,7 +102,7 @@ export function isWithinBounds(
   y: number,
   gridWidth: number = DEFAULT_MAP_SETTINGS.gridWidth,
   gridHeight: number = DEFAULT_MAP_SETTINGS.gridHeight
-): boolean {
+) {
   return x >= 0 && x < gridWidth && y >= 0 && y < gridHeight;
 }
 
@@ -117,12 +112,12 @@ export function isWithinBounds(
  * @param rect - Rectangle bounds
  * @returns true if point is inside rectangle
  */
-export function isPointInRect(point: Point, rect: Rect): boolean {
+export function isPointInRect(point: Point, rect: Rect) {
   return (
-    point.x >= rect.x &&
+    point.y < rect.y + rect.height &&
     point.x < rect.x + rect.width &&
-    point.y >= rect.y &&
-    point.y < rect.y + rect.height
+    point.x >= rect.x &&
+    point.y >= rect.y
   );
 }
 
@@ -132,18 +127,16 @@ export function isPointInRect(point: Point, rect: Rect): boolean {
  * @param rect2 - Second rectangle
  * @returns true if rectangles overlap
  */
-export function rectsIntersect(rect1: Rect, rect2: Rect): boolean {
+export function rectsIntersect(rect1: Rect, rect2: Rect) {
   return (
-    rect1.x < rect2.x + rect2.width &&
-    rect1.x + rect1.width > rect2.x &&
+    rect1.y + rect1.height > rect2.y &&
     rect1.y < rect2.y + rect2.height &&
-    rect1.y + rect1.height > rect2.y
+    rect1.x < rect2.x + rect2.width &&
+    rect1.x + rect1.width > rect2.x
   );
 }
 
-// ========================================
 // NEIGHBOR & ADJACENT TILES
-// ========================================
 
 /**
  * Get coordinates of adjacent tiles (4-directional)
@@ -158,8 +151,9 @@ export function getAdjacentTiles(
   y: number,
   gridWidth: number = DEFAULT_MAP_SETTINGS.gridWidth,
   gridHeight: number = DEFAULT_MAP_SETTINGS.gridHeight
-): Point[] {
+) {
   const adjacent: Point[] = [];
+
   const directions = [
     { x: 0, y: -1 }, // North
     { x: 1, y: 0 }, // East
@@ -170,12 +164,13 @@ export function getAdjacentTiles(
   for (const dir of directions) {
     const newX = x + dir.x;
     const newY = y + dir.y;
+
     if (isWithinBounds(newX, newY, gridWidth, gridHeight)) {
       adjacent.push({ x: newX, y: newY });
     }
   }
 
-  return adjacent;
+  return adjacent satisfies Point[];
 }
 
 /**
@@ -191,8 +186,9 @@ export function getAdjacentTiles8(
   y: number,
   gridWidth: number = DEFAULT_MAP_SETTINGS.gridWidth,
   gridHeight: number = DEFAULT_MAP_SETTINGS.gridHeight
-): Point[] {
+) {
   const adjacent: Point[] = [];
+
   const directions = [
     { x: 0, y: -1 }, // North
     { x: 1, y: -1 }, // Northeast
@@ -207,17 +203,16 @@ export function getAdjacentTiles8(
   for (const dir of directions) {
     const newX = x + dir.x;
     const newY = y + dir.y;
+
     if (isWithinBounds(newX, newY, gridWidth, gridHeight)) {
       adjacent.push({ x: newX, y: newY });
     }
   }
 
-  return adjacent;
+  return adjacent satisfies Point[];
 }
 
-// ========================================
 // DISTANCE & PATHFINDING UTILITIES
-// ========================================
 
 /**
  * Calculate Manhattan distance between two points
@@ -225,7 +220,7 @@ export function getAdjacentTiles8(
  * @param p2 - Second point
  * @returns Manhattan distance
  */
-export function manhattanDistance(p1: Point, p2: Point): number {
+export function manhattanDistance(p1: Point, p2: Point) {
   return Math.abs(p1.x - p2.x) + Math.abs(p1.y - p2.y);
 }
 
@@ -235,7 +230,7 @@ export function manhattanDistance(p1: Point, p2: Point): number {
  * @param p2 - Second point
  * @returns Euclidean distance
  */
-export function euclideanDistance(p1: Point, p2: Point): number {
+export function euclideanDistance(p1: Point, p2: Point) {
   const dx = p1.x - p2.x;
   const dy = p1.y - p2.y;
   return Math.sqrt(dx * dx + dy * dy);
@@ -247,13 +242,11 @@ export function euclideanDistance(p1: Point, p2: Point): number {
  * @param p2 - Second point
  * @returns Chebyshev distance
  */
-export function chebyshevDistance(p1: Point, p2: Point): number {
+export function chebyshevDistance(p1: Point, p2: Point) {
   return Math.max(Math.abs(p1.x - p2.x), Math.abs(p1.y - p2.y));
 }
 
-// ========================================
 // TILE KEY GENERATION
-// ========================================
 
 /**
  * Generate a unique string key for a tile coordinate
@@ -261,7 +254,7 @@ export function chebyshevDistance(p1: Point, p2: Point): number {
  * @param y - Y coordinate
  * @returns String key "x,y"
  */
-export function tileKey(x: number, y: number): string {
+export function tileKey(x: number, y: number) {
   return `${x},${y}`;
 }
 
@@ -270,9 +263,9 @@ export function tileKey(x: number, y: number): string {
  * @param key - Tile key "x,y"
  * @returns {x, y} coordinates
  */
-export function parseTileKey(key: string): Point {
+export function parseTileKey(key: string) {
   const [x, y] = key.split(",").map(Number);
-  return { x, y };
+  return { x, y } satisfies Point;
 }
 
 // ========================================
@@ -284,14 +277,15 @@ export function parseTileKey(key: string): Point {
  * @param region - Rectangle defining the region
  * @returns Array of tile coordinates
  */
-export function getTilesInRegion(region: Rect): Point[] {
+export function getTilesInRegion(region: Rect) {
   const tiles: Point[] = [];
+
   for (let y = region.y; y < region.y + region.height; y++) {
     for (let x = region.x; x < region.x + region.width; x++) {
-      tiles.push({ x, y });
+      tiles.push({ x, y } satisfies Point);
     }
   }
-  return tiles;
+  return tiles satisfies Point[];
 }
 
 /**
@@ -300,10 +294,7 @@ export function getTilesInRegion(region: Rect): Point[] {
  * @param includeCorners - Include corner tiles (default: true)
  * @returns Array of perimeter tile coordinates
  */
-export function getPerimeterTiles(
-  rect: Rect,
-  includeCorners: boolean = true
-): Point[] {
+export function getPerimeterTiles(rect: Rect, includeCorners: boolean = true) {
   const perimeter: Point[] = [];
 
   // Top and bottom edges
@@ -321,7 +312,7 @@ export function getPerimeterTiles(
     perimeter.push({ x: rect.x + rect.width - 1, y }); // Right
   }
 
-  return perimeter;
+  return perimeter satisfies Point[];
 }
 
 /**
@@ -329,26 +320,26 @@ export function getPerimeterTiles(
  * @param rect - Rectangle bounds
  * @returns Array of interior tile coordinates
  */
-export function getInteriorTiles(rect: Rect): Point[] {
+export function getInteriorTiles(rect: Rect) {
   const interior: Point[] = [];
+
   for (let y = rect.y + 1; y < rect.y + rect.height - 1; y++) {
     for (let x = rect.x + 1; x < rect.x + rect.width - 1; x++) {
-      interior.push({ x, y });
+      interior.push({ x, y } satisfies Point);
     }
   }
-  return interior;
+
+  return interior satisfies Point[];
 }
 
-// ========================================
 // TILE TYPE UTILITIES
-// ========================================
 
 /**
  * Check if a tile type is walkable
  * @param tileType - Tile type
  * @returns true if walkable
  */
-export function isWalkableTileType(tileType: TileType): boolean {
+export function isWalkableTileType(tileType: TileType) {
   const walkableTypes: TileType[] = ["floor", "door", "grass", "path"];
   return walkableTypes.includes(tileType);
 }
@@ -358,25 +349,24 @@ export function isWalkableTileType(tileType: TileType): boolean {
  * @param tileType - Tile type
  * @returns boolean walkability
  */
-export function getDefaultWalkability(tileType: TileType): boolean {
+export function getDefaultWalkability(tileType: TileType) {
   return isWalkableTileType(tileType);
 }
 
-// ========================================
 // RANDOM UTILITIES
-// ========================================
 
 /**
  * Seeded random number generator (simple LCG)
  * @param seed - Seed value
  * @returns Random number between 0 and 1
  */
-export function seededRandom(seed: number): () => number {
+export function seededRandom(seed: number) {
   let currentSeed = seed;
+
   return function () {
     currentSeed = (currentSeed * 9301 + 49297) % 233280;
     return currentSeed / 233280;
-  };
+  } satisfies () => number;
 }
 
 /**
@@ -390,7 +380,7 @@ export function randomInt(
   min: number,
   max: number,
   rng: () => number = Math.random
-): number {
+) {
   return Math.floor(rng() * (max - min + 1)) + min;
 }
 
@@ -400,9 +390,6 @@ export function randomInt(
  * @param rng - Random number generator (default: Math.random)
  * @returns Random element
  */
-export function randomElement<T>(
-  array: T[],
-  rng: () => number = Math.random
-): T {
-  return array[Math.floor(rng() * array.length)];
+export function randomElement<T>(array: T[], rng: () => number = Math.random) {
+  return array[Math.floor(rng() * array.length)] satisfies T;
 }

@@ -6,9 +6,9 @@
  * while benefiting from Sprite performance (100-300x faster than Graphics).
  */
 
-import { Graphics, RenderTexture, Renderer, Texture } from "pixi.js";
-import type { TileType } from "./mapTypes";
-import { TILE_RENDER_STYLES, renderTile } from "./tileRenderer";
+import type { TileType } from "@/lib/mapTypes";
+import { renderTile } from "@/lib/tileRenderer";
+import { Texture, Graphics, Renderer, RenderTexture } from "pixi.js";
 
 /**
  * Cache of generated textures
