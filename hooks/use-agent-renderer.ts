@@ -2,9 +2,11 @@ import { useRef, useEffect } from "react";
 import type { Id, Doc } from "@/convex/_generated/dataModel";
 import { Text, Assets, Sprite, Graphics, Container, TextStyle } from "pixi.js";
 
-interface AgentRendererProps {
+type AgentRendererProps = {
   agentsLayer: Container | null;
-  agents: Doc<"agents">[] | undefined;
+  agents: Doc<`agents`>[] | undefined;
+  isCameraReady: boolean;
+  onAgentClick?: (agentId: Id<`agents`>) => void;
   mapSettings:
     | {
         tileSize: number;
@@ -12,9 +14,7 @@ interface AgentRendererProps {
         gridHeight: number;
       }
     | undefined;
-  isCameraReady: boolean;
-  onAgentClick?: (agentId: Id<"agents">) => void;
-}
+};
 
 /**
  * Map agent names to profile picture assets in /public folder
@@ -35,50 +35,44 @@ const AGENT_PROFILE_PICTURES: Record<string, string> = {
  * Get profile picture URL for an agent
  */
 const getProfilePicture = (agentName: string): string => {
-  return AGENT_PROFILE_PICTURES[agentName] || "/01.png"; // Default to 01.png
+  return AGENT_PROFILE_PICTURES[agentName] || `/01.png`; // Default to 01.png
 };
 
-interface AgentData {
+type AgentData = {
+  animationStartTime: number;
+  wobbleOffsetX: number;
+  wobbleOffsetY: number;
   container: Container;
+  wobbleSpeed: number;
+  headingRad: number;
   targetX: number;
   targetY: number;
   startX: number;
   startY: number;
-  animationStartTime: number;
-  wobbleOffsetX: number;
-  wobbleOffsetY: number;
-  wobbleSpeed: number;
-  headingRad: number;
-}
+};
 
 export function useAgentRenderer({
-  agentsLayer,
   agents,
+  agentsLayer,
   mapSettings,
-  isCameraReady,
   onAgentClick,
+  isCameraReady,
 }: AgentRendererProps) {
   const agentContainersRef = useRef<Map<string, AgentData>>(new Map());
 
   // Update agent positions and create/remove agents
   useEffect(() => {
-    if (!agentsLayer || !agents || !mapSettings || !isCameraReady) {
-      return;
-    }
+    if (!agents || !agentsLayer || !mapSettings || !isCameraReady) return;
 
     const tileSize = mapSettings.tileSize;
     const agentContainers = agentContainersRef.current;
+    const activeAgentIds = new Set<string>(); // Track which agents we've seen in this update
 
-    // Track which agents we've seen in this update
-    const activeAgentIds = new Set<string>();
-
-    agents.forEach((agent) => {
-      activeAgentIds.add(agent._id);
-
-      const targetX = agent.pos.x * tileSize;
-      const targetY = agent.pos.y * tileSize;
-
-      let agentData = agentContainers.get(agent._id);
+    agents.forEach((a) => {
+      activeAgentIds.add(a._id);
+      const targetX = a.pos.x * tileSize;
+      const targetY = a.pos.y * tileSize;
+      let agentData = agentContainers.get(a._id);
 
       if (!agentData) {
         // Create new agent container
@@ -96,7 +90,7 @@ export function useAgentRenderer({
         agentContainer.addChild(visionRadius);
 
         // Create profile picture sprite using client-side mapping
-        const profilePicUrl = getProfilePicture(agent.name);
+        const profilePicUrl = getProfilePicture(a.name);
 
         // Create a clickable container for the profile picture and border
         const profileContainer = new Container();
@@ -108,7 +102,7 @@ export function useAgentRenderer({
           profileContainer.on("pointerdown", (event) => {
             // Stop event propagation to prevent map dragging
             event.stopPropagation();
-            onAgentClick(agent._id as Id<"agents">);
+            onAgentClick(a._id as Id<"agents">);
           });
         }
 
@@ -140,10 +134,7 @@ export function useAgentRenderer({
             }
           })
           .catch((error) => {
-            console.error(
-              `  ❌ Failed to load texture for ${agent.name}:`,
-              error
-            );
+            console.error(`  ❌ Failed to load texture for ${a.name}:`, error);
           });
 
         // Add a white border for visibility (drawn on top)
@@ -154,9 +145,7 @@ export function useAgentRenderer({
 
         // Set hit area to a circle slightly larger than the visible profile (for easier clicking)
         profileContainer.hitArea = {
-          contains: (x: number, y: number) => {
-            return Math.sqrt(x * x + y * y) <= 18; // 18px radius
-          },
+          contains: (x: number, y: number) => Math.sqrt(x * x + y * y) <= 18, // 18px radius
         };
 
         // Add profile container to agent container
@@ -172,7 +161,7 @@ export function useAgentRenderer({
         });
 
         const label = new Text({
-          text: agent.name,
+          text: a.name,
           style: labelStyle,
         });
         label.anchor.set(0.5);
@@ -195,9 +184,9 @@ export function useAgentRenderer({
           wobbleOffsetX: Math.random() * Math.PI * 2, // Random phase offset
           wobbleOffsetY: Math.random() * Math.PI * 2,
           wobbleSpeed: 0.8 + Math.random() * 0.4, // Random speed between 0.8-1.2
-          headingRad: agent.headingRad,
+          headingRad: a.headingRad,
         };
-        agentContainers.set(agent._id, agentData);
+        agentContainers.set(a._id, agentData);
 
         // Fade in animation
         agentContainer.alpha = 0;
@@ -237,8 +226,8 @@ export function useAgentRenderer({
         }
 
         // Update heading if it changed
-        if (Math.abs(agentData.headingRad - agent.headingRad) > 0.01) {
-          agentData.headingRad = agent.headingRad;
+        if (Math.abs(agentData.headingRad - a.headingRad) > 0.01) {
+          agentData.headingRad = a.headingRad;
         }
       }
     });

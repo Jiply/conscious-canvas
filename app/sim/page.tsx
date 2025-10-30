@@ -63,40 +63,40 @@ const AGENT_PROFILE_PICTURES: Record<string, string> = {
 /**
  * Get profile picture URL for an agent
  */
-const getProfilePicture = (agentName: string): string => {
-  return AGENT_PROFILE_PICTURES[agentName] || "/01.png"; // Default to 01.png
-};
+function getProfilePicture(agentName: string) {
+  return AGENT_PROFILE_PICTURES[agentName] || `/01.png`; // Default to 01.png
+}
 
 export default function SimPage() {
-  const [isWorldReady, setIsWorldReady] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(``);
   const { isLeader, stats, startTime } = useHeartbeat();
-  const agents = useQuery(api.agents.listAgents) ?? [];
+  const [elapsedTime, setElapsedTime] = useState(`00:00:00`);
+  const [isWorldReady, setIsWorldReady] = useState<boolean>(false);
+  const [isConvoSheetOpen, setIsConvoSheetOpen] = useState<boolean>(false);
+  const [chosenAgentId, setChosenAgentId] = useState<Id<`agents`> | null>(null);
+
   const places = useQuery(api.map.getPlaces) ?? [];
-  const [elapsedTime, setElapsedTime] = useState("00:00:00");
+  const agents = useQuery(api.agents.listAgents) ?? [];
 
   // Check if observers API exists (may not if schema hasn't deployed yet)
   const hasObserversAPI =
-    "observers" in api && "getWorldState" in (api.observers as any);
+    `observers` in api && `getWorldState` in api.observers;
 
   const worldState = hasObserversAPI
-    ? useQuery((api as any).observers.getWorldState)
+    ? useQuery(api.observers.getWorldState)
     : { isRunning: true, observerCount: 1, adminEnabled: true };
 
   // Use reactive observer count from worldState (updates in real-time for all clients)
   const observerCount = worldState?.observerCount ?? 1;
 
   const toggleAdmin = hasObserversAPI
-    ? useMutation((api as any).observers.toggleAdmin)
+    ? useMutation(api.observers.toggleAdmin)
     : async () => {};
-  const [searchQuery, setSearchQuery] = useState("");
+
   const [centerOnPlace, setCenterOnPlace] = useState<{
     x: number;
     y: number;
   } | null>(null);
-  const [selectedAgentId, setSelectedAgentId] = useState<Id<"agents"> | null>(
-    null
-  );
-  const [isConversationSheetOpen, setIsConversationSheetOpen] = useState(false);
 
   // Filter agents based on search query
   const filteredAgents = useMemo(() => {
@@ -130,8 +130,8 @@ export default function SimPage() {
 
   // Handle clicking on an agent
   const handleAgentClick = (agentId: Id<"agents">) => {
-    setSelectedAgentId(agentId);
-    setIsConversationSheetOpen(true);
+    setChosenAgentId(agentId);
+    setIsConvoSheetOpen(true);
   };
 
   // Update elapsed time every second
@@ -474,11 +474,10 @@ export default function SimPage() {
           </main>
         </SidebarInset>
       </div>
-      {/* Conversation Sheet */}
       <ConversationSheet
-        agentId={selectedAgentId}
-        open={isConversationSheetOpen}
-        onOpenChange={setIsConversationSheetOpen}
+        open={isConvoSheetOpen}
+        agentId={chosenAgentId}
+        onOpenChange={setIsConvoSheetOpen}
       />
     </SidebarProvider>
   );
