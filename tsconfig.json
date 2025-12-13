@@ -11,10 +11,10 @@
     "esModuleInterop": true,
     "isolatedModules": true,
     "resolveJsonModule": true,
+    "paths": { "@/*": ["./*"] },
     "moduleResolution": "bundler",
     "plugins": [{ "name": "next" }],
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "paths": { "@/*": ["./*"] }
+    "lib": ["dom", "dom.iterable", "esnext"]
   },
   "exclude": ["node_modules"],
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"]
