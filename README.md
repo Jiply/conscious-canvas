@@ -47,7 +47,7 @@ Convex is integrated via the `ConvexClientProvider` wrapper in the root layout:
 
 ```tsx
 // app/layout.tsx
-import { ConvexClientProvider } from "./ConvexClientProvider";
+import { ConvexClientProvider } from './ConvexClientProvider';
 
 export default function RootLayout({ children }) {
   return (
@@ -183,8 +183,6 @@ See `/documentation/requirements.md` for the complete technical specification in
 ```bash
 npm run dev          # Start development server with Turbopack
 npm run build        # Build for production
-npm run start        # Start production server
-npm run lint         # Run ESLint
 npx convex dev       # Start Convex backend in dev mode
 npx convex deploy    # Deploy Convex functions to production
 ```
