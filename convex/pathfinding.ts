@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query } from "./_generated/server";
+import { type QueryCtx, query } from "./_generated/server";
 
 interface PathNode {
   x: number;
@@ -91,7 +91,7 @@ export const findPath = query({
 });
 
 async function getWalkableNeighbors(
-  ctx: any,
+  ctx: QueryCtx,
   x: number,
   y: number
 ): Promise<Array<{ x: number; y: number }>> {
@@ -110,7 +110,7 @@ async function getWalkableNeighbors(
 
     const tile = await ctx.db
       .query("map_tiles")
-      .withIndex("by_coordinates", (q: any) => q.eq("x", nx).eq("y", ny))
+      .withIndex("by_coordinates", (q) => q.eq("x", nx).eq("y", ny))
       .first();
 
     if (tile && tile.isWalkable) neighbors.push({ x: nx, y: ny });
