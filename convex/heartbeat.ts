@@ -5,7 +5,6 @@ import { api, internal } from './_generated/api';
 
 const VISION_WIDTH = 7;
 const VISION_DEPTH = 20;
-const TALKING_RANGE = 2;
 const STALE_LOCK_TIMEOUT = 30000;
 
 export const tick = mutation({
@@ -91,7 +90,7 @@ async function processAgentTick(ctx: MutationCtx, agent: Doc<'agents'>, allAgent
     location: visible.agent.pos,
     distance: visible.distance,
     summary: `Saw ${visible.agent.name} at distance ${visible.distance.toFixed(1)} tiles`,
-    salience: calculateSalience(visible.distance, visible.agent, agent),
+    salience: calculateSalience(visible.distance, visible.agent),
   }));
 
   if (observations.length > 0) {
@@ -104,19 +103,17 @@ async function processAgentTick(ctx: MutationCtx, agent: Doc<'agents'>, allAgent
 
   await pruneOldObservations(ctx, agent._id, 50);
 
-  const visibleAgentIds = visibleAgents.map(v => v.agent._id);
-
-  const allOpinions = await ctx.db
+  // Unused, but keeps opinions in the tick mutation's read set.
+  await ctx.db
     .query('opinions')
     .withIndex('by_agent', q => q.eq('agentId', agent._id))
     .collect();
 
-  const visibleOpinions = allOpinions.filter(op => visibleAgentIds.includes(op.targetAgentId));
-
-  const nearbyAgents = visibleAgents.filter(v => v.distance < TALKING_RANGE);
-
   if (agent.currentConversationId) {
-    await processConversationTurnForAgent(ctx, agent);
+    await ctx.scheduler.runAfter(0, internal.conversations.processConversationTurn, {
+      agentId: agent._id,
+      conversationId: agent.currentConversationId,
+    });
     return;
   }
 
@@ -127,7 +124,7 @@ async function processAgentTick(ctx: MutationCtx, agent: Doc<'agents'>, allAgent
 
   const now = Date.now();
   if (now >= agent.nextDecisionAt) {
-    await makeAgentDecision(ctx, agent, nearbyAgents, visibleAgents, visibleOpinions);
+    await makeAgentDecision(ctx, agent);
   }
 }
 
@@ -240,13 +237,7 @@ async function performActionAtPlace(ctx: MutationCtx, agent: Doc<'agents'>, plac
   }
 }
 
-async function makeAgentDecision(
-  ctx: MutationCtx,
-  agent: Doc<'agents'>,
-  nearbyAgents: Array<{ agent: Doc<'agents'>; distance: number }>,
-  _visibleAgents: Array<{ agent: Doc<'agents'>; distance: number }>,
-  visibleOpinions: Doc<'opinions'>[]
-) {
+async function makeAgentDecision(ctx: MutationCtx, agent: Doc<'agents'>) {
   const activeDecision = await ctx.db
     .query('decisions')
     .withIndex('by_agent', q => q.eq('agentId', agent._id))
@@ -359,16 +350,7 @@ async function checkLineOfSight(
   return true;
 }
 
-async function processConversationTurnForAgent(ctx: MutationCtx, agent: Doc<'agents'>) {
-  if (!agent.currentConversationId) return;
-
-  await ctx.scheduler.runAfter(0, internal.conversations.processConversationTurn, {
-    agentId: agent._id,
-    conversationId: agent.currentConversationId,
-  });
-}
-
-function calculateSalience(distance: number, target: Doc<'agents'>, _observer: Doc<'agents'>): number {
+function calculateSalience(distance: number, target: Doc<'agents'>): number {
   const distanceFactor = 1 - distance / VISION_DEPTH;
 
   const arousalFactor = target.emotions.arousal;
