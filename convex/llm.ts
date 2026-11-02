@@ -4,12 +4,6 @@ import { v } from "convex/values";
 import { api } from "./_generated/api";
 import { action } from "./_generated/server";
 
-// ========== LLM DECISION MAKING ==========
-
-/**
- * Make a decision for an agent using LLM
- * This calls Groq for fast microdecisions
- */
 export const makeAgentDecision = action({
   args: {
     agentId: v.id("agents"),
@@ -34,7 +28,6 @@ export const makeAgentDecision = action({
   handler: async (ctx, args) => {
     const startTime = Date.now();
 
-    // 1. Gather context from Convex
     const agent = await ctx.runQuery(api.agents.getAgent, {
       agentId: args.agentId,
     });
@@ -56,23 +49,19 @@ export const makeAgentDecision = action({
       }
     );
 
-    // Get all opinions this agent holds
     const agentOpinions = await ctx.runQuery(api.opinions.getAgentOpinions, {
       agentId: args.agentId,
     });
 
-    // Get available places
     const allPlaces = await ctx.runQuery(api.map.getPlaces, {});
 
-    // Get all agents to find nearby ones
     const allAgents = await ctx.runQuery(api.agents.listAgents, {});
 
-    // Filter for nearby agents (within 2 tiles) who are NOT in active conversations
     const TALKING_RANGE = 2;
     const nearbyAgents = allAgents
       .filter((other) => {
-        if (other._id === args.agentId) return false; // Skip self
-        if (other.currentConversationId) return false; // Skip agents already in conversation
+        if (other._id === args.agentId) return false;
+        if (other.currentConversationId) return false;
 
         const dx = other.pos.x - agent.pos.x;
         const dy = other.pos.y - agent.pos.y;
@@ -85,7 +74,6 @@ export const makeAgentDecision = action({
         const dy = other.pos.y - agent.pos.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        // Get opinion of this agent
         const opinion = agentOpinions.find(
           (op) => op.targetAgentId === other._id
         );
@@ -96,9 +84,8 @@ export const makeAgentDecision = action({
           opinion,
         };
       })
-      .sort((a, b) => a.distance - b.distance); // Sort by distance, closest first
+      .sort((a, b) => a.distance - b.distance);
 
-    // 2. Build LLM prompt with stats and consequences
     const systemPrompt = buildSystemPrompt();
     const userPrompt = buildDecisionPrompt(
       agent,
@@ -109,8 +96,6 @@ export const makeAgentDecision = action({
       nearbyAgents
     );
 
-    // 3. PROXIMITY HEURISTIC: Force conversation when agents are within 2 tiles
-    // This is the hackathon testing feature - agents MUST talk when close
     let decision: any;
     if (
       nearbyAgents.length > 0 &&
@@ -118,9 +103,7 @@ export const makeAgentDecision = action({
       agent.needs.sleepiness < 0.95 &&
       Math.random() < 0.5
     ) {
-      // There's someone within 2 tiles and no critical needs
-      // Force them to engage in conversation (this is the heuristic!)
-      const closestAgent = nearbyAgents[0]; // Already sorted by distance
+      const closestAgent = nearbyAgents[0];
       console.log(
         `🎯 PROXIMITY HEURISTIC: ${agent.name} MUST talk to ${closestAgent.agent.name} (distance: ${closestAgent.distance.toFixed(1)} tiles)`
       );
@@ -133,9 +116,7 @@ export const makeAgentDecision = action({
         emotionDelta: { valence: 0.1, arousal: 0.15 },
       };
     }
-    // 4. Check for critical needs that require immediate action (override proximity heuristic)
     else if (agent.needs.hunger >= 0.95) {
-      // Critical hunger - force MoveTo cafe
       const cafe = allPlaces.find((p: any) => p.kind.toLowerCase() === "cafe");
       if (cafe) {
         decision = {
@@ -146,7 +127,6 @@ export const makeAgentDecision = action({
         };
       }
     } else if (agent.needs.sleepiness >= 0.95) {
-      // Critical sleepiness - force MoveTo dorm
       const dorm = allPlaces.find((p: any) => p.kind.toLowerCase() === "dorm");
       if (dorm) {
         decision = {
@@ -157,7 +137,6 @@ export const makeAgentDecision = action({
         };
       }
     } else if (agent.needs.studyPressure >= 0.95) {
-      // Critical study pressure - force MoveTo library
       const library = allPlaces.find(
         (p: any) => p.kind.toLowerCase() === "library"
       );
@@ -171,15 +150,12 @@ export const makeAgentDecision = action({
       }
     }
 
-    // 5. If no critical need or proximity heuristic, call LLM for decision-making
     if (!decision) {
       try {
         decision = await callOpenAIForDecision(systemPrompt, userPrompt);
-        // Log the agent's decision for public display
         console.log(
           `🤖 ${agent.name}: "${decision.innerThought}" → ${decision.action}`
         );
-        // Log utterance if present
         if (decision.utterance) {
           console.log(`💭 ${agent.name}: "${decision.utterance}"`);
         }
@@ -187,11 +163,9 @@ export const makeAgentDecision = action({
         decision = heuristicFallback();
       }
     } else {
-      // Log heuristic decisions for public display
       console.log(
         `🤖 ${agent.name}: "${decision.innerThought}" → ${decision.action}`
       );
-      // Log utterance if present
       if (decision.utterance) {
         console.log(`💭 ${agent.name}: "${decision.utterance}"`);
       }
@@ -199,7 +173,6 @@ export const makeAgentDecision = action({
 
     const latency = Date.now() - startTime;
 
-    // 6. Record decision in Convex
     const decisionId = await ctx.runMutation(api.decisions.addDecision, {
       agentId: args.agentId,
       action: decision.action,
@@ -210,23 +183,19 @@ export const makeAgentDecision = action({
       llmLatencyMs: latency,
     });
 
-    // 7. If decision is Idle, mark it as complete immediately
     if (decision.action === "Idle") {
       await ctx.runMutation(api.decisions.completeDecision, {
         decisionId,
       });
     }
 
-    // 8. If decision is EngageConversation, create conversation
     if (decision.action === "EngageConversation" && decision.targetAgentId) {
       try {
-        // Check if target agent is available (not already in a conversation)
         const targetAgent = await ctx.runQuery(api.agents.getAgent, {
           agentId: decision.targetAgentId,
         });
 
         if (targetAgent && !targetAgent.currentConversationId) {
-          // Create conversation between the two agents
           await ctx.runMutation(
             api.conversationsMutations.createConversation,
             {
@@ -235,25 +204,20 @@ export const makeAgentDecision = action({
             }
           );
 
-          // Complete the EngageConversation decision since conversation is now active
           await ctx.runMutation(api.decisions.completeDecision, {
             decisionId,
           });
         } else {
-          // Mark decision as completed anyway
           await ctx.runMutation(api.decisions.completeDecision, {
             decisionId,
           });
         }
       } catch (error) {
-        // Silently handle error
       }
     }
 
-    // 9. Execute MoveTo decision by calculating path
     if (decision.action === "MoveTo" && decision.targetPlaceId) {
       try {
-        // Get the target place
         const targetPlace = allPlaces.find(
           (p: any) => p._id === decision.targetPlaceId
         );
@@ -265,7 +229,6 @@ export const makeAgentDecision = action({
         ) {
           const entrance = targetPlace.entrances[0];
 
-          // Calculate path using A* pathfinding
           const path = await ctx.runQuery(api.pathfinding.findPath, {
             startX: agent.pos.x,
             startY: agent.pos.y,
@@ -274,7 +237,6 @@ export const makeAgentDecision = action({
           });
 
           if (path) {
-            // Set the path on the agent
             await ctx.runMutation(api.agents.setAgentPath, {
               agentId: args.agentId,
               path,
@@ -283,11 +245,9 @@ export const makeAgentDecision = action({
           }
         }
       } catch (error) {
-        // Silently handle pathfinding errors
       }
     }
 
-    // 10. Update agent state
     if (decision.emotionDelta) {
       await ctx.runMutation(api.agents.updateAgentEmotions, {
         agentId: args.agentId,
@@ -296,7 +256,6 @@ export const makeAgentDecision = action({
       });
     }
 
-    // 11. Schedule next decision (5-15 seconds from now)
     const nextDecisionDelay = 5000 + Math.random() * 10000;
     await ctx.runMutation(api.agents.setNextDecisionTime, {
       agentId: args.agentId,
@@ -307,11 +266,6 @@ export const makeAgentDecision = action({
   },
 });
 
-// ========== HELPER FUNCTIONS ==========
-
-/**
- * System prompt - defines the agent's decision-making framework
- */
 function buildSystemPrompt(): string {
   return `You are an autonomous agent in a campus simulation. You must decide your next action based on your internal stats and environment.
 
@@ -334,9 +288,6 @@ IMPORTANT RULES:
 5. "Eat", "Sleep", and "Study" are NOT valid decisions. Only use MoveTo, EngageConversation, or Idle.`;
 }
 
-/**
- * User prompt - provides agent stats, consequences, and context
- */
 function buildDecisionPrompt(
   agent: any,
   observations: any[],
@@ -345,7 +296,6 @@ function buildDecisionPrompt(
   places: any[],
   nearbyAgents: Array<{ agent: any; distance: number; opinion?: any }>
 ): string {
-  // Format observations with opinions
   const observationsSummary = observations
     .map((obs, idx) => {
       let line = `${idx + 1}. ${obs.summary ?? "observed something"}`;
@@ -361,7 +311,6 @@ function buildDecisionPrompt(
     })
     .join("\n");
 
-  // Format recent decisions
   const recentActions = decisions
     .map((d, idx) => {
       const timestamp = new Date(d._creationTime).toLocaleTimeString();
@@ -369,12 +318,10 @@ function buildDecisionPrompt(
     })
     .join("\n");
 
-  // Format available places
   const placesList = places
     .map((p) => `- ${p.name} (${p.kind}) [ID: ${p._id}]`)
     .join("\n");
 
-  // Format nearby agents with opinions and conversation encouragement
   let nearbyAgentsSummary = "";
   let conversationBias = "";
 
@@ -472,9 +419,6 @@ TASK: Analyze your stats and decide your next action.
   `.trim();
 }
 
-/**
- * Call OpenAI API for decision-making with JSON mode
- */
 async function callOpenAIForDecision(
   systemPrompt: string,
   userPrompt: string
@@ -511,24 +455,18 @@ async function callOpenAIForDecision(
     throw new Error("No content in OpenAI response");
   }
 
-  // Parse JSON response
   const parsed = JSON.parse(content);
 
-  // Map toolName to action and extract parameters
   return {
     action: parsed.toolName,
     targetPlaceId: parsed.parameters?.targetPlaceId,
     targetAgentId: parsed.parameters?.targetAgentId,
     utterance: parsed.parameters?.utterance,
     innerThought: parsed.parameters?.innerThought || "Thinking...",
-    // Calculate emotion delta based on action (simple heuristic)
     emotionDelta: calculateEmotionDelta(parsed.toolName),
   };
 }
 
-/**
- * Calculate emotion changes based on action type
- */
 function calculateEmotionDelta(action: string): {
   valence: number;
   arousal: number;
@@ -551,10 +489,6 @@ function calculateEmotionDelta(action: string): {
   }
 }
 
-/**
- * Heuristic fallback when LLM is unavailable or too slow
- * NOTE: Eat, Sleep, Study are NOT valid decision actions - agents must MoveTo appropriate places!
- */
 function heuristicFallback(): {
   action: "MoveTo" | "EngageConversation" | "Idle";
   targetPlaceId?: any;
@@ -564,11 +498,6 @@ function heuristicFallback(): {
   emotionDelta?: { valence: number; arousal: number };
 } {
 
-  // NOTE: hunger, sleepiness, and studyPressure require MoveTo decisions
-  // We can't perform Eat/Sleep/Study directly - that happens when agent reaches the place
-
-  // Just default to Idle in fallback - LLM should handle proper decision making
-  // If fallback is being called, something is wrong with LLM anyway
   return {
     action: "Idle",
     innerThought: "Taking a moment to assess my situation.",
@@ -576,12 +505,3 @@ function heuristicFallback(): {
   };
 }
 
-/**
- * OpenAI integration for LLM calls
- * Using OpenAI's gpt-3.5-turbo model for cost-effective decisions
- * 
- * The implementation uses:
- * - JSON mode for structured responses
- * - Chat completions API with system and user messages
- * - Temperature 1.0 for creative agent decisions
- */

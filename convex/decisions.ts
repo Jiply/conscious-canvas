@@ -1,11 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
-// ========== MUTATIONS ==========
-
-/**
- * Create a new decision for an agent
- */
 export const addDecision = mutation({
   args: {
     agentId: v.id("agents"),
@@ -32,11 +27,10 @@ export const addDecision = mutation({
       targetAgentId: args.targetAgentId,
       utterance: args.utterance,
       innerThought: args.innerThought,
-      completedAt: undefined, // in progress
+      completedAt: undefined,
       llmLatencyMs: args.llmLatencyMs,
     });
 
-    // Get agent info for event logging
     const agent = await ctx.db.get(args.agentId);
     if (agent) {
       let description = `${agent.name} `;
@@ -72,7 +66,6 @@ export const addDecision = mutation({
         description += ` - "${args.innerThought}"`;
       }
 
-      // Log decision event
       await ctx.db.insert("events", {
         timestamp: Date.now(),
         type: "decision",
@@ -90,9 +83,6 @@ export const addDecision = mutation({
   },
 });
 
-/**
- * Mark a decision as completed
- */
 export const completeDecision = mutation({
   args: {
     decisionId: v.id("decisions"),
@@ -107,9 +97,6 @@ export const completeDecision = mutation({
   },
 });
 
-/**
- * Complete all incomplete decisions (migration/cleanup helper)
- */
 export const completeAllIncompleteDecisions = mutation({
   args: {},
   returns: v.number(),
@@ -130,9 +117,6 @@ export const completeAllIncompleteDecisions = mutation({
   },
 });
 
-/**
- * Get recent decision history for an agent
- */
 export const getDecisionHistory = query({
   args: {
     agentId: v.id("agents"),

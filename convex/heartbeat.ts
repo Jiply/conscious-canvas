@@ -3,19 +3,11 @@ import { mutation } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { api, internal } from "./_generated/api";
 
-// ========== CONSTANTS ==========
+const VISION_WIDTH = 7;
+const VISION_DEPTH = 20;
+const TALKING_RANGE = 2;
+const STALE_LOCK_TIMEOUT = 30000;
 
-const VISION_WIDTH = 7; // tiles wide (perpendicular to heading)
-const VISION_DEPTH = 20; // tiles deep (in direction of heading)
-const TALKING_RANGE = 2; // tiles
-const STALE_LOCK_TIMEOUT = 30000; // 30 seconds
-
-// ========== MAIN HEARTBEAT ==========
-
-/**
- * Main heartbeat tick - processes all agents in parallel
- * Called by frontend leader every 5 seconds
- */
 export const tick = mutation({
   args: { leaderId: v.string() },
   returns: v.object({
@@ -27,11 +19,9 @@ export const tick = mutation({
   handler: async (ctx, args) => {
     const startTime = Date.now();
 
-    // 1. Get or create heartbeat state (singleton)
     let state = await ctx.db.query("heartbeat_state").first();
 
     if (!state) {
-      // First person to connect → become leader
       const stateId = await ctx.db.insert("heartbeat_state", {
         isRunning: false,
         currentLeaderId: args.leaderId,
@@ -42,7 +32,6 @@ export const tick = mutation({
       if (!state) throw new Error("Failed to create heartbeat state");
     }
 
-    // 2. Check if caller is the leader
     if (state.currentLeaderId !== args.leaderId) {
       return {
         success: false,
@@ -52,41 +41,32 @@ export const tick = mutation({
       };
     }
 
-    // 3. Check if already running
     if (state.isRunning) {
-      // Check for stale lock (leader crashed)
       if (Date.now() - state.lastStartedAt > STALE_LOCK_TIMEOUT) {
-        // Reset stale lock
         await ctx.db.patch(state._id, { isRunning: false });
       } else {
-        // Still running, throw error so client retries in 1s
         throw new Error("Heartbeat already running");
       }
     }
 
-    // 4. Acquire lock
     await ctx.db.patch(state._id, {
       isRunning: true,
       lastStartedAt: Date.now(),
     });
 
     try {
-      // 5. Get all agents
       const agents = await ctx.db.query("agents").collect();
 
-      // 6. Process all agents IN PARALLEL
       await Promise.all(
         agents.map((agent) => processAgentTick(ctx, agent, agents))
       );
 
-      // 7. Update needs for all agents (homeostasis)
-      // IMPORTANT: Fetch fresh agent data since processAgentTick may have modified needs
+      // processAgentTick may have modified needs, so re-read agents
       const freshAgents = await ctx.db.query("agents").collect();
       await Promise.all(
         freshAgents.map((agent) => updateAgentNeeds(ctx, agent))
       );
 
-      // 8. Release lock
       await ctx.db.patch(state._id, {
         isRunning: false,
         lastCompletedAt: Date.now(),
@@ -99,27 +79,19 @@ export const tick = mutation({
         isLeader: true,
       };
     } catch (error) {
-      // Release lock on error
       await ctx.db.patch(state._id, { isRunning: false });
       throw error;
     }
   },
 });
 
-// ========== AGENT PROCESSING ==========
-
-/**
- * Process one agent's perception → opinion → decision pipeline
- */
 async function processAgentTick(
   ctx: any,
   agent: Doc<"agents">,
   allAgents: Doc<"agents">[]
 ) {
-  // 1. PERCEPTION: Find agents in rectangular field of view with occlusion
   const visibleAgents = await getAgentsInVision(ctx, agent, allAgents);
 
-  // 2. OBSERVATIONS: Record what agent sees
   const observations = visibleAgents.map((visible) => ({
     agentId: agent._id,
     targetId: visible.agent._id,
@@ -130,50 +102,41 @@ async function processAgentTick(
     salience: calculateSalience(visible.distance, visible.agent, agent),
   }));
 
-  // Batch insert observations with logging
   if (observations.length > 0) {
     await Promise.all(
       observations.map((obs) => ctx.db.insert("observations", obs))
     );
 
-    // Log observations for visibility
     for (const obs of observations) {
       console.log(`👁️  ${agent.name}: ${obs.summary}`);
     }
   }
 
-  // Prune old observations (keep last 50)
   await pruneOldObservations(ctx, agent._id, 50);
 
-  // 3. OPINIONS: Retrieve opinions for visible agents from database
   const visibleAgentIds = visibleAgents.map((v) => v.agent._id);
 
-  // Get all opinions this agent has
   const allOpinions = await ctx.db
     .query("opinions")
     .withIndex("by_agent", (q: any) => q.eq("agentId", agent._id))
     .collect();
 
-  // Filter to only opinions about visible agents
   const visibleOpinions = allOpinions.filter((op: any) =>
     visibleAgentIds.includes(op.targetAgentId)
   );
 
   const nearbyAgents = visibleAgents.filter((v) => v.distance < TALKING_RANGE);
 
-  // 3.5. CONVERSATION TURN: If agent is in active conversation, process conversation turn
   if (agent.currentConversationId) {
     await processConversationTurnForAgent(ctx, agent);
-    return; // Skip other actions while in conversation
+    return;
   }
 
-  // 3.6. EXECUTE PREVIOUS DECISION: If agent has a path, walk along it
   if (agent.path && agent.path.length > 0) {
     await executePathMovement(ctx, agent);
-    return; // Skip making new decision while executing path
+    return;
   }
 
-  // 4. DECISION: Decide what to do next (only if enough time has passed)
   const now = Date.now();
   if (now >= agent.nextDecisionAt) {
     await makeAgentDecision(
@@ -186,22 +149,16 @@ async function processAgentTick(
   }
 }
 
-/**
- * Update agent needs (simple decay towards baseline)
- */
 async function updateAgentNeeds(ctx: any, agent: Doc<"agents">) {
-  const TICK_INTERVAL = 5; // 5 real seconds
-  const TIME_COMPRESSION = 2; // 2x faster than real-time (SLOWED DOWN for hackathon demo)
-  const SIMULATED_SECONDS = TICK_INTERVAL * TIME_COMPRESSION; // 10 simulated seconds per tick
+  const TICK_INTERVAL = 5;
+  const TIME_COMPRESSION = 2;
+  const SIMULATED_SECONDS = TICK_INTERVAL * TIME_COMPRESSION;
   const HOUR_IN_SECONDS = 3600;
 
-  // Simple linear decay/growth rates (per simulated hour)
-  // SLOWED DOWN: Agents should be able to have multiple conversations before getting hungry
-  // Growth rates are now much more realistic for demo purposes
-  const hungerGrowthRate = 0.01 / HOUR_IN_SECONDS; // grow by 0.01 per hour (full in ~50 hours real time)
-  const sleepinessGrowthRate = 0.008 / HOUR_IN_SECONDS; // grow by 0.008 per hour (full in ~62 hours real time)
-  const studyPressureGrowthRate = 0.005 / HOUR_IN_SECONDS; // grow by 0.005 per hour (full in ~100 hours real time)
-  const socialDriveGrowthRate = 0.015 / HOUR_IN_SECONDS; // grow by 0.015 per hour (full in ~33 hours real time)
+  const hungerGrowthRate = 0.01 / HOUR_IN_SECONDS;
+  const sleepinessGrowthRate = 0.008 / HOUR_IN_SECONDS;
+  const studyPressureGrowthRate = 0.005 / HOUR_IN_SECONDS;
+  const socialDriveGrowthRate = 0.015 / HOUR_IN_SECONDS;
 
   const newNeeds = {
     hunger: Math.min(
@@ -226,36 +183,27 @@ async function updateAgentNeeds(ctx: any, agent: Doc<"agents">) {
     `🔄 ${agent.name} needs: hunger ${agent.needs.hunger.toFixed(3)} → ${newNeeds.hunger.toFixed(3)}, sleep ${agent.needs.sleepiness.toFixed(3)} → ${newNeeds.sleepiness.toFixed(3)}`
   );
 
-  // Update needs only (movement will be handled by decision executor)
   await ctx.db.patch(agent._id, {
     needs: newNeeds,
   });
 }
 
-/**
- * Execute path movement - move agent one step along their path
- */
 async function executePathMovement(ctx: any, agent: Doc<"agents">) {
   if (!agent.path || agent.path.length === 0) return;
 
-  // Get the next position in the path (index 1, since index 0 is current position)
   const nextStep = agent.path.length > 1 ? agent.path[1] : agent.path[0];
 
-  // Move agent to next position
   await ctx.db.patch(agent._id, {
     pos: { x: nextStep.x, y: nextStep.y },
-    // Remove first step from path
     path: agent.path.slice(1),
   });
 
-  // If path is now empty or has only 1 element (current position), reached destination
   if (agent.path.length <= 1) {
     await ctx.db.patch(agent._id, {
       path: undefined,
       state: "Idle",
     });
 
-    // Get the active decision to see what action to perform
     const activeDecision = await ctx.db
       .query("decisions")
       .withIndex("by_agent", (q: any) => q.eq("agentId", agent._id))
@@ -267,12 +215,10 @@ async function executePathMovement(ctx: any, agent: Doc<"agents">) {
       !activeDecision.completedAt &&
       activeDecision.action === "MoveTo"
     ) {
-      // Mark MoveTo as complete
       await ctx.db.patch(activeDecision._id, {
         completedAt: Date.now(),
       });
 
-      // Now check if we should perform an action at this location
       if (activeDecision.targetPlaceId) {
         await performActionAtPlace(ctx, agent, activeDecision.targetPlaceId);
       }
@@ -280,9 +226,6 @@ async function executePathMovement(ctx: any, agent: Doc<"agents">) {
   }
 }
 
-/**
- * Check if agent is within a place's bounds
- */
 function isAgentInPlace(
   agentPos: { x: number; y: number },
   placeBounds: { x: number; y: number; width: number; height: number }
@@ -295,9 +238,6 @@ function isAgentInPlace(
   );
 }
 
-/**
- * Perform action at a place (Eat at Café, Sleep at Dorm, Study at Library)
- */
 async function performActionAtPlace(
   ctx: any,
   agent: Doc<"agents">,
@@ -308,7 +248,6 @@ async function performActionAtPlace(
     return;
   }
 
-  // Check if agent is actually within the place bounds
   if (!isAgentInPlace(agent.pos, place.bounds)) {
     return;
   }
@@ -318,47 +257,37 @@ async function performActionAtPlace(
   let decisionAction: "Eat" | "Sleep" | "Study" | null = null;
   const newNeeds = { ...agent.needs };
 
-  // Determine action based on place type
   if (placeKind === "cafe" && agent.needs.hunger > 0.1) {
-    // Eat at café - reduces hunger significantly
     newNeeds.hunger = Math.max(0, agent.needs.hunger - 0.4);
     decisionAction = "Eat";
     actionPerformed = true;
   } else if (placeKind === "dorm" && agent.needs.sleepiness > 0.1) {
-    // Sleep at dorm - reduces sleepiness significantly
     newNeeds.sleepiness = Math.max(0, agent.needs.sleepiness - 0.5);
     decisionAction = "Sleep";
     actionPerformed = true;
   } else if (placeKind === "library" && agent.needs.studyPressure > 0.1) {
-    // Study at library - reduces study pressure significantly
     newNeeds.studyPressure = Math.max(0, agent.needs.studyPressure - 0.3);
     decisionAction = "Study";
     actionPerformed = true;
   }
 
-  // Update agent needs if action was performed
   if (actionPerformed && decisionAction) {
     await ctx.db.patch(agent._id, {
       needs: newNeeds,
     });
 
-    // Log the action
     console.log(`🍽️  ${agent.name}: ${decisionAction} at ${place.name}`);
 
-    // Create and immediately complete the action decision (Eat/Sleep/Study)
     await ctx.db.insert("decisions", {
       agentId: agent._id,
       action: decisionAction,
       targetPlaceId: placeId,
       innerThought: `Performing ${decisionAction} at ${place.name}`,
-      completedAt: Date.now(), // Complete immediately since action is instant
+      completedAt: Date.now(),
     });
   }
 }
 
-/**
- * Make a decision for the agent based on context
- */
 async function makeAgentDecision(
   ctx: any,
   agent: Doc<"agents">,
@@ -366,7 +295,6 @@ async function makeAgentDecision(
   _visibleAgents: Array<{ agent: Doc<"agents">; distance: number }>,
   visibleOpinions: any[]
 ) {
-  // Check if agent already has an active decision
   const activeDecision = await ctx.db
     .query("decisions")
     .withIndex("by_agent", (q: any) => q.eq("agentId", agent._id))
@@ -374,36 +302,23 @@ async function makeAgentDecision(
     .first();
 
   if (activeDecision && !activeDecision.completedAt) {
-    // Already has active decision, skip for now
     return;
   }
 
-  // Call LLM to make decision based on context
-  // The LLM gets: agent stats, observations, decisions, opinions, available places
   try {
     await ctx.scheduler.runAfter(0, api.llm.makeAgentDecision, {
       agentId: agent._id,
     });
   } catch (error) {
-    // Fallback to simple Idle decision if LLM fails
     await ctx.db.insert("decisions", {
       agentId: agent._id,
       action: "Idle",
       innerThought: "Taking a moment to think...",
-      completedAt: Date.now(), // Idle decisions complete immediately
+      completedAt: Date.now(),
     });
   }
 }
 
-// ========== PERCEPTION SYSTEM ==========
-
-/**
- * Get all agents visible to this agent (within FOV cone)
- */
-/**
- * Get agents in rectangular field of view with line-of-sight occlusion
- * Vision is 20 tiles deep × 7 tiles wide in the direction agent is facing
- */
 async function getAgentsInVision(
   ctx: any,
   agent: Doc<"agents">,
@@ -411,33 +326,26 @@ async function getAgentsInVision(
 ): Promise<Array<{ agent: Doc<"agents">; distance: number }>> {
   const visible: Array<{ agent: Doc<"agents">; distance: number }> = [];
 
-  // Direction vectors based on heading
   const headingX = Math.cos(agent.headingRad);
   const headingY = Math.sin(agent.headingRad);
 
-  // Perpendicular vector (90 degrees counterclockwise)
   const perpX = -headingY;
   const perpY = headingX;
 
   for (const other of allAgents) {
-    if (other._id === agent._id) continue; // Skip self
+    if (other._id === agent._id) continue;
 
-    // Vector from agent to target
     const dx = other.pos.x - agent.pos.x;
     const dy = other.pos.y - agent.pos.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
 
-    // Project onto heading direction (forward distance)
     const forwardDist = dx * headingX + dy * headingY;
 
-    // Project onto perpendicular direction (sideways distance)
     const sidewaysDist = Math.abs(dx * perpX + dy * perpY);
 
-    // Check if within rectangular FOV
-    if (forwardDist < 0 || forwardDist > VISION_DEPTH) continue; // Not in forward cone
-    if (sidewaysDist > VISION_WIDTH / 2) continue; // Too far to the side
+    if (forwardDist < 0 || forwardDist > VISION_DEPTH) continue;
+    if (sidewaysDist > VISION_WIDTH / 2) continue;
 
-    // Check line of sight (occlusion by walls and other agents)
     const hasLineOfSight = await checkLineOfSight(
       ctx,
       agent.pos,
@@ -454,12 +362,6 @@ async function getAgentsInVision(
   return visible;
 }
 
-/**
- * Check if there's a clear line of sight between two points
- * Uses Bresenham's line algorithm and checks for:
- * 1. Non-walkable tiles (walls)
- * 2. Other agents blocking the view
- */
 async function checkLineOfSight(
   ctx: any,
   from: { x: number; y: number },
@@ -467,7 +369,6 @@ async function checkLineOfSight(
   allAgents: Doc<"agents">[],
   observerAgentId: Id<"agents">
 ): Promise<boolean> {
-  // Bresenham's line algorithm
   const x0 = Math.round(from.x);
   const y0 = Math.round(from.y);
   const x1 = Math.round(to.x);
@@ -483,19 +384,16 @@ async function checkLineOfSight(
   let y = y0;
 
   while (true) {
-    // Don't check start and end points
     if ((x !== x0 || y !== y0) && (x !== x1 || y !== y1)) {
-      // Check if this tile is walkable
       const tile = await ctx.db
         .query("map_tiles")
         .withIndex("by_coordinates", (q: any) => q.eq("x", x).eq("y", y))
         .first();
 
       if (tile && !tile.isWalkable) {
-        return false; // Wall blocks line of sight
+        return false;
       }
 
-      // Check if any agent is blocking at this position
       const blockingAgent = allAgents.find(
         (a) =>
           a._id !== observerAgentId &&
@@ -504,11 +402,10 @@ async function checkLineOfSight(
       );
 
       if (blockingAgent) {
-        return false; // Agent blocks line of sight
+        return false;
       }
     }
 
-    // Reached end point
     if (x === x1 && y === y1) break;
 
     const e2 = 2 * err;
@@ -522,18 +419,12 @@ async function checkLineOfSight(
     }
   }
 
-  return true; // Clear line of sight
+  return true;
 }
 
-/**
- * Process a conversation turn for an agent
- * Schedules the LLM action to generate next message
- */
 async function processConversationTurnForAgent(ctx: any, agent: Doc<"agents">) {
   if (!agent.currentConversationId) return;
 
-  // Schedule conversation turn processing (non-blocking)
-  // This will call the LLM to generate the next message
   await ctx.scheduler.runAfter(
     0,
     internal.conversations.processConversationTurn,
@@ -544,27 +435,18 @@ async function processConversationTurnForAgent(ctx: any, agent: Doc<"agents">) {
   );
 }
 
-/**
- * Calculate salience of an observation (how memorable it is)
- */
 function calculateSalience(
   distance: number,
   target: Doc<"agents">,
   _observer: Doc<"agents">
 ): number {
-  // Closer = more salient
   const distanceFactor = 1 - distance / VISION_DEPTH;
 
-  // Emotional arousal of target increases salience
   const arousalFactor = target.emotions.arousal;
 
-  // Base salience
   return Math.min(1, 0.3 + distanceFactor * 0.4 + arousalFactor * 0.3);
 }
 
-/**
- * Prune old observations, keep only the most recent N
- */
 async function pruneOldObservations(
   ctx: any,
   agentId: Id<"agents">,
@@ -580,4 +462,3 @@ async function pruneOldObservations(
   await Promise.all(toDelete.map((obs: any) => ctx.db.delete(obs._id)));
 }
 
-// ========== QUERIES ==========

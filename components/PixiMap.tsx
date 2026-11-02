@@ -35,7 +35,6 @@ export function PixiMap({
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [showStats, setShowStats] = useState(false);
 
-  // Measure container size
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -60,13 +59,11 @@ export function PixiMap({
     };
   }, []);
 
-  // Initialize Pixi app
   const { canvasRef, refs, isInitialized, fps } = usePixiApp({
     width: dimensions.width,
     height: dimensions.height,
   });
 
-  // Fetch ALL tiles at startup using cached batch fetching
   const {
     tiles: tileCache,
     isLoading: tilesLoading,
@@ -74,11 +71,9 @@ export function PixiMap({
     totalTiles,
   } = useTileCache();
 
-  // Query map settings and places
   const mapSettings = useQuery(api.map.getMapSettings);
   const places = useQuery(api.map.getPlaces);
 
-  // Initialize camera with mapSettings
   const {
     camera,
     debouncedCamera,
@@ -96,10 +91,8 @@ export function PixiMap({
     canvasRef,
   });
 
-  // Query agents
   const agents = useQuery(api.agents.listAgents);
 
-  // Initialize camera position to Central Green (ONCE)
   useEffect(() => {
     if (!mapSettings || !places || isCameraReady || dimensions.width === 0)
       return;
@@ -133,26 +126,23 @@ export function PixiMap({
     setInitialCameraPos,
   ]);
 
-  // Render tiles using cached pre-rendering approach
   useTileRendererCached({
     tilesLayer: refs.tilesLayer,
     tiles: tileCache,
     mapSettings: mapSettings ?? undefined,
     isLoading: tilesLoading,
     renderer: refs.renderer,
-    camera: debouncedCamera, // Use debounced camera for viewport culling
+    camera: debouncedCamera,
     dimensions,
   });
 
-  // Render places
   usePlaceRenderer({
     placesLayer: refs.placesLayer,
-    places: places as any, // Type cast to handle Convex document types
+    places: places as any,
     mapSettings: mapSettings ?? undefined,
     isCameraReady,
   });
 
-  // Render agents
   useAgentRenderer({
     agentsLayer: refs.agentsLayer,
     agents: agents,
@@ -161,11 +151,9 @@ export function PixiMap({
     onAgentClick,
   });
 
-  // Update camera transform
   useEffect(() => {
     if (!refs.worldContainer || !isCameraReady) return;
 
-    // Double-check container is still valid before setting properties
     if (refs.worldContainer && !refs.worldContainer.destroyed) {
       refs.worldContainer.x = camera.x;
       refs.worldContainer.y = camera.y;
@@ -173,7 +161,6 @@ export function PixiMap({
     }
   }, [camera, isCameraReady, refs.worldContainer]);
 
-  // Handle camera centering on location
   useEffect(() => {
     if (!centerOnLocation || !mapSettings || !isCameraReady) return;
 
@@ -181,19 +168,16 @@ export function PixiMap({
     const targetX = centerOnLocation.x * tileSize;
     const targetY = centerOnLocation.y * tileSize;
 
-    // Calculate camera position to center the target in the viewport
     const newX = dimensions.width / 2 - targetX * camera.scale;
     const newY = dimensions.height / 2 - targetY * camera.scale;
 
     setCamera({ ...camera, x: newX, y: newY });
 
-    // Notify parent that centering is complete
     if (onCenterComplete) {
       onCenterComplete();
     }
   }, [centerOnLocation, mapSettings, isCameraReady, dimensions, camera.scale]);
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.key === "s" || e.key === "S") {
@@ -207,7 +191,6 @@ export function PixiMap({
 
   const isLoading = !mapSettings || !isCameraReady || tilesLoading;
 
-  // Notify parent when world is ready
   useEffect(() => {
     onWorldReady?.(!isLoading && isInitialized);
   }, [isLoading, isInitialized, onWorldReady]);
@@ -218,7 +201,6 @@ export function PixiMap({
       className={`relative ${className || ""}`}
       style={{ width: "100%", height: "100%" }}
     >
-      {/* Pixi canvas */}
       <div
         ref={canvasRef}
         onMouseDown={handleMouseDown}
@@ -235,7 +217,6 @@ export function PixiMap({
         className="rounded-lg overflow-hidden"
       />
 
-      {/* All overlays */}
       <MapOverlays
         isLoading={isLoading}
         mapSettings={mapSettings ?? undefined}

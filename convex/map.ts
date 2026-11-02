@@ -1,20 +1,7 @@
-/**
- * Map Queries and Mutations
- *
- * Public and internal functions for accessing and modifying the map data.
- */
-
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { query, mutation } from "./_generated/server";
 
-// ========================================
-// PUBLIC QUERIES
-// ========================================
-
-/**
- * Get the global map settings
- */
 export const getMapSettings = query({
   args: {},
   returns: v.union(
@@ -46,14 +33,10 @@ export const getMapSettings = query({
   },
 });
 
-/**
- * Get tiles by batch index - for efficient parallel fetching of entire map
- * Splits 30,000 tiles into batches of ~4,000 for parallel loading
- */
 export const getTilesBatch = query({
   args: {
-    batchIndex: v.number(), // 0, 1, 2, 3, etc.
-    batchSize: v.optional(v.number()), // defaults to 4000
+    batchIndex: v.number(),
+    batchSize: v.optional(v.number()),
   },
   returns: v.object({
     tiles: v.array(
@@ -109,12 +92,10 @@ export const getTilesBatch = query({
       `🔍 [CONVEX] getTilesBatch query START: batch ${args.batchIndex} (skip ${skip}, take ${batchSize})`
     );
 
-    // Get total count first
     const allTiles = await ctx.db.query("map_tiles").collect();
     const totalTiles = allTiles.length;
     const totalBatches = Math.ceil(totalTiles / batchSize);
 
-    // Get this batch
     const tiles = allTiles.slice(skip, skip + batchSize);
     const hasMore = skip + batchSize < totalTiles;
 
@@ -131,10 +112,6 @@ export const getTilesBatch = query({
   },
 });
 
-/**
- * Get tiles within a specific rectangular region (viewport-based fetching)
- * DEPRECATED: Use client-side filtering on cached tiles instead
- */
 export const getTilesByRegion = query({
   args: {
     x: v.number(),
@@ -187,15 +164,12 @@ export const getTilesByRegion = query({
     const { x, y, width, height } = args;
     const queryStart = Date.now();
 
-    // Convex has a limit of 8,192 items in array responses
     const MAX_TILES = 8000;
 
     console.log(
       `🔍 [CONVEX] getTilesByRegion query START: region=(${x},${y}) size=${width}x${height} (${width * height} tiles requested)`
     );
 
-    // OPTIMIZED: Single query with filter instead of nested loops!
-    // This is 10-100x faster than the old nested loop approach
     console.log("   → Querying database for all tiles...");
     const allTiles = await ctx.db.query("map_tiles").collect();
     console.log(`   ✓ Database returned ${allTiles.length} total tiles`);
@@ -206,7 +180,7 @@ export const getTilesByRegion = query({
         tile.x >= x && tile.x < x + width && tile.y >= y && tile.y < y + height
     );
 
-    // Limit to prevent exceeding Convex's array size limit
+    // stays under Convex's array size limit
     if (tiles.length > MAX_TILES) {
       console.log(
         `   ⚠️  Result too large (${tiles.length} tiles), limiting to ${MAX_TILES}`
@@ -229,9 +203,6 @@ export const getTilesByRegion = query({
   },
 });
 
-/**
- * Get all places in the campus
- */
 export const getPlaces = query({
   args: {},
   returns: v.array(
@@ -278,13 +249,6 @@ export const getPlaces = query({
   },
 });
 
-// ========================================
-// PUBLIC MUTATIONS
-// ========================================
-
-/**
- * Trigger map initialization (public for testing, should be internal in production)
- */
 export const initMap = mutation({
   args: {
     seed: v.optional(v.string()),
@@ -305,7 +269,6 @@ export const initMap = mutation({
     tilesCreated?: number;
     placesCreated?: number;
   }> => {
-    // Check if map already exists
     const existingSettings = await ctx.db.query("map_settings").first();
 
     if (existingSettings && !args.force) {
@@ -315,29 +278,24 @@ export const initMap = mutation({
       };
     }
 
-    // Clear existing data if force regeneration
     if (args.force && existingSettings) {
       console.log("🗑️  Clearing existing map data...");
 
-      // Delete all tiles
       const tiles = await ctx.db.query("map_tiles").collect();
       for (const tile of tiles) {
         await ctx.db.delete(tile._id);
       }
 
-      // Delete all places
       const places = await ctx.db.query("places").collect();
       for (const place of places) {
         await ctx.db.delete(place._id);
       }
 
-      // Delete settings
       await ctx.db.delete(existingSettings._id);
 
       console.log("✓ Existing data cleared");
     }
 
-    // Initialize map
     const result: { tilesCreated: number; placesCreated: number } =
       await ctx.runMutation(internal.seedMap.initializeMap, {
         seed: args.seed,
@@ -352,13 +310,6 @@ export const initMap = mutation({
   },
 });
 
-// ========================================
-// CLEAR FUNCTIONS
-// ========================================
-
-/**
- * Clear all map tiles in batches (for large datasets)
- */
 export const clearAllTiles = mutation({
   args: {
     batchSize: v.optional(v.number()),
@@ -394,9 +345,6 @@ export const clearAllTiles = mutation({
   },
 });
 
-/**
- * Clear all places
- */
 export const clearAllPlaces = mutation({
   args: {},
   returns: v.object({
@@ -421,9 +369,6 @@ export const clearAllPlaces = mutation({
   },
 });
 
-/**
- * Clear map settings
- */
 export const clearMapSettings = mutation({
   args: {},
   returns: v.object({
@@ -448,9 +393,6 @@ export const clearMapSettings = mutation({
   },
 });
 
-/**
- * Clear all map-related data (tiles, places, settings)
- */
 export const clearAllMapData = mutation({
   args: {},
   returns: v.object({
@@ -462,7 +404,6 @@ export const clearAllMapData = mutation({
   handler: async (ctx) => {
     console.log("🗑️  Clearing all map data...");
 
-    // Clear tiles
     const tiles = await ctx.db.query("map_tiles").collect();
     let tilesDeleted = 0;
     for (const tile of tiles) {
@@ -470,7 +411,6 @@ export const clearAllMapData = mutation({
       tilesDeleted++;
     }
 
-    // Clear places
     const places = await ctx.db.query("places").collect();
     let placesDeleted = 0;
     for (const place of places) {
@@ -478,7 +418,6 @@ export const clearAllMapData = mutation({
       placesDeleted++;
     }
 
-    // Clear settings
     const settings = await ctx.db.query("map_settings").collect();
     let settingsDeleted = 0;
     for (const setting of settings) {
@@ -498,6 +437,3 @@ export const clearAllMapData = mutation({
   },
 });
 
-// ========================================
-// INTERNAL MUTATIONS
-// ========================================

@@ -1,48 +1,31 @@
-/**
- * Tile Cache Hook - Fetches and caches all 30,000 tiles at startup
- *
- * This hook implements efficient parallel batch fetching:
- * 1. Fetches tiles in batches of ~4,000 in parallel
- * 2. Caches all tiles in memory for instant access
- * 3. Provides loading progress feedback
- * 4. Never refetches tiles after initial load (map is static)
- */
-
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Tile } from "@/lib/mapTypes";
 
 interface TileCacheState {
-  tiles: Map<string, Tile>; // Key: "x,y" -> Tile
+  tiles: Map<string, Tile>;
   isLoading: boolean;
-  progress: number; // 0-100
+  progress: number;
   totalTiles: number;
 }
 
-/**
- * Hook that fetches ALL tiles at startup and caches them permanently
- * Uses parallel batch fetching to avoid Convex read limits
- */
+// Parallel 4000-tile batches stay under Convex read limits
 export function useTileCache(): TileCacheState {
-  // Cache state
   const [tiles, setTiles] = useState<Map<string, Tile>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [progress, setProgress] = useState(0);
   const [totalTiles, setTotalTiles] = useState(0);
 
-  // Track which batches we've loaded
   const [batchesLoaded, setBatchesLoaded] = useState<Set<number>>(new Set());
   const [totalBatches, setTotalBatches] = useState(0);
   const hasInitialized = useRef(false);
 
-  // Query first batch to get total count
   const batch0 = useQuery(
     api.map.getTilesBatch,
     hasInitialized.current ? "skip" : { batchIndex: 0, batchSize: 4000 }
   );
 
-  // Once we know how many batches, query them all in parallel
   const batch1 = useQuery(
     api.map.getTilesBatch,
     totalBatches > 1 && !batchesLoaded.has(1)
@@ -92,14 +75,11 @@ export function useTileCache(): TileCacheState {
       : "skip"
   );
 
-  // Process batch 0 and initialize
   useEffect(() => {
     if (!batch0 || hasInitialized.current) return;
 
-    // Set total batches
     setTotalBatches(batch0.totalBatches);
 
-    // Add batch 0 tiles to cache
     const newTiles = new Map<string, Tile>();
     for (const tile of batch0.tiles) {
       const key = `${tile.x},${tile.y}`;
@@ -113,7 +93,6 @@ export function useTileCache(): TileCacheState {
     hasInitialized.current = true;
   }, [batch0]);
 
-  // Helper function to process a batch
   const processBatch = (
     batchData:
       | {
@@ -142,7 +121,6 @@ export function useTileCache(): TileCacheState {
     setProgress(((batchIndex + 1) / batchData.totalBatches) * 100);
   };
 
-  // Process all batches
   useEffect(() => {
     if (batch1) processBatch(batch1, 1);
   }, [batch1]);
@@ -171,7 +149,6 @@ export function useTileCache(): TileCacheState {
     if (batch7) processBatch(batch7, 7);
   }, [batch7]);
 
-  // Check if loading is complete
   useEffect(() => {
     if (totalBatches > 0 && batchesLoaded.size === totalBatches) {
       setIsLoading(false);

@@ -1,11 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
-// ========== MUTATIONS ==========
-
-/**
- * Create or update an agent's opinion of another agent
- */
 export const upsertOpinion = mutation({
   args: {
     agentId: v.id("agents"),
@@ -16,7 +11,6 @@ export const upsertOpinion = mutation({
   },
   returns: v.id("opinions"),
   handler: async (ctx, args) => {
-    // Check if opinion already exists
     const existing = await ctx.db
       .query("opinions")
       .withIndex("by_pair", (q) =>
@@ -25,7 +19,6 @@ export const upsertOpinion = mutation({
       .unique();
 
     if (existing) {
-      // Update existing opinion
       await ctx.db.patch(existing._id, {
         sentiment: args.sentiment,
         summary: args.summary,
@@ -33,7 +26,6 @@ export const upsertOpinion = mutation({
       });
       return existing._id;
     } else {
-      // Create new opinion
       const opinionId = await ctx.db.insert("opinions", {
         agentId: args.agentId,
         targetAgentId: args.targetAgentId,
@@ -46,11 +38,6 @@ export const upsertOpinion = mutation({
   },
 });
 
-// ========== QUERIES ==========
-
-/**
- * Get all opinions held by an agent
- */
 export const getAgentOpinions = query({
   args: { agentId: v.id("agents") },
   returns: v.array(

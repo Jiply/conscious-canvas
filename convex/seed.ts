@@ -1,17 +1,10 @@
 import { v } from "convex/values";
 import { mutation } from "./_generated/server";
 
-/**
- * Agent profile definitions (without positions)
- */
-// MAP CENTER COORDINATES (200x150 grid, so center is ~100, 75)
 const MAP_CENTER_X = 100;
 const MAP_CENTER_Y = 75;
-const CLUSTER_RADIUS = 8; // Place agents within 8 tiles of center
+const CLUSTER_RADIUS = 8;
 
-/**
- * Generate a random position near the map center
- */
 function getRandomCenterPosition() {
   const angle = Math.random() * Math.PI * 2;
   const distance = Math.random() * CLUSTER_RADIUS;
@@ -157,9 +150,6 @@ const AGENT_PROFILE_TEMPLATES = [
   },
 ];
 
-/**
- * Seed agents (profile pictures are handled client-side)
- */
 export const seedAgents = mutation({
   args: {},
   returns: v.object({
@@ -169,7 +159,6 @@ export const seedAgents = mutation({
   handler: async (ctx) => {
     console.log("🌱 Starting agent seeding...");
 
-    // First, clear all existing data
     const agents = await ctx.db.query("agents").collect();
     for (const agent of agents) {
       await ctx.db.delete(agent._id);
@@ -194,13 +183,12 @@ export const seedAgents = mutation({
 
     const agentIds: string[] = [];
 
-    // Create agents with fresh random positions each time (profile pictures mapped client-side)
     for (const template of AGENT_PROFILE_TEMPLATES) {
-      const pos = getRandomCenterPosition(); // Generate fresh position on each seed
+      const pos = getRandomCenterPosition();
       const agentId = await ctx.db.insert("agents", {
         ...template,
         pos,
-        headingRad: Math.random() * Math.PI * 2, // Random facing direction
+        headingRad: Math.random() * Math.PI * 2,
         state: "Idle",
         nextDecisionAt: Date.now() + Math.random() * 5000,
       });
@@ -211,19 +199,16 @@ export const seedAgents = mutation({
       );
     }
 
-    // Seed some initial opinions between agents
     if (agentIds.length >= 3) {
-      // Create a few random opinions between agents
       for (let i = 0; i < Math.min(5, agentIds.length); i++) {
         const agent1Idx = Math.floor(Math.random() * agentIds.length);
         let agent2Idx = Math.floor(Math.random() * agentIds.length);
 
-        // Make sure they're different agents
         while (agent2Idx === agent1Idx) {
           agent2Idx = Math.floor(Math.random() * agentIds.length);
         }
 
-        const sentiment = (Math.random() - 0.3) * 1.5; // Range from -0.45 to 1.05, clamped later
+        const sentiment = (Math.random() - 0.3) * 1.5;
 
         await ctx.db.insert("opinions", {
           agentId: agentIds[agent1Idx] as any,
@@ -246,32 +231,25 @@ export const seedAgents = mutation({
   },
 });
 
-/**
- * Clear all agents and related data
- */
 export const clearAllData = mutation({
   args: {},
   returns: v.null(),
   handler: async (ctx) => {
-    // Delete all agents
     const agents = await ctx.db.query("agents").collect();
     for (const agent of agents) {
       await ctx.db.delete(agent._id);
     }
 
-    // Delete all observations
     const observations = await ctx.db.query("observations").collect();
     for (const obs of observations) {
       await ctx.db.delete(obs._id);
     }
 
-    // Delete all opinions
     const opinions = await ctx.db.query("opinions").collect();
     for (const opinion of opinions) {
       await ctx.db.delete(opinion._id);
     }
 
-    // Delete all decisions
     const decisions = await ctx.db.query("decisions").collect();
     for (const decision of decisions) {
       await ctx.db.delete(decision._id);

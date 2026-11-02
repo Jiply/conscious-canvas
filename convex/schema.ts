@@ -1,143 +1,103 @@
 import { v } from "convex/values";
 import { defineSchema, defineTable } from "convex/server";
 
-/**
- * Conscious Campus - Convex Database Schema
- *
- * This schema defines the map/tile system for the campus simulation.
- * Inspired by NUS UTown Singapore layout.
- */
-
 export default defineSchema({
-  // ========================================
-  // MAP SYSTEM
-  // ========================================
-
-  /**
-   * Map Settings - Global configuration for the tile grid
-   * Singleton table - should only have one document
-   */
   map_settings: defineTable({
-    gridWidth: v.number(), // Number of tiles horizontally (default: 200)
-    gridHeight: v.number(), // Number of tiles vertically (default: 150)
-    tileSize: v.number(), // Pixel size of each tile (default: 32)
-    metersPerTile: v.number(), // Real-world scale: 1 tile = 1 meter
-    version: v.number(), // Schema version for migrations
-    lastRegeneratedAt: v.optional(v.number()), // Timestamp of last regeneration
-    seed: v.optional(v.string()), // Random seed used for generation
+    gridWidth: v.number(),
+    gridHeight: v.number(),
+    tileSize: v.number(),
+    metersPerTile: v.number(),
+    version: v.number(),
+    lastRegeneratedAt: v.optional(v.number()),
+    seed: v.optional(v.string()),
   }),
 
-  /**
-   * Map Tiles - Individual tiles in the grid
-   * Full 200×150 grid = 30000 tiles
-   */
   map_tiles: defineTable({
-    x: v.number(), // X coordinate (0-199)
-    y: v.number(), // Y coordinate (0-149)
+    x: v.number(),
+    y: v.number(),
     tileType: v.union(
-      v.literal("floor"), // Indoor floor (inside buildings)
-      v.literal("wall"), // Solid wall (buildings, barriers)
-      v.literal("door"), // Entrance/exit (walkable)
-      v.literal("grass"), // Grass/lawn (walkable)
-      v.literal("water"), // Water feature (not walkable)
-      v.literal("path"), // Paved walkway (walkable)
-      v.literal("void"), // Empty/boundary (not walkable)
-      // Terrain variety
-      v.literal("tall_tree"), // Tall trees (not walkable)
-      v.literal("short_tree"), // Short trees (not walkable)
-      v.literal("bush"), // Bushes (walkable)
-      v.literal("flower_bed"), // Flower beds (walkable)
-      v.literal("concrete"), // Concrete areas (walkable)
-      v.literal("brick_path"), // Decorative brick paths (walkable)
-      // Building interiors
-      v.literal("cafe_stall"), // Café food stalls
-      v.literal("study_desk"), // Study desks
-      v.literal("bookshelf"), // Library bookshelves
-      v.literal("lounge_chair"), // Lounge seating
-      v.literal("laundry_machine"), // Laundry facilities
-      v.literal("lecture_seat"), // Lecture hall seating
-      v.literal("library_desk"), // Library study desks
-      v.literal("dorm_bed"), // Dorm room beds
-      v.literal("kitchen_counter") // Kitchen areas
+      v.literal("floor"),
+      v.literal("wall"),
+      v.literal("door"),
+      v.literal("grass"),
+      v.literal("water"),
+      v.literal("path"),
+      v.literal("void"),
+      v.literal("tall_tree"),
+      v.literal("short_tree"),
+      v.literal("bush"),
+      v.literal("flower_bed"),
+      v.literal("concrete"),
+      v.literal("brick_path"),
+      v.literal("cafe_stall"),
+      v.literal("study_desk"),
+      v.literal("bookshelf"),
+      v.literal("lounge_chair"),
+      v.literal("laundry_machine"),
+      v.literal("lecture_seat"),
+      v.literal("library_desk"),
+      v.literal("dorm_bed"),
+      v.literal("kitchen_counter")
     ),
-    isWalkable: v.boolean(), // Can agents walk on this tile?
-    visualVariant: v.optional(v.number()), // Visual variation (0-3) for same type
-    placeId: v.optional(v.id("places")), // Associated place (if inside building)
+    isWalkable: v.boolean(),
+    visualVariant: v.optional(v.number()),
+    placeId: v.optional(v.id("places")),
     metadata: v.optional(
       v.object({
-        // Additional properties
-        biome: v.optional(v.string()), // e.g., "indoor", "outdoor", "garden"
-        lightLevel: v.optional(v.number()), // 0-1 for lighting effects
+        biome: v.optional(v.string()),
+        lightLevel: v.optional(v.number()),
       })
     ),
   })
-    .index("by_coordinates", ["x", "y"]) // Fast lookup by position
-    .index("by_place", ["placeId"]) // Get all tiles in a place
-    .index("by_type", ["tileType"]) // Query by tile type
-    .index("by_walkable", ["isWalkable"]), // Pathfinding optimization
+    .index("by_coordinates", ["x", "y"])
+    .index("by_place", ["placeId"])
+    .index("by_type", ["tileType"])
+    .index("by_walkable", ["isWalkable"]),
 
-  /**
-   * Places - Campus locations (buildings, outdoor areas)
-   * Based on NUS UTown landmarks
-   */
   places: defineTable({
-    kind: v.string(), // 'dorm', 'lecture', 'cafe', 'library', 'quad', etc.
-    name: v.string(), // Display name e.g., "Student Residence"
-    description: v.optional(v.string()), // Optional description
+    kind: v.string(),
+    name: v.string(),
+    description: v.optional(v.string()),
 
-    // Spatial boundaries (in tile coordinates)
     bounds: v.object({
-      x: v.number(), // Top-left X
-      y: v.number(), // Top-left Y
-      width: v.number(), // Width in tiles
-      height: v.number(), // Height in tiles
+      x: v.number(),
+      y: v.number(),
+      width: v.number(),
+      height: v.number(),
     }),
 
-    // Entrance/exit points for pathfinding (tile coordinates)
     entrances: v.array(
       v.object({
         x: v.number(),
         y: v.number(),
-        facing: v.optional(v.string()), // Direction: "north", "south", "east", "west"
+        facing: v.optional(v.string()),
       })
     ),
 
-    // Capacity and properties
-    capacity: v.optional(v.number()), // Max agents
-    isIndoor: v.boolean(), // Indoor vs outdoor
+    capacity: v.optional(v.number()),
+    isIndoor: v.boolean(),
 
-    // Real-world inspiration metadata
     metadata: v.optional(
       v.object({
-        realWorldInspiration: v.optional(v.string()), // e.g., "NUS UTown ERC Library"
-        ambientSound: v.optional(v.string()), // Background audio
+        realWorldInspiration: v.optional(v.string()),
+        ambientSound: v.optional(v.string()),
       })
     ),
-  }).index("by_kind", ["kind"]), // Query by place type
+  }).index("by_kind", ["kind"]),
 
-  // ========================================
-  // WORLD STATE (from requirements.md)
-  // ========================================
-
-  /**
-   * World Settings - Observer-dependent time and simulation state
-   */
   world_settings: defineTable({
-    isRunning: v.boolean(), // Is the simulation running?
-    observerCount: v.number(), // Number of active observers
-    adminEnabled: v.boolean(), // Admin controls enabled?
-    tickHz: v.number(), // Tick rate (default: 2 Hz = 500ms)
-    currentTick: v.number(), // Current simulation tick
-    simulationStartedAt: v.optional(v.number()), // Timestamp
-    lastTickAt: v.optional(v.number()), // Last tick timestamp
+    isRunning: v.boolean(),
+    observerCount: v.number(),
+    adminEnabled: v.boolean(),
+    tickHz: v.number(),
+    currentTick: v.number(),
+    simulationStartedAt: v.optional(v.number()),
+    lastTickAt: v.optional(v.number()),
   }),
 
-  /**
-   * Observers - Active viewers watching the simulation
-   */
   observer: defineTable({
-    sessionId: v.string(), // Unique session identifier
-    lastHeartbeatAt: v.number(), // Last heartbeat timestamp
+    sessionId: v.string(),
+    lastHeartbeatAt: v.number(),
     metadata: v.optional(
       v.object({
         userAgent: v.optional(v.string()),
@@ -155,15 +115,13 @@ export default defineSchema({
       v.literal("prof"),
       v.literal("barista")
     ),
-    personality: v.optional(v.string()), // LLM-friendly bio
-    profilePicture: v.optional(v.string()), // Base64 encoded image data
+    personality: v.optional(v.string()),
+    profilePicture: v.optional(v.string()),
 
-    // Position & movement
     pos: v.object({ x: v.number(), y: v.number() }),
-    headingRad: v.number(), // which way they're facing (radians)
-    path: v.optional(v.array(v.object({ x: v.number(), y: v.number() }))), // current A* path, discarded when destination reached
+    headingRad: v.number(),
+    path: v.optional(v.array(v.object({ x: v.number(), y: v.number() }))),
 
-    // State machine
     state: v.union(
       v.literal("Idle"),
       v.literal("Transit"),
@@ -171,37 +129,32 @@ export default defineSchema({
       v.literal("Interact"),
       v.literal("Sleep")
     ),
-    nextDecisionAt: v.number(), // timestamp (ms) when LLM should run next
+    nextDecisionAt: v.number(),
 
-    // Conversation state
-    currentConversationId: v.optional(v.id("conversations")), // active conversation (if any)
+    currentConversationId: v.optional(v.id("conversations")),
 
-    // Emotions & needs (all 0-1 for LLM reasoning)
     emotions: v.object({
-      valence: v.number(), // -1 to 1 (negative to positive mood)
-      arousal: v.number(), // 0 to 1 (calm to excited/energized)
+      valence: v.number(),
+      arousal: v.number(),
     }),
     needs: v.object({
-      sleepiness: v.number(), // 0 to 1
-      hunger: v.number(), // 0 to 1
-      studyPressure: v.number(), // 0 to 1
-      socialDrive: v.number(), // 0 to 1
+      sleepiness: v.number(),
+      hunger: v.number(),
+      studyPressure: v.number(),
+      socialDrive: v.number(),
     }),
 
-    // Goals (dynamic weights)
     goals: v.array(
       v.object({
         name: v.string(),
-        weight: v.number(), // 0 to 1
+        weight: v.number(),
       })
     ),
   }),
 
-  // ========== OBSERVATIONS ==========
-
   observations: defineTable({
-    agentId: v.id("agents"), // who observed
-    targetId: v.optional(v.id("agents")), // what they saw (if agent)
+    agentId: v.id("agents"),
+    targetId: v.optional(v.id("agents")),
     targetType: v.union(
       v.literal("agent"),
       v.literal("place"),
@@ -210,37 +163,31 @@ export default defineSchema({
 
     location: v.object({ x: v.number(), y: v.number() }),
     distance: v.optional(v.number()),
-    nearestPlaceId: v.optional(v.id("places")), // nearest place to the observation
-    timeOfDay: v.optional(v.string()), // "day", "night", etc.
+    nearestPlaceId: v.optional(v.id("places")),
+    timeOfDay: v.optional(v.string()),
 
-    summary: v.optional(v.string()), // "Saw Bob near library, looking stressed"
-    salience: v.number(), // 0 to 1, how important/memorable
+    summary: v.optional(v.string()),
+    salience: v.number(),
   })
     .index("by_agent", ["agentId"])
     .index("by_target", ["targetId"]),
 
-  // ========== OPINIONS ==========
-
   opinions: defineTable({
-    agentId: v.id("agents"), // who has the opinion
-    targetAgentId: v.id("agents"), // about whom
+    agentId: v.id("agents"),
+    targetAgentId: v.id("agents"),
 
-    sentiment: v.number(), // -1 to 1 (dislike to like)
-    summary: v.string(), // "Smart but unreliable"
+    sentiment: v.number(),
+    summary: v.string(),
 
-    // Optional: structured traits
-    traits: v.optional(v.record(v.string(), v.number())), // {"smart": 0.8, "funny": 0.3}
+    traits: v.optional(v.record(v.string(), v.number())),
   })
     .index("by_agent", ["agentId"])
     .index("by_target", ["targetAgentId"])
     .index("by_pair", ["agentId", "targetAgentId"]),
 
-  // ========== DECISIONS ==========
-
   decisions: defineTable({
     agentId: v.id("agents"),
 
-    // What they decided to do
     action: v.union(
       v.literal("MoveTo"),
       v.literal("EngageConversation"),
@@ -250,71 +197,53 @@ export default defineSchema({
       v.literal("Sleep")
     ),
 
-    // Action context
     targetPlaceId: v.optional(v.id("places")),
     targetAgentId: v.optional(v.id("agents")),
 
-    // Speech/thought
-    utterance: v.optional(v.string()), // what they say out loud (speech bubble)
-    innerThought: v.optional(v.string()), // internal monologue (brain panel)
+    utterance: v.optional(v.string()),
+    innerThought: v.optional(v.string()),
 
-    // Timing
-    completedAt: v.optional(v.number()), // timestamp when action finished (null = in progress)
+    completedAt: v.optional(v.number()),
 
-    // LLM metadata (for debugging/optimization)
     llmLatencyMs: v.optional(v.number()),
   })
     .index("by_agent", ["agentId"])
-    .index("by_status", ["agentId", "completedAt"]), // find in-progress decisions
+    .index("by_status", ["agentId", "completedAt"]),
 
-  // ========== CONVERSATIONS ==========
-
-  /**
-   * Conversations - Multi-turn dialogue sessions between agents
-   * Supports 2+ participants for potential group conversations
-   */
   conversations: defineTable({
-    participantIds: v.array(v.id("agents")), // 2+ agents in conversation
+    participantIds: v.array(v.id("agents")),
     status: v.union(v.literal("active"), v.literal("completed")),
-    startedAt: v.number(), // timestamp when conversation began
-    completedAt: v.optional(v.number()), // timestamp when conversation ended
-    location: v.optional(v.object({ x: v.number(), y: v.number() })), // where conversation took place
-    nearestPlaceId: v.optional(v.id("places")), // nearby landmark
-    turnCount: v.number(), // number of messages exchanged (for analytics)
+    startedAt: v.number(),
+    completedAt: v.optional(v.number()),
+    location: v.optional(v.object({ x: v.number(), y: v.number() })),
+    nearestPlaceId: v.optional(v.id("places")),
+    turnCount: v.number(),
   })
-    .index("by_status", ["status"]) // find active conversations
-    .index("by_participant", ["participantIds"]), // find agent's conversations
+    .index("by_status", ["status"])
+    .index("by_participant", ["participantIds"]),
 
-  /**
-   * Messages - Individual utterances within a conversation
-   * Each message represents one agent's turn in the dialogue
-   */
   messages: defineTable({
-    conversationId: v.id("conversations"), // which conversation this belongs to
-    agentId: v.id("agents"), // who said this
-    content: v.string(), // what they said
+    conversationId: v.id("conversations"),
+    agentId: v.id("agents"),
+    content: v.string(),
     emotionSnapshot: v.optional(
       v.object({
-        valence: v.number(), // agent's emotion when they said this
+        valence: v.number(),
         arousal: v.number(),
       })
     ),
-    continueConversation: v.boolean(), // does speaker want to keep talking?
-    reasonForLeaving: v.optional(v.string()), // why they're ending conversation (if continueConversation=false)
+    continueConversation: v.boolean(),
+    reasonForLeaving: v.optional(v.string()),
   })
-    .index("by_conversation", ["conversationId"]) // get all messages in conversation
-    .index("by_agent", ["agentId"]), // get all messages by agent
-
-  // ========== HEARTBEAT SYSTEM ==========
+    .index("by_conversation", ["conversationId"])
+    .index("by_agent", ["agentId"]),
 
   heartbeat_state: defineTable({
-    isRunning: v.boolean(), // whether a tick is currently processing
-    lastStartedAt: v.number(), // timestamp when last tick started
-    lastCompletedAt: v.number(), // timestamp when last tick completed
-    currentLeaderId: v.string(), // UUID of the current leader client
+    isRunning: v.boolean(),
+    lastStartedAt: v.number(),
+    lastCompletedAt: v.number(),
+    currentLeaderId: v.string(),
   }),
-
-  // ========== EVENT SYSTEM ==========
 
   events: defineTable({
     timestamp: v.number(),
@@ -331,7 +260,7 @@ export default defineSchema({
     metadata: v.optional(
       v.object({
         placeId: v.optional(v.id("places")),
-        severity: v.optional(v.string()), // "info", "important", "critical"
+        severity: v.optional(v.string()),
       })
     ),
   })

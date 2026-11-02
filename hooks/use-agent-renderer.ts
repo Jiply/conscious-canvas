@@ -16,10 +16,6 @@ type AgentRendererProps = {
     | undefined;
 };
 
-/**
- * Map agent names to profile picture assets in /public folder
- * Only use the actual PNG files that exist: 01.png through 10.png
- */
 const AGENT_PROFILE_PICTURES: Record<string, string> = {
   "Maya Chen": "/01.png",
   "Prof. James Wilson": "/02.png",
@@ -31,11 +27,8 @@ const AGENT_PROFILE_PICTURES: Record<string, string> = {
   "Marcus Johnson": "/08.png",
 };
 
-/**
- * Get profile picture URL for an agent
- */
 const getProfilePicture = (agentName: string): string => {
-  return AGENT_PROFILE_PICTURES[agentName] || `/01.png`; // Default to 01.png
+  return AGENT_PROFILE_PICTURES[agentName] || `/01.png`;
 };
 
 type AgentData = {
@@ -60,13 +53,12 @@ export function useAgentRenderer({
 }: AgentRendererProps) {
   const agentContainersRef = useRef<Map<string, AgentData>>(new Map());
 
-  // Update agent positions and create/remove agents
   useEffect(() => {
     if (!agents || !agentsLayer || !mapSettings || !isCameraReady) return;
 
     const tileSize = mapSettings.tileSize;
     const agentContainers = agentContainersRef.current;
-    const activeAgentIds = new Set<string>(); // Track which agents we've seen in this update
+    const activeAgentIds = new Set<string>();
 
     agents.forEach((a) => {
       activeAgentIds.add(a._id);
@@ -75,49 +67,39 @@ export function useAgentRenderer({
       let agentData = agentContainers.get(a._id);
 
       if (!agentData) {
-        // Create new agent container
         const agentContainer = new Container();
         agentsLayer.addChild(agentContainer);
 
-        // Draw vision radius (20 tiles = 20 * tileSize pixels)
-        // This should NOT be interactive - it's just visual
         const visionRadius = new Graphics();
         const radiusInPixels = 20 * tileSize;
         visionRadius.circle(0, 0, radiusInPixels);
-        visionRadius.fill({ color: 0x3b82f6, alpha: 0.08 }); // Blue with low opacity
-        visionRadius.stroke({ width: 2, color: 0x3b82f6, alpha: 0.25 }); // Blue border
-        visionRadius.eventMode = "none"; // Make it non-interactive
+        visionRadius.fill({ color: 0x3b82f6, alpha: 0.08 });
+        visionRadius.stroke({ width: 2, color: 0x3b82f6, alpha: 0.25 });
+        visionRadius.eventMode = "none";
         agentContainer.addChild(visionRadius);
 
-        // Create profile picture sprite using client-side mapping
         const profilePicUrl = getProfilePicture(a.name);
 
-        // Create a clickable container for the profile picture and border
         const profileContainer = new Container();
         profileContainer.eventMode = "static";
         profileContainer.cursor = "pointer";
 
-        // Add click handler to profile container
         if (onAgentClick) {
           profileContainer.on("pointerdown", (event) => {
-            // Stop event propagation to prevent map dragging
             event.stopPropagation();
             onAgentClick(a._id as Id<"agents">);
           });
         }
 
-        // Create a placeholder sprite first
         const profileSprite = new Sprite();
         profileSprite.anchor.set(0.5);
         profileSprite.position.set(0, 0);
 
-        // Create circular mask
         const circleMask = new Graphics();
         circleMask.circle(0, 0, 16);
         circleMask.fill(0xffffff);
-        circleMask.alpha = 0; // Hide the mask but keep it functional
+        circleMask.alpha = 0;
 
-        // Add to profile container
         profileContainer.addChild(profileSprite);
         profileContainer.addChild(circleMask);
         profileSprite.mask = circleMask;
@@ -127,7 +109,6 @@ export function useAgentRenderer({
             if (!profileSprite.destroyed) {
               profileSprite.texture = texture;
 
-              // Size the sprite to 32px diameter (16px radius)
               const diameter = 32;
               profileSprite.width = diameter;
               profileSprite.height = diameter;
@@ -137,21 +118,17 @@ export function useAgentRenderer({
             console.error(`  ❌ Failed to load texture for ${a.name}:`, error);
           });
 
-        // Add a white border for visibility (drawn on top)
         const border = new Graphics();
         border.circle(0, 0, 16);
         border.stroke({ width: 2, color: 0xffffff, alpha: 0.8 });
         profileContainer.addChild(border);
 
-        // Set hit area to a circle slightly larger than the visible profile (for easier clicking)
         profileContainer.hitArea = {
-          contains: (x: number, y: number) => Math.sqrt(x * x + y * y) <= 18, // 18px radius
+          contains: (x: number, y: number) => Math.sqrt(x * x + y * y) <= 18,
         };
 
-        // Add profile container to agent container
         agentContainer.addChild(profileContainer);
 
-        // Add agent name label
         const labelStyle = new TextStyle({
           fontFamily: "Arial, sans-serif",
           fontSize: 11,
@@ -165,15 +142,13 @@ export function useAgentRenderer({
           style: labelStyle,
         });
         label.anchor.set(0.5);
-        label.y = -22; // Moved further up to accommodate larger circle
-        label.eventMode = "none"; // Make label non-interactive
+        label.y = -22;
+        label.eventMode = "none";
         agentContainer.addChild(label);
 
-        // Set initial position (no animation for first appearance)
         agentContainer.x = targetX;
         agentContainer.y = targetY;
 
-        // Store the container with position tracking
         agentData = {
           container: agentContainer,
           targetX,
@@ -181,14 +156,13 @@ export function useAgentRenderer({
           startX: targetX,
           startY: targetY,
           animationStartTime: performance.now(),
-          wobbleOffsetX: Math.random() * Math.PI * 2, // Random phase offset
+          wobbleOffsetX: Math.random() * Math.PI * 2,
           wobbleOffsetY: Math.random() * Math.PI * 2,
-          wobbleSpeed: 0.8 + Math.random() * 0.4, // Random speed between 0.8-1.2
+          wobbleSpeed: 0.8 + Math.random() * 0.4,
           headingRad: a.headingRad,
         };
         agentContainers.set(a._id, agentData);
 
-        // Fade in animation
         agentContainer.alpha = 0;
         const startTime = Date.now();
         const duration = 250;
@@ -207,7 +181,6 @@ export function useAgentRenderer({
         };
         requestAnimationFrame(fadeIn);
       } else {
-        // Update target position for existing agent (if it changed)
         const targetChanged =
           Math.abs(agentData.targetX - targetX) > 0.1 ||
           Math.abs(agentData.targetY - targetY) > 0.1;
@@ -217,7 +190,6 @@ export function useAgentRenderer({
           agentData.container &&
           !agentData.container.destroyed
         ) {
-          // Start new animation from current position
           agentData.startX = agentData.container.x;
           agentData.startY = agentData.container.y;
           agentData.targetX = targetX;
@@ -225,45 +197,38 @@ export function useAgentRenderer({
           agentData.animationStartTime = performance.now();
         }
 
-        // Update heading if it changed
         if (Math.abs(agentData.headingRad - a.headingRad) > 0.01) {
           agentData.headingRad = a.headingRad;
         }
       }
     });
 
-    // Hide agents that no longer exist (don't destroy them)
     for (const [agentId, agentData] of agentContainers.entries()) {
       if (!activeAgentIds.has(agentId)) {
-        // Hide the container instead of destroying it
         agentData.container.visible = false;
         agentData.container.alpha = 0;
       } else {
-        // Show the container if it exists
         agentData.container.visible = true;
         agentData.container.alpha = 1;
       }
     }
   }, [agents, mapSettings, isCameraReady, agentsLayer]);
 
-  // Animation loop for smooth movement with wobble
   useEffect(() => {
     if (!agentsLayer || !isCameraReady) return;
 
     let animationFrameId: number;
-    const ANIMATION_DURATION = 5000; // 5 seconds for smooth movement
-    const WOBBLE_AMPLITUDE = 1; // pixels
-    const WOBBLE_FREQUENCY = 2; // Hz
+    const ANIMATION_DURATION = 5000;
+    const WOBBLE_AMPLITUDE = 1;
+    const WOBBLE_FREQUENCY = 2;
 
     const animate = () => {
       const now = performance.now();
       const agentContainers = agentContainersRef.current;
 
-      // Clean up invalid agent data and animate valid ones
       const validAgentData: AgentData[] = [];
 
       for (const agentData of agentContainers.values()) {
-        // Skip if container is null, destroyed, or not visible
         if (
           !agentData.container ||
           agentData.container.destroyed ||
@@ -277,13 +242,11 @@ export function useAgentRenderer({
         const elapsed = now - agentData.animationStartTime;
         const progress = Math.min(elapsed / ANIMATION_DURATION, 1);
 
-        // Linear interpolation for position
         const currentX =
           agentData.startX + (agentData.targetX - agentData.startX) * progress;
         const currentY =
           agentData.startY + (agentData.targetY - agentData.startY) * progress;
 
-        // Add subtle wobble effect
         const wobbleX =
           Math.sin(
             now * 0.001 * WOBBLE_FREQUENCY * agentData.wobbleSpeed +
@@ -295,7 +258,6 @@ export function useAgentRenderer({
               agentData.wobbleOffsetY
           ) * WOBBLE_AMPLITUDE;
 
-        // Double-check container is still valid before setting position
         if (agentData.container && !agentData.container.destroyed) {
           agentData.container.x = currentX + wobbleX;
           agentData.container.y = currentY + wobbleY;
