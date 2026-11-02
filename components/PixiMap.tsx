@@ -16,20 +16,10 @@ interface PixiMapProps {
   onWorldReady?: (isReady: boolean) => void;
   centerOnLocation?: { x: number; y: number } | null;
   onCenterComplete?: () => void;
-  isWorldRunning?: boolean;
-  observerCount?: number;
   onAgentClick?: (agentId: Id<'agents'>) => void;
 }
 
-export function PixiMap({
-  className,
-  onWorldReady,
-  centerOnLocation,
-  onCenterComplete,
-  isWorldRunning,
-  observerCount,
-  onAgentClick,
-}: PixiMapProps) {
+export function PixiMap({ className, onWorldReady, centerOnLocation, onCenterComplete, onAgentClick }: PixiMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [isCameraReady, setIsCameraReady] = useState(false);
@@ -190,8 +180,6 @@ export function PixiMap({
         onResetCamera={resetCamera}
         tilesProgress={tilesProgress}
         totalTiles={totalTiles}
-        isWorldRunning={isWorldRunning}
-        observerCount={observerCount}
       />
     </div>
   );
