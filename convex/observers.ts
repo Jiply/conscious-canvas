@@ -49,12 +49,12 @@ export const heartbeat = mutation({
 
     const observerCount = activeObservers.length;
 
-    let worldSettings = await ctx.db.query("world_settings").first();
+    const worldSettings = await ctx.db.query("world_settings").first();
 
     if (!worldSettings) {
       await ctx.db.insert("world_settings", {
         isRunning: observerCount > 0,
-        observerCount: observerCount,
+        observerCount,
         adminEnabled: true,
         tickHz: 0.2,
         currentTick: 0,
@@ -101,7 +101,7 @@ export const heartbeat = mutation({
 
       await ctx.db.patch(worldSettings._id, {
         isRunning: shouldRun,
-        observerCount: observerCount,
+        observerCount,
         simulationStartedAt:
           !wasRunning && shouldRun ? now : worldSettings.simulationStartedAt,
       });
