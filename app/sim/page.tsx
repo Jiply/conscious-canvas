@@ -42,30 +42,16 @@ import { useHeartbeat } from "@/hooks/use-heartbeat";
 import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { Separator } from "@/components/ui/separator";
+import { getProfilePicture } from "@/lib/utils";
 import type { Id } from "@/convex/_generated/dataModel";
 import { ConversationSheet } from "@/components/ConversationSheet";
-
-const AGENT_PROFILE_PICTURES: Record<string, string> = {
-  "Maya Chen": "/01.png",
-  "Prof. James Wilson": "/02.png",
-  "Zara Ahmed": "/03.png",
-  "Liam O'Brien": "/04.png",
-  "Sofia Martinez": "/05.png",
-  "Raj Patel": "/06.png",
-  "Emma Kim": "/07.png",
-  "Marcus Johnson": "/08.png",
-};
-
-function getProfilePicture(agentName: string) {
-  return AGENT_PROFILE_PICTURES[agentName] || `/01.png`;
-}
 
 export default function SimPage() {
   const [searchQuery, setSearchQuery] = useState(``);
   const { isLeader, stats, startTime } = useHeartbeat();
   const [elapsedTime, setElapsedTime] = useState(`00:00:00`);
-  const [isWorldReady, setIsWorldReady] = useState<boolean>(false);
-  const [isConvoSheetOpen, setIsConvoSheetOpen] = useState<boolean>(false);
+  const [isWorldReady, setIsWorldReady] = useState(false);
+  const [isConvoSheetOpen, setIsConvoSheetOpen] = useState(false);
   const [chosenAgentId, setChosenAgentId] = useState<Id<`agents`> | null>(null);
 
   const places = useQuery(api.map.getPlaces) ?? [];
@@ -102,18 +88,16 @@ export default function SimPage() {
     );
   }, [agents, searchQuery]);
 
-  const mainPlaces = useMemo(() => {
-    return places.filter(
-      (place) =>
-        !["dorm_room", "common_room", "study_room"].includes(place.kind)
-    );
-  }, [places]);
+  const mainPlaces = useMemo(
+    () => places.filter((place) => !["dorm_room", "common_room", "study_room"].includes(place.kind)),
+    [places]
+  );
 
-  const handleCenterOnPlace = (place: (typeof places)[0]) => {
-    const centerX = place.bounds.x + place.bounds.width / 2;
-    const centerY = place.bounds.y + place.bounds.height / 2;
-    setCenterOnPlace({ x: centerX, y: centerY });
-  };
+  const handleCenterOnPlace = (place: (typeof places)[0]) =>
+    setCenterOnPlace({
+      x: place.bounds.x + place.bounds.width / 2,
+      y: place.bounds.y + place.bounds.height / 2,
+    });
 
   const handleAgentClick = (agentId: Id<"agents">) => {
     setChosenAgentId(agentId);
@@ -125,12 +109,10 @@ export default function SimPage() {
 
     const interval = setInterval(() => {
       const elapsed = Date.now() - startTime;
-      const hours = Math.floor(elapsed / 3600000);
-      const minutes = Math.floor((elapsed % 3600000) / 60000);
-      const seconds = Math.floor((elapsed % 60000) / 1000);
-
       setElapsedTime(
-        `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
+        [elapsed / 3600000, (elapsed % 3600000) / 60000, (elapsed % 60000) / 1000]
+          .map((part) => Math.floor(part).toString().padStart(2, "0"))
+          .join(":")
       );
     }, 1000);
 

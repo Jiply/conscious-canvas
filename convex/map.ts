@@ -1,21 +1,12 @@
 import { v } from "convex/values";
+import { mapSettingsFields, mapTileFields, placeFields } from "./schema";
 import { internal } from "./_generated/api";
 import { query, mutation } from "./_generated/server";
 
 export const getMapSettings = query({
   args: {},
   returns: v.union(
-    v.object({
-      _id: v.id("map_settings"),
-      _creationTime: v.number(),
-      gridWidth: v.number(),
-      gridHeight: v.number(),
-      tileSize: v.number(),
-      metersPerTile: v.number(),
-      version: v.number(),
-      lastRegeneratedAt: v.optional(v.number()),
-      seed: v.optional(v.string()),
-    }),
+    v.object({ _id: v.id("map_settings"), _creationTime: v.number(), ...mapSettingsFields }),
     v.null()
   ),
   handler: async (ctx) => {
@@ -40,45 +31,7 @@ export const getTilesBatch = query({
   },
   returns: v.object({
     tiles: v.array(
-      v.object({
-        _id: v.id("map_tiles"),
-        _creationTime: v.number(),
-        x: v.number(),
-        y: v.number(),
-        tileType: v.union(
-          v.literal("floor"),
-          v.literal("wall"),
-          v.literal("door"),
-          v.literal("grass"),
-          v.literal("water"),
-          v.literal("path"),
-          v.literal("void"),
-          v.literal("tall_tree"),
-          v.literal("short_tree"),
-          v.literal("bush"),
-          v.literal("flower_bed"),
-          v.literal("concrete"),
-          v.literal("brick_path"),
-          v.literal("cafe_stall"),
-          v.literal("study_desk"),
-          v.literal("bookshelf"),
-          v.literal("lounge_chair"),
-          v.literal("laundry_machine"),
-          v.literal("lecture_seat"),
-          v.literal("library_desk"),
-          v.literal("dorm_bed"),
-          v.literal("kitchen_counter")
-        ),
-        isWalkable: v.boolean(),
-        visualVariant: v.optional(v.number()),
-        placeId: v.optional(v.id("places")),
-        metadata: v.optional(
-          v.object({
-            biome: v.optional(v.string()),
-            lightLevel: v.optional(v.number()),
-          })
-        ),
-      })
+      v.object({ _id: v.id("map_tiles"), _creationTime: v.number(), ...mapTileFields })
     ),
     batchIndex: v.number(),
     totalBatches: v.number(),
@@ -120,45 +73,7 @@ export const getTilesByRegion = query({
     height: v.number(),
   },
   returns: v.array(
-    v.object({
-      _id: v.id("map_tiles"),
-      _creationTime: v.number(),
-      x: v.number(),
-      y: v.number(),
-      tileType: v.union(
-        v.literal("floor"),
-        v.literal("wall"),
-        v.literal("door"),
-        v.literal("grass"),
-        v.literal("water"),
-        v.literal("path"),
-        v.literal("void"),
-        v.literal("tall_tree"),
-        v.literal("short_tree"),
-        v.literal("bush"),
-        v.literal("flower_bed"),
-        v.literal("concrete"),
-        v.literal("brick_path"),
-        v.literal("cafe_stall"),
-        v.literal("study_desk"),
-        v.literal("bookshelf"),
-        v.literal("lounge_chair"),
-        v.literal("laundry_machine"),
-        v.literal("lecture_seat"),
-        v.literal("library_desk"),
-        v.literal("dorm_bed"),
-        v.literal("kitchen_counter")
-      ),
-      isWalkable: v.boolean(),
-      visualVariant: v.optional(v.number()),
-      placeId: v.optional(v.id("places")),
-      metadata: v.optional(
-        v.object({
-          biome: v.optional(v.string()),
-          lightLevel: v.optional(v.number()),
-        })
-      ),
-    })
+    v.object({ _id: v.id("map_tiles"), _creationTime: v.number(), ...mapTileFields })
   ),
   handler: async (ctx, args) => {
     const { x, y, width, height } = args;
@@ -206,34 +121,7 @@ export const getTilesByRegion = query({
 export const getPlaces = query({
   args: {},
   returns: v.array(
-    v.object({
-      _id: v.id("places"),
-      _creationTime: v.number(),
-      kind: v.string(),
-      name: v.string(),
-      description: v.optional(v.string()),
-      bounds: v.object({
-        x: v.number(),
-        y: v.number(),
-        width: v.number(),
-        height: v.number(),
-      }),
-      entrances: v.array(
-        v.object({
-          x: v.number(),
-          y: v.number(),
-          facing: v.optional(v.string()),
-        })
-      ),
-      capacity: v.optional(v.number()),
-      isIndoor: v.boolean(),
-      metadata: v.optional(
-        v.object({
-          realWorldInspiration: v.optional(v.string()),
-          ambientSound: v.optional(v.string()),
-        })
-      ),
-    })
+    v.object({ _id: v.id("places"), _creationTime: v.number(), ...placeFields })
   ),
   handler: async (ctx) => {
     console.log("🔍 [CONVEX] getPlaces query START");

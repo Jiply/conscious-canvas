@@ -28,7 +28,7 @@ export default function InitPage() {
   const initMap = useMutation(api.map.initMap);
   const settings = useQuery(api.map.getMapSettings);
 
-  async function handleInit(force: boolean = false) {
+  async function handleInit(force = false) {
     setIsInitializing(true);
     setResult(null);
 
@@ -45,7 +45,7 @@ export default function InitPage() {
     }
   }
 
-  const isMapInitialized = settings !== undefined && settings !== null;
+  const isMapInitialized = settings != null;
 
   return (
     <div className="container mx-auto p-8 max-w-4xl">

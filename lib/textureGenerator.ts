@@ -13,9 +13,7 @@ export function getTileTexture(
   const cacheKey = `${tileType}_${variant}`;
 
   const cached = textureCache.get(cacheKey);
-  if (cached) {
-    return cached;
-  }
+  if (cached) return cached;
 
   const graphics = new Graphics();
   renderTile(graphics, 0, 0, tileSize, tileType, variant);

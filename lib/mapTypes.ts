@@ -60,21 +60,6 @@ export interface Tile {
   };
 }
 
-export interface Place {
-  _id: string;
-  kind: string;
-  name: string;
-  description?: string;
-  bounds: { x: number; y: number; width: number; height: number };
-  entrances: { x: number; y: number; facing?: "north" | "south" | "east" | "west" }[];
-  capacity?: number;
-  isIndoor: boolean;
-  metadata?: {
-    realWorldInspiration?: string;
-    ambientSound?: string;
-  };
-}
-
 export interface MapSettings {
   gridWidth: number;
   gridHeight: number;

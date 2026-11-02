@@ -39,12 +39,9 @@ export function PixiMap({
     if (!containerRef.current) return;
 
     const updateDimensions = () => {
-      if (containerRef.current) {
-        const { width, height } = containerRef.current.getBoundingClientRect();
-        if (width > 0 && height > 0) {
-          setDimensions({ width, height });
-        }
-      }
+      if (!containerRef.current) return;
+      const { width, height } = containerRef.current.getBoundingClientRect();
+      if (width > 0 && height > 0) setDimensions({ width, height });
     };
 
     updateDimensions();
@@ -71,7 +68,7 @@ export function PixiMap({
     totalTiles,
   } = useTileCache();
 
-  const mapSettings = useQuery(api.map.getMapSettings);
+  const mapSettings = useQuery(api.map.getMapSettings) ?? undefined;
   const places = useQuery(api.map.getPlaces);
 
   const {
@@ -87,35 +84,27 @@ export function PixiMap({
     resetCamera,
   } = useCamera({
     dimensions,
-    mapSettings: mapSettings ?? undefined,
+    mapSettings,
     canvasRef,
   });
 
   const agents = useQuery(api.agents.listAgents);
 
   useEffect(() => {
-    if (!mapSettings || !places || isCameraReady || dimensions.width === 0)
-      return;
+    if (!mapSettings || !places || isCameraReady || dimensions.width === 0) return;
 
     const tileSize = mapSettings.tileSize;
     const centralGreen = places.find((p) => p.kind === "quad");
+    if (!centralGreen) return;
 
-    if (centralGreen) {
-      const centerX =
-        (centralGreen.bounds.x + centralGreen.bounds.width / 2) * tileSize;
-      const centerY =
-        (centralGreen.bounds.y + centralGreen.bounds.height / 2) * tileSize;
-
-      const initialPos = {
-        x: dimensions.width / 2 - centerX,
-        y: dimensions.height / 2 - centerY,
-        scale: 1,
-      };
-
-      setCamera(initialPos);
-      setInitialCameraPos(initialPos);
-      setIsCameraReady(true);
-    }
+    const initialPos = {
+      x: dimensions.width / 2 - (centralGreen.bounds.x + centralGreen.bounds.width / 2) * tileSize,
+      y: dimensions.height / 2 - (centralGreen.bounds.y + centralGreen.bounds.height / 2) * tileSize,
+      scale: 1,
+    };
+    setCamera(initialPos);
+    setInitialCameraPos(initialPos);
+    setIsCameraReady(true);
   }, [
     mapSettings,
     places,
@@ -129,7 +118,7 @@ export function PixiMap({
   useTileRendererCached({
     tilesLayer: refs.tilesLayer,
     tiles: tileCache,
-    mapSettings: mapSettings ?? undefined,
+    mapSettings,
     isLoading: tilesLoading,
     renderer: refs.renderer,
     camera: debouncedCamera,
@@ -138,51 +127,41 @@ export function PixiMap({
 
   usePlaceRenderer({
     placesLayer: refs.placesLayer,
-    places: places as any,
-    mapSettings: mapSettings ?? undefined,
+    places,
+    mapSettings,
     isCameraReady,
   });
 
   useAgentRenderer({
     agentsLayer: refs.agentsLayer,
-    agents: agents,
-    mapSettings: mapSettings ?? undefined,
+    agents,
+    mapSettings,
     isCameraReady,
     onAgentClick,
   });
 
   useEffect(() => {
-    if (!refs.worldContainer || !isCameraReady) return;
-
-    if (refs.worldContainer && !refs.worldContainer.destroyed) {
-      refs.worldContainer.x = camera.x;
-      refs.worldContainer.y = camera.y;
-      refs.worldContainer.scale.set(camera.scale);
-    }
+    if (!refs.worldContainer || !isCameraReady || refs.worldContainer.destroyed) return;
+    refs.worldContainer.x = camera.x;
+    refs.worldContainer.y = camera.y;
+    refs.worldContainer.scale.set(camera.scale);
   }, [camera, isCameraReady, refs.worldContainer]);
 
   useEffect(() => {
     if (!centerOnLocation || !mapSettings || !isCameraReady) return;
 
     const tileSize = mapSettings.tileSize;
-    const targetX = centerOnLocation.x * tileSize;
-    const targetY = centerOnLocation.y * tileSize;
-
-    const newX = dimensions.width / 2 - targetX * camera.scale;
-    const newY = dimensions.height / 2 - targetY * camera.scale;
-
-    setCamera({ ...camera, x: newX, y: newY });
-
-    if (onCenterComplete) {
-      onCenterComplete();
-    }
+    setCamera({
+      ...camera,
+      x: dimensions.width / 2 - centerOnLocation.x * tileSize * camera.scale,
+      y: dimensions.height / 2 - centerOnLocation.y * tileSize * camera.scale,
+    });
+    onCenterComplete?.();
   }, [centerOnLocation, mapSettings, isCameraReady, dimensions, camera.scale]);
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === "s" || e.key === "S") {
-        setShowStats((prev) => !prev);
-      }
+      if (e.key === "s" || e.key === "S") setShowStats((prev) => !prev);
     };
 
     window.addEventListener("keypress", handleKeyPress);
@@ -219,8 +198,8 @@ export function PixiMap({
 
       <MapOverlays
         isLoading={isLoading}
-        mapSettings={mapSettings ?? undefined}
-        places={places as any}
+        mapSettings={mapSettings}
+        places={places}
         camera={camera}
         initialCameraPos={initialCameraPos}
         showStats={showStats}

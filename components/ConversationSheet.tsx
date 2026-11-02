@@ -5,30 +5,18 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import type { Id } from '@/convex/_generated/dataModel';
+import { getProfilePicture } from '@/lib/utils';
 import { Sheet, SheetTitle, SheetHeader, SheetContent, SheetDescription } from '@/components/ui/sheet';
 
-const AGENT_PROFILE_PICTURES: Record<string, string> = {
-  'Emma Kim': '/07.png',
-  'Maya Chen': '/01.png',
-  'Raj Patel': '/06.png',
-  'Zara Ahmed': '/03.png',
-  "Liam O'Brien": '/04.png',
-  'Sofia Martinez': '/05.png',
-  'Marcus Johnson': '/08.png',
-  'Prof. James Wilson': '/02.png',
-};
-
-const getProfilePicture = (agentName: string): string => {
-  return AGENT_PROFILE_PICTURES[agentName] || '/01.png';
-};
-
-interface ConversationSheetProps {
+export function ConversationSheet({
+  agentId,
+  open,
+  onOpenChange,
+}: {
   agentId: Id<'agents'> | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-}
-
-export function ConversationSheet({ agentId, open, onOpenChange }: ConversationSheetProps) {
+}) {
   const agent = useQuery(api.agents.getAgent, agentId ? { agentId } : 'skip');
   const conversation = useQuery(api.conversationsMutations.getAgentActiveConversation, agentId ? { agentId } : 'skip');
   const messages = useQuery(
@@ -218,9 +206,9 @@ export function ConversationSheet({ agentId, open, onOpenChange }: ConversationS
                 <h3 className="text-sm font-semibold mb-2">Goals</h3>
                 <div className="space-y-1">
                   {agent.goals
-                    .sort((a: any, b: any) => b.weight - a.weight)
+                    .sort((a, b) => b.weight - a.weight)
                     .slice(0, 5)
-                    .map((goal: any, idx: number) => (
+                    .map((goal, idx) => (
                       <div key={idx} className="flex justify-between text-sm">
                         <span>{goal.name}</span>
                         <Badge variant="outline" className="text-xs">

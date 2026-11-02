@@ -48,9 +48,7 @@ export const findPath = query({
       openList.sort((a, b) => a.f - b.f);
       const current = openList.shift()!;
 
-      if (current.x === goalX && current.y === goalY) {
-        return reconstructPath(current);
-      }
+      if (current.x === goalX && current.y === goalY) return reconstructPath(current);
 
       closedSet.add(`${current.x},${current.y}`);
 
@@ -115,9 +113,7 @@ async function getWalkableNeighbors(
       .withIndex("by_coordinates", (q: any) => q.eq("x", nx).eq("y", ny))
       .first();
 
-    if (tile && tile.isWalkable) {
-      neighbors.push({ x: nx, y: ny });
-    }
+    if (tile && tile.isWalkable) neighbors.push({ x: nx, y: ny });
   }
 
   return neighbors;

@@ -1,21 +1,8 @@
 import { useEffect, useRef } from "react";
 import { Sprite } from "pixi.js";
-import type { Container } from "pixi.js";
-import {
-  preGenerateAllTileTextures,
-  getTileTexture,
-} from "@/lib/textureGenerator";
+import type { Container, Renderer } from "pixi.js";
+import { getTileTexture, preGenerateAllTileTextures } from "@/lib/textureGenerator";
 import type { Tile, MapSettings } from "@/lib/mapTypes";
-
-interface UseTileRendererCachedOptions {
-  tilesLayer: Container | null;
-  tiles: Map<string, Tile>;
-  mapSettings: MapSettings | undefined;
-  isLoading: boolean;
-  renderer: any | null;
-  camera: { x: number; y: number; scale: number };
-  dimensions: { width: number; height: number };
-}
 
 export function useTileRendererCached({
   tilesLayer,
@@ -25,13 +12,20 @@ export function useTileRendererCached({
   renderer,
   camera,
   dimensions,
-}: UseTileRendererCachedOptions) {
+}: {
+  tilesLayer: Container | null;
+  tiles: Map<string, Tile>;
+  mapSettings: MapSettings | undefined;
+  isLoading: boolean;
+  renderer: Renderer | null;
+  camera: { x: number; y: number; scale: number };
+  dimensions: { width: number; height: number };
+}) {
   const renderedSprites = useRef<Map<string, Sprite>>(new Map());
   const hasPreRendered = useRef(false);
 
   useEffect(() => {
     if (!renderer || !mapSettings) return;
-
     preGenerateAllTileTextures(renderer, mapSettings.tileSize, 3);
   }, [renderer, mapSettings]);
 
@@ -41,33 +35,21 @@ export function useTileRendererCached({
     if (tiles.size === 0) return;
 
     const tileSize = mapSettings.tileSize;
-    let spritesCreated = 0;
 
     try {
       for (const [key, tile] of tiles.entries()) {
         if (renderedSprites.current.has(key)) continue;
 
-        const texture = getTileTexture(
-          renderer,
-          tile.tileType,
-          tileSize,
-          tile.visualVariant || 0
-        );
-
-        const sprite = new Sprite(texture);
+        const sprite = new Sprite(getTileTexture(renderer, tile.tileType, tileSize, tile.visualVariant || 0));
         sprite.x = tile.x * tileSize;
         sprite.y = tile.y * tileSize;
-
         sprite.visible = true;
-
         tilesLayer.addChild(sprite);
         renderedSprites.current.set(key, sprite);
-        spritesCreated++;
       }
 
       hasPreRendered.current = true;
-    } catch (error) {
-    }
+    } catch {}
   }, [tilesLayer, tiles, mapSettings, isLoading, renderer]);
 
   useEffect(() => {
@@ -93,35 +75,20 @@ export function useTileRendererCached({
       Math.ceil(viewportBottom / tileSize) + padding
     );
 
-    let visibleCount = 0;
-    let hiddenCount = 0;
-
     for (const [key, sprite] of renderedSprites.current.entries()) {
       if (sprite.destroyed) continue;
 
       const [xStr, yStr] = key.split(",");
       const tileX = parseInt(xStr);
       const tileY = parseInt(yStr);
-
-      const isVisible =
-        tileX >= minX && tileX < maxX && tileY >= minY && tileY < maxY;
-
-      sprite.visible = isVisible;
-
-      if (isVisible) {
-        visibleCount++;
-      } else {
-        hiddenCount++;
-      }
+      sprite.visible = tileX >= minX && tileX < maxX && tileY >= minY && tileY < maxY;
     }
   }, [camera, dimensions, mapSettings]);
 
   useEffect(() => {
     return () => {
       for (const sprite of renderedSprites.current.values()) {
-        if (!sprite.destroyed) {
-          sprite.destroy();
-        }
+        if (!sprite.destroyed) sprite.destroy();
       }
       renderedSprites.current.clear();
       hasPreRendered.current = false;

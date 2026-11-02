@@ -688,9 +688,7 @@ export const initializeMap = internalMutation({
             visualVariant: (x * 13 + y * 17) % 3,
           };
 
-          if (isIndoor && placeId && kind !== "dorm") {
-            (tiles[tileIndex] as any).placeId = placeId;
-          }
+          if (isIndoor && placeId && kind !== "dorm") (tiles[tileIndex] as any).placeId = placeId;
         }
       }
     }
@@ -737,9 +735,7 @@ export const initializeMap = internalMutation({
             visualVariant: (x * 7 + y * 11) % 2,
           };
 
-          if (roomId) {
-            (tiles[tileIndex] as any).placeId = roomId;
-          }
+          if (roomId) (tiles[tileIndex] as any).placeId = roomId;
         }
       }
     }
@@ -793,9 +789,7 @@ export const initializeMap = internalMutation({
             visualVariant: (x * 13 + y * 17) % 3,
           };
 
-          if (areaId) {
-            (tiles[tileIndex] as any).placeId = areaId;
-          }
+          if (areaId) (tiles[tileIndex] as any).placeId = areaId;
         }
       }
     }

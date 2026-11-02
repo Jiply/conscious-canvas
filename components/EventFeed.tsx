@@ -1,5 +1,4 @@
 "use client";
-import { Fragment } from "react";
 import { useQuery } from "convex/react";
 import { MessageCircle } from "lucide-react";
 import { api } from "@/convex/_generated/api";
@@ -11,21 +10,13 @@ export function EventFeed() {
     { limit: 15 }
   );
 
-  const getStatusColor = (status: "active" | "completed") => {
-    switch (status) {
-      case "active":
-        return "bg-green-500/10 text-green-500 border-green-500/20";
-      case "completed":
-        return "bg-gray-500/10 text-gray-500 border-gray-500/20";
-      default:
-        return "bg-gray-500/10 text-gray-500 border-gray-500/20";
-    }
-  };
+  const getStatusColor = (status: "active" | "completed") =>
+    status === "active"
+      ? "bg-green-500/10 text-green-500 border-green-500/20"
+      : "bg-gray-500/10 text-gray-500 border-gray-500/20";
 
   const formatTimestamp = (timestamp: number) => {
-    const now = Date.now();
-    const diff = now - timestamp;
-
+    const diff = Date.now() - timestamp;
     if (diff < 1000) return "just now";
     if (diff < 60000) return `${Math.floor(diff / 1000)}s ago`;
     if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
@@ -33,7 +24,7 @@ export function EventFeed() {
   };
 
   return (
-    <Fragment>
+    <>
       <div className="flex items-center justify-between px-4 py-2 border-b">
         <h3 className="text-sm font-semibold">Recent Conversations</h3>
         <Badge variant="outline" className="font-mono text-xs">
@@ -80,6 +71,6 @@ export function EventFeed() {
           )}
         </div>
       </div>
-    </Fragment>
+    </>
   );
 }

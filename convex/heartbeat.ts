@@ -219,9 +219,7 @@ async function executePathMovement(ctx: any, agent: Doc<"agents">) {
         completedAt: Date.now(),
       });
 
-      if (activeDecision.targetPlaceId) {
-        await performActionAtPlace(ctx, agent, activeDecision.targetPlaceId);
-      }
+      if (activeDecision.targetPlaceId) await performActionAtPlace(ctx, agent, activeDecision.targetPlaceId);
     }
   }
 }
@@ -244,13 +242,9 @@ async function performActionAtPlace(
   placeId: string
 ) {
   const place = await ctx.db.get(placeId);
-  if (!place) {
-    return;
-  }
+  if (!place) return;
 
-  if (!isAgentInPlace(agent.pos, place.bounds)) {
-    return;
-  }
+  if (!isAgentInPlace(agent.pos, place.bounds)) return;
 
   const placeKind = place.kind.toLowerCase();
   let actionPerformed = false;
@@ -301,9 +295,7 @@ async function makeAgentDecision(
     .order("desc")
     .first();
 
-  if (activeDecision && !activeDecision.completedAt) {
-    return;
-  }
+  if (activeDecision && !activeDecision.completedAt) return;
 
   try {
     await ctx.scheduler.runAfter(0, api.llm.makeAgentDecision, {
@@ -390,9 +382,7 @@ async function checkLineOfSight(
         .withIndex("by_coordinates", (q: any) => q.eq("x", x).eq("y", y))
         .first();
 
-      if (tile && !tile.isWalkable) {
-        return false;
-      }
+      if (tile && !tile.isWalkable) return false;
 
       const blockingAgent = allAgents.find(
         (a) =>
@@ -401,9 +391,7 @@ async function checkLineOfSight(
           Math.round(a.pos.y) === y
       );
 
-      if (blockingAgent) {
-        return false;
-      }
+      if (blockingAgent) return false;
     }
 
     if (x === x1 && y === y1) break;

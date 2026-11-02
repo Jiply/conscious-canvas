@@ -1,17 +1,11 @@
 import { v } from "convex/values";
+import { decisionFields } from "./schema";
 import { mutation, query } from "./_generated/server";
 
 export const addDecision = mutation({
   args: {
     agentId: v.id("agents"),
-    action: v.union(
-      v.literal("MoveTo"),
-      v.literal("EngageConversation"),
-      v.literal("Study"),
-      v.literal("Eat"),
-      v.literal("Idle"),
-      v.literal("Sleep")
-    ),
+    action: decisionFields.action,
     targetPlaceId: v.optional(v.id("places")),
     targetAgentId: v.optional(v.id("agents")),
     utterance: v.optional(v.string()),
@@ -123,25 +117,7 @@ export const getDecisionHistory = query({
     limit: v.optional(v.number()),
   },
   returns: v.array(
-    v.object({
-      _id: v.id("decisions"),
-      _creationTime: v.number(),
-      agentId: v.id("agents"),
-      action: v.union(
-        v.literal("MoveTo"),
-        v.literal("EngageConversation"),
-        v.literal("Study"),
-        v.literal("Eat"),
-        v.literal("Idle"),
-        v.literal("Sleep")
-      ),
-      targetPlaceId: v.optional(v.id("places")),
-      targetAgentId: v.optional(v.id("agents")),
-      utterance: v.optional(v.string()),
-      innerThought: v.optional(v.string()),
-      completedAt: v.optional(v.number()),
-      llmLatencyMs: v.optional(v.number()),
-    })
+    v.object({ _id: v.id("decisions"), _creationTime: v.number(), ...decisionFields })
   ),
   handler: async (ctx, args) => {
     const limit = args.limit ?? 10;

@@ -1,35 +1,7 @@
 import { useRef, useEffect } from "react";
+import { getProfilePicture } from "@/lib/utils";
 import type { Id, Doc } from "@/convex/_generated/dataModel";
 import { Text, Assets, Sprite, Graphics, Container, TextStyle } from "pixi.js";
-
-type AgentRendererProps = {
-  agentsLayer: Container | null;
-  agents: Doc<`agents`>[] | undefined;
-  isCameraReady: boolean;
-  onAgentClick?: (agentId: Id<`agents`>) => void;
-  mapSettings:
-    | {
-        tileSize: number;
-        gridWidth: number;
-        gridHeight: number;
-      }
-    | undefined;
-};
-
-const AGENT_PROFILE_PICTURES: Record<string, string> = {
-  "Maya Chen": "/01.png",
-  "Prof. James Wilson": "/02.png",
-  "Zara Ahmed": "/03.png",
-  "Liam O'Brien": "/04.png",
-  "Sofia Martinez": "/05.png",
-  "Raj Patel": "/06.png",
-  "Emma Kim": "/07.png",
-  "Marcus Johnson": "/08.png",
-};
-
-const getProfilePicture = (agentName: string): string => {
-  return AGENT_PROFILE_PICTURES[agentName] || `/01.png`;
-};
 
 type AgentData = {
   animationStartTime: number;
@@ -37,7 +9,6 @@ type AgentData = {
   wobbleOffsetY: number;
   container: Container;
   wobbleSpeed: number;
-  headingRad: number;
   targetX: number;
   targetY: number;
   startX: number;
@@ -50,7 +21,13 @@ export function useAgentRenderer({
   mapSettings,
   onAgentClick,
   isCameraReady,
-}: AgentRendererProps) {
+}: {
+  agentsLayer: Container | null;
+  agents: Doc<`agents`>[] | undefined;
+  isCameraReady: boolean;
+  onAgentClick?: (agentId: Id<`agents`>) => void;
+  mapSettings: { tileSize: number } | undefined;
+}) {
   const agentContainersRef = useRef<Map<string, AgentData>>(new Map());
 
   useEffect(() => {
@@ -71,14 +48,11 @@ export function useAgentRenderer({
         agentsLayer.addChild(agentContainer);
 
         const visionRadius = new Graphics();
-        const radiusInPixels = 20 * tileSize;
-        visionRadius.circle(0, 0, radiusInPixels);
+        visionRadius.circle(0, 0, 20 * tileSize);
         visionRadius.fill({ color: 0x3b82f6, alpha: 0.08 });
         visionRadius.stroke({ width: 2, color: 0x3b82f6, alpha: 0.25 });
         visionRadius.eventMode = "none";
         agentContainer.addChild(visionRadius);
-
-        const profilePicUrl = getProfilePicture(a.name);
 
         const profileContainer = new Container();
         profileContainer.eventMode = "static";
@@ -93,7 +67,6 @@ export function useAgentRenderer({
 
         const profileSprite = new Sprite();
         profileSprite.anchor.set(0.5);
-        profileSprite.position.set(0, 0);
 
         const circleMask = new Graphics();
         circleMask.circle(0, 0, 16);
@@ -104,19 +77,14 @@ export function useAgentRenderer({
         profileContainer.addChild(circleMask);
         profileSprite.mask = circleMask;
 
-        Assets.load(profilePicUrl)
+        Assets.load(getProfilePicture(a.name))
           .then((texture) => {
-            if (!profileSprite.destroyed) {
-              profileSprite.texture = texture;
-
-              const diameter = 32;
-              profileSprite.width = diameter;
-              profileSprite.height = diameter;
-            }
+            if (profileSprite.destroyed) return;
+            profileSprite.texture = texture;
+            profileSprite.width = 32;
+            profileSprite.height = 32;
           })
-          .catch((error) => {
-            console.error(`  ❌ Failed to load texture for ${a.name}:`, error);
-          });
+          .catch((error) => console.error(`  ❌ Failed to load texture for ${a.name}:`, error));
 
         const border = new Graphics();
         border.circle(0, 0, 16);
@@ -129,17 +97,15 @@ export function useAgentRenderer({
 
         agentContainer.addChild(profileContainer);
 
-        const labelStyle = new TextStyle({
-          fontFamily: "Arial, sans-serif",
-          fontSize: 11,
-          fontWeight: "bold",
-          fill: 0xffffff,
-          stroke: { color: 0x000000, width: 2.5 },
-        });
-
         const label = new Text({
           text: a.name,
-          style: labelStyle,
+          style: new TextStyle({
+            fontFamily: "Arial, sans-serif",
+            fontSize: 11,
+            fontWeight: "bold",
+            fill: 0xffffff,
+            stroke: { color: 0x000000, width: 2.5 },
+          }),
         });
         label.anchor.set(0.5);
         label.y = -22;
@@ -159,7 +125,6 @@ export function useAgentRenderer({
           wobbleOffsetX: Math.random() * Math.PI * 2,
           wobbleOffsetY: Math.random() * Math.PI * 2,
           wobbleSpeed: 0.8 + Math.random() * 0.4,
-          headingRad: a.headingRad,
         };
         agentContainers.set(a._id, agentData);
 
@@ -168,49 +133,28 @@ export function useAgentRenderer({
         const duration = 250;
 
         const fadeIn = () => {
-          const elapsed = Date.now() - startTime;
-          const progress = Math.min(elapsed / duration, 1);
-
+          const progress = Math.min((Date.now() - startTime) / duration, 1);
           if (agentContainer.destroyed) return;
-
           agentContainer.alpha = progress;
-
-          if (progress < 1) {
-            requestAnimationFrame(fadeIn);
-          }
+          if (progress < 1) requestAnimationFrame(fadeIn);
         };
         requestAnimationFrame(fadeIn);
-      } else {
-        const targetChanged =
-          Math.abs(agentData.targetX - targetX) > 0.1 ||
-          Math.abs(agentData.targetY - targetY) > 0.1;
-
-        if (
-          targetChanged &&
-          agentData.container &&
-          !agentData.container.destroyed
-        ) {
-          agentData.startX = agentData.container.x;
-          agentData.startY = agentData.container.y;
-          agentData.targetX = targetX;
-          agentData.targetY = targetY;
-          agentData.animationStartTime = performance.now();
-        }
-
-        if (Math.abs(agentData.headingRad - a.headingRad) > 0.01) {
-          agentData.headingRad = a.headingRad;
-        }
+      } else if (
+        (Math.abs(agentData.targetX - targetX) > 0.1 || Math.abs(agentData.targetY - targetY) > 0.1) &&
+        !agentData.container.destroyed
+      ) {
+        agentData.startX = agentData.container.x;
+        agentData.startY = agentData.container.y;
+        agentData.targetX = targetX;
+        agentData.targetY = targetY;
+        agentData.animationStartTime = performance.now();
       }
     });
 
     for (const [agentId, agentData] of agentContainers.entries()) {
-      if (!activeAgentIds.has(agentId)) {
-        agentData.container.visible = false;
-        agentData.container.alpha = 0;
-      } else {
-        agentData.container.visible = true;
-        agentData.container.alpha = 1;
-      }
+      const isActive = activeAgentIds.has(agentId);
+      agentData.container.visible = isActive;
+      agentData.container.alpha = isActive ? 1 : 0;
     }
   }, [agents, mapSettings, isCameraReady, agentsLayer]);
 
@@ -224,24 +168,10 @@ export function useAgentRenderer({
 
     const animate = () => {
       const now = performance.now();
-      const agentContainers = agentContainersRef.current;
+      for (const agentData of agentContainersRef.current.values()) {
+        if (agentData.container.destroyed || !agentData.container.visible) continue;
 
-      const validAgentData: AgentData[] = [];
-
-      for (const agentData of agentContainers.values()) {
-        if (
-          !agentData.container ||
-          agentData.container.destroyed ||
-          !agentData.container.visible
-        ) {
-          continue;
-        }
-
-        validAgentData.push(agentData);
-
-        const elapsed = now - agentData.animationStartTime;
-        const progress = Math.min(elapsed / ANIMATION_DURATION, 1);
-
+        const progress = Math.min((now - agentData.animationStartTime) / ANIMATION_DURATION, 1);
         const currentX =
           agentData.startX + (agentData.targetX - agentData.startX) * progress;
         const currentY =
@@ -258,10 +188,8 @@ export function useAgentRenderer({
               agentData.wobbleOffsetY
           ) * WOBBLE_AMPLITUDE;
 
-        if (agentData.container && !agentData.container.destroyed) {
-          agentData.container.x = currentX + wobbleX;
-          agentData.container.y = currentY + wobbleY;
-        }
+        agentData.container.x = currentX + wobbleX;
+        agentData.container.y = currentY + wobbleY;
       }
 
       animationFrameId = requestAnimationFrame(animate);
@@ -270,9 +198,7 @@ export function useAgentRenderer({
     animationFrameId = requestAnimationFrame(animate);
 
     return () => {
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-      }
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
     };
   }, [agentsLayer, isCameraReady]);
 }

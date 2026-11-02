@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { conversationFields, messageFields } from "./schema";
 import { mutation, query } from "./_generated/server";
 
 export const createConversation = mutation({
@@ -11,9 +12,7 @@ export const createConversation = mutation({
     const initiator = await ctx.db.get(args.initiatorId);
     const target = await ctx.db.get(args.targetId);
 
-    if (!initiator || !target) {
-      throw new Error("One or both agents not found");
-    }
+    if (!initiator || !target) throw new Error("One or both agents not found");
 
     const conversationId = await ctx.db.insert("conversations", {
       participantIds: [args.initiatorId, args.targetId],
@@ -48,18 +47,12 @@ export const addMessage = mutation({
   returns: v.id("messages"),
   handler: async (ctx, args) => {
     const conversation = await ctx.db.get(args.conversationId);
-    if (!conversation) {
-      throw new Error("Conversation not found");
-    }
+    if (!conversation) throw new Error("Conversation not found");
 
-    if (conversation.status !== "active") {
-      throw new Error("Cannot add message to completed conversation");
-    }
+    if (conversation.status !== "active") throw new Error("Cannot add message to completed conversation");
 
     const agent = await ctx.db.get(args.agentId);
-    if (!agent) {
-      throw new Error("Agent not found");
-    }
+    if (!agent) throw new Error("Agent not found");
 
     const messageId = await ctx.db.insert("messages", {
       conversationId: args.conversationId,
@@ -88,9 +81,7 @@ export const completeConversation = mutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const conversation = await ctx.db.get(args.conversationId);
-    if (!conversation) {
-      throw new Error("Conversation not found");
-    }
+    if (!conversation) throw new Error("Conversation not found");
 
     await ctx.db.patch(args.conversationId, {
       status: "completed",
@@ -116,21 +107,7 @@ export const getConversationMessages = query({
     conversationId: v.id("conversations"),
   },
   returns: v.array(
-    v.object({
-      _id: v.id("messages"),
-      _creationTime: v.number(),
-      conversationId: v.id("conversations"),
-      agentId: v.id("agents"),
-      content: v.string(),
-      emotionSnapshot: v.optional(
-        v.object({
-          valence: v.number(),
-          arousal: v.number(),
-        })
-      ),
-      continueConversation: v.boolean(),
-      reasonForLeaving: v.optional(v.string()),
-    })
+    v.object({ _id: v.id("messages"), _creationTime: v.number(), ...messageFields })
   ),
   handler: async (ctx, args) => {
     return await ctx.db
@@ -148,24 +125,12 @@ export const getAgentActiveConversation = query({
     agentId: v.id("agents"),
   },
   returns: v.union(
-    v.object({
-      _id: v.id("conversations"),
-      _creationTime: v.number(),
-      participantIds: v.array(v.id("agents")),
-      status: v.union(v.literal("active"), v.literal("completed")),
-      startedAt: v.number(),
-      completedAt: v.optional(v.number()),
-      location: v.optional(v.object({ x: v.number(), y: v.number() })),
-      nearestPlaceId: v.optional(v.id("places")),
-      turnCount: v.number(),
-    }),
+    v.object({ _id: v.id("conversations"), _creationTime: v.number(), ...conversationFields }),
     v.null()
   ),
   handler: async (ctx, args) => {
     const agent = await ctx.db.get(args.agentId);
-    if (!agent || !agent.currentConversationId) {
-      return null;
-    }
+    if (!agent || !agent.currentConversationId) return null;
 
     return await ctx.db.get(agent.currentConversationId);
   },
@@ -180,7 +145,7 @@ export const getRecentConversations = query({
       _id: v.id("conversations"),
       _creationTime: v.number(),
       participantNames: v.array(v.string()),
-      status: v.union(v.literal("active"), v.literal("completed")),
+      status: conversationFields.status,
       startedAt: v.number(),
       completedAt: v.optional(v.number()),
       turnCount: v.number(),
@@ -197,9 +162,7 @@ export const getRecentConversations = query({
       const participantNames: Array<string> = [];
       for (const participantId of conversation.participantIds) {
         const agent = await ctx.db.get(participantId);
-        if (agent) {
-          participantNames.push(agent.name);
-        }
+        if (agent) participantNames.push(agent.name);
       }
 
       conversationsWithNames.push({
