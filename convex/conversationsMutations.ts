@@ -1,12 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
-// ========== MUTATIONS ==========
-
-/**
- * Create a new conversation between two agents
- * Called when an agent decides to EngageConversation
- */
 export const createConversation = mutation({
   args: {
     initiatorId: v.id("agents"),
@@ -14,7 +8,6 @@ export const createConversation = mutation({
   },
   returns: v.id("conversations"),
   handler: async (ctx, args) => {
-    // Get agent positions for location tracking
     const initiator = await ctx.db.get(args.initiatorId);
     const target = await ctx.db.get(args.targetId);
 
@@ -22,16 +15,14 @@ export const createConversation = mutation({
       throw new Error("One or both agents not found");
     }
 
-    // Create conversation
     const conversationId = await ctx.db.insert("conversations", {
       participantIds: [args.initiatorId, args.targetId],
       status: "active",
       startedAt: Date.now(),
-      location: initiator.pos, // Use initiator's position
+      location: initiator.pos,
       turnCount: 0,
     });
 
-    // Update both agents to reference this conversation
     await ctx.db.patch(args.initiatorId, {
       currentConversationId: conversationId,
       state: "Interact",
@@ -46,9 +37,6 @@ export const createConversation = mutation({
   },
 });
 
-/**
- * Add a message to an active conversation
- */
 export const addMessage = mutation({
   args: {
     conversationId: v.id("conversations"),
@@ -73,7 +61,6 @@ export const addMessage = mutation({
       throw new Error("Agent not found");
     }
 
-    // Create message with emotion snapshot
     const messageId = await ctx.db.insert("messages", {
       conversationId: args.conversationId,
       agentId: args.agentId,
@@ -86,7 +73,6 @@ export const addMessage = mutation({
       reasonForLeaving: args.reasonForLeaving,
     });
 
-    // Increment turn count
     await ctx.db.patch(args.conversationId, {
       turnCount: conversation.turnCount + 1,
     });
@@ -95,9 +81,6 @@ export const addMessage = mutation({
   },
 });
 
-/**
- * Complete a conversation and clean up agent references
- */
 export const completeConversation = mutation({
   args: {
     conversationId: v.id("conversations"),
@@ -109,13 +92,11 @@ export const completeConversation = mutation({
       throw new Error("Conversation not found");
     }
 
-    // Mark conversation as completed
     await ctx.db.patch(args.conversationId, {
       status: "completed",
       completedAt: Date.now(),
     });
 
-    // Clear conversation references from all participants
     for (const participantId of conversation.participantIds) {
       const agent = await ctx.db.get(participantId);
       if (agent && agent.currentConversationId === args.conversationId) {
@@ -130,11 +111,6 @@ export const completeConversation = mutation({
   },
 });
 
-// ========== QUERIES ==========
-
-/**
- * Get all messages in a conversation (ordered by creation time)
- */
 export const getConversationMessages = query({
   args: {
     conversationId: v.id("conversations"),
@@ -167,9 +143,6 @@ export const getConversationMessages = query({
   },
 });
 
-/**
- * Get active conversation for an agent (if any)
- */
 export const getAgentActiveConversation = query({
   args: {
     agentId: v.id("agents"),
@@ -198,10 +171,6 @@ export const getAgentActiveConversation = query({
   },
 });
 
-/**
- * Get recent conversations with participant names
- * Used for displaying recent activity in the UI
- */
 export const getRecentConversations = query({
   args: {
     limit: v.number(),
@@ -218,13 +187,11 @@ export const getRecentConversations = query({
     })
   ),
   handler: async (ctx, args) => {
-    // Get recent conversations sorted by creation time (most recent first)
     const conversations = await ctx.db
       .query("conversations")
       .order("desc")
       .take(args.limit);
 
-    // Fetch participant names for each conversation
     const conversationsWithNames = [];
     for (const conversation of conversations) {
       const participantNames: Array<string> = [];

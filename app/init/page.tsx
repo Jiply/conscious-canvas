@@ -57,7 +57,6 @@ export default function InitPage() {
             rooms
           </p>
         </div>
-        {/* Status Card */}
         <Card>
           <CardHeader>
             <CardTitle>Database Status</CardTitle>
@@ -153,7 +152,6 @@ export default function InitPage() {
             ) : null}
           </CardContent>
         </Card>
-        {/* Result Card */}
         {result ? (
           <Card
             className={result.success ? "border-green-500" : "border-red-500"}
@@ -184,7 +182,6 @@ export default function InitPage() {
             </CardContent>
           </Card>
         ) : null}
-        {/* Actions */}
         <Card>
           <CardHeader>
             <CardTitle>Actions</CardTitle>
@@ -228,7 +225,6 @@ export default function InitPage() {
             ) : null}
           </CardContent>
         </Card>
-        {/* Place List */}
         {places && places.length > 0 ? (
           <Card>
             <CardHeader>

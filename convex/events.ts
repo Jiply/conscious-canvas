@@ -1,9 +1,6 @@
 import { v } from "convex/values";
 import { mutation } from "./_generated/server";
 
-/**
- * Clear old events (optional cleanup)
- */
 export const clearOldEvents = mutation({
   args: {
     olderThanMs: v.number(),

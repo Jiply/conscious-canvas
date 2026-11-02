@@ -1,11 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
-// ========== MUTATIONS ==========
-
-/**
- * Prune old observations (keep only last N per agent)
- */
 export const pruneObservations = mutation({
   args: {
     agentId: v.id("agents"),
@@ -19,7 +14,6 @@ export const pruneObservations = mutation({
       .order("desc")
       .collect();
 
-    // Delete all except the most recent keepCount
     const toDelete = observations.slice(args.keepCount);
     for (const obs of toDelete) {
       await ctx.db.delete(obs._id);
@@ -29,11 +23,6 @@ export const pruneObservations = mutation({
   },
 });
 
-// ========== QUERIES ==========
-
-/**
- * Get recent observations for an agent
- */
 export const getRecentObservations = query({
   args: {
     agentId: v.id("agents"),

@@ -1,10 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
-/**
- * Register or update observer heartbeat
- * Called by frontend every 5 seconds while page is open
- */
 export const heartbeat = mutation({
   args: {
     sessionId: v.string(),
@@ -16,19 +12,16 @@ export const heartbeat = mutation({
   handler: async (ctx, args) => {
     const now = Date.now();
 
-    // Find existing observer by sessionId
     const existing = await ctx.db
       .query("observer")
       .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
       .first();
 
     if (existing) {
-      // Update existing observer's heartbeat
       await ctx.db.patch(existing._id, {
         lastHeartbeatAt: now,
       });
     } else {
-      // Create new observer
       await ctx.db.insert("observer", {
         sessionId: args.sessionId,
         lastHeartbeatAt: now,
@@ -37,7 +30,6 @@ export const heartbeat = mutation({
         },
       });
 
-      // Log observer join event
       await ctx.db.insert("events", {
         timestamp: now,
         type: "world",
@@ -48,8 +40,7 @@ export const heartbeat = mutation({
       });
     }
 
-    // Count active observers (heartbeat within last 15 seconds)
-    const cutoff = now - 15000; // 15 seconds timeout
+    const cutoff = now - 15000;
     const activeObservers = await ctx.db
       .query("observer")
       .withIndex("by_heartbeat")
@@ -58,16 +49,14 @@ export const heartbeat = mutation({
 
     const observerCount = activeObservers.length;
 
-    // Update world settings based on observer count
     let worldSettings = await ctx.db.query("world_settings").first();
 
     if (!worldSettings) {
-      // Create world settings if it doesn't exist
       await ctx.db.insert("world_settings", {
         isRunning: observerCount > 0,
         observerCount: observerCount,
         adminEnabled: true,
-        tickHz: 0.2, // 1 tick every 5 seconds
+        tickHz: 0.2,
         currentTick: 0,
         simulationStartedAt: observerCount > 0 ? now : undefined,
         lastTickAt: undefined,
@@ -76,7 +65,6 @@ export const heartbeat = mutation({
       const wasRunning = worldSettings.isRunning;
       const shouldRun = observerCount > 0 && worldSettings.adminEnabled;
 
-      // Log state transitions with timestamp
       if (!wasRunning && shouldRun) {
         const timestamp = new Date(now).toLocaleTimeString("en-US", {
           hour12: false,
@@ -85,7 +73,6 @@ export const heartbeat = mutation({
           `⏰ [${timestamp}] 🌍 World AWAKENS: ${observerCount} ${observerCount === 1 ? "observer" : "observers"} watching`
         );
 
-        // Log world start event
         await ctx.db.insert("events", {
           timestamp: now,
           type: "world",
@@ -102,7 +89,6 @@ export const heartbeat = mutation({
           `⏰ [${timestamp}] 🧊 Universe FROZEN: No observers remain`
         );
 
-        // Log world freeze event
         await ctx.db.insert("events", {
           timestamp: now,
           type: "world",
@@ -128,9 +114,6 @@ export const heartbeat = mutation({
   },
 });
 
-/**
- * Get world running state
- */
 export const getWorldState = query({
   args: {},
   returns: v.object({
@@ -157,9 +140,6 @@ export const getWorldState = query({
   },
 });
 
-/**
- * Admin toggle to enable/disable simulation
- */
 export const toggleAdmin = mutation({
   args: {
     enabled: v.boolean(),
@@ -184,7 +164,6 @@ export const toggleAdmin = mutation({
       });
     }
 
-    // Log admin action
     await ctx.db.insert("events", {
       timestamp: now,
       type: "world",
@@ -200,15 +179,12 @@ export const toggleAdmin = mutation({
   },
 });
 
-/**
- * Clean up stale observers (optional maintenance)
- */
 export const cleanupStaleObservers = mutation({
   args: {},
   returns: v.number(),
   handler: async (ctx) => {
     const now = Date.now();
-    const cutoff = now - 60000; // 1 minute timeout
+    const cutoff = now - 60000;
 
     const staleObservers = await ctx.db
       .query("observer")

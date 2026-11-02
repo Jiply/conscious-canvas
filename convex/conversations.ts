@@ -4,12 +4,6 @@ import { v } from "convex/values";
 import { api } from "./_generated/api";
 import { internalAction } from "./_generated/server";
 
-// ========== INTERNAL ACTIONS (LLM-POWERED) ==========
-
-/**
- * Process a conversation turn for an agent
- * This is called by the heartbeat system for agents in active conversations
- */
 export const processConversationTurn = internalAction({
   args: {
     agentId: v.id("agents"),
@@ -21,7 +15,6 @@ export const processConversationTurn = internalAction({
   }),
   handler: async (ctx, args) => {
 
-    // 1. Gather context
     const agent = await ctx.runQuery(api.agents.getAgent, {
       agentId: args.agentId,
     });
@@ -35,7 +28,6 @@ export const processConversationTurn = internalAction({
     );
     if (!conversation) throw new Error("No active conversation");
 
-    // Get conversation history
     const messages = await ctx.runQuery(
       api.conversationsMutations.getConversationMessages,
       {
@@ -43,7 +35,6 @@ export const processConversationTurn = internalAction({
       }
     );
 
-    // Get the other participant
     const otherParticipantId = conversation.participantIds.find(
       (id) => id !== args.agentId
     );
@@ -54,7 +45,6 @@ export const processConversationTurn = internalAction({
     });
     if (!otherAgent) throw new Error("Other agent not found");
 
-    // Get opinion of the other agent
     const opinions = await ctx.runQuery(api.opinions.getAgentOpinions, {
       agentId: args.agentId,
     });
@@ -62,7 +52,6 @@ export const processConversationTurn = internalAction({
       (op) => op.targetAgentId === otherParticipantId
     );
 
-    // Get recent observations
     const observations = await ctx.runQuery(
       api.observations.getRecentObservations,
       {
@@ -71,13 +60,11 @@ export const processConversationTurn = internalAction({
       }
     );
 
-    // Get recent decisions
     const decisions = await ctx.runQuery(api.decisions.getDecisionHistory, {
       agentId: args.agentId,
       limit: 3,
     });
 
-    // 2. Call LLM to generate next message
     let response;
     try {
       response = await generateConversationMessage(
@@ -88,7 +75,6 @@ export const processConversationTurn = internalAction({
         observations,
         decisions
       );
-      // Log conversation thoughts and message for public display
       if ((response as any).thoughts) {
         console.log(
           `💭 ${agent.name} (thinking): ${(response as any).thoughts}`
@@ -104,7 +90,6 @@ export const processConversationTurn = internalAction({
       );
     }
 
-    // 3. Add message to conversation
     await ctx.runMutation(api.conversationsMutations.addMessage, {
       conversationId: args.conversationId,
       agentId: args.agentId,
@@ -113,7 +98,6 @@ export const processConversationTurn = internalAction({
       reasonForLeaving: response.reasonForLeaving,
     });
 
-    // 4. Update emotion if provided
     if (response.emotionDelta) {
       await ctx.runMutation(api.agents.updateAgentEmotions, {
         agentId: args.agentId,
@@ -128,7 +112,6 @@ export const processConversationTurn = internalAction({
       });
     }
 
-    // 5. If agent wants to leave, complete the conversation
     if (!response.continueConversation) {
       await ctx.runMutation(api.conversationsMutations.completeConversation, {
         conversationId: args.conversationId,
@@ -142,11 +125,6 @@ export const processConversationTurn = internalAction({
   },
 });
 
-// ========== HELPER FUNCTIONS ==========
-
-/**
- * Build system prompt for conversation
- */
 function buildConversationSystemPrompt(): string {
   return `You are a real human being partaking in campus life.
 Now, you are talking in real lifeto someone else who can be found on campus.
@@ -175,9 +153,6 @@ IMPORTANT RULES:
 5. If you have nothing more to say to your conversation partner (which can include not wanting to ask more questions), or the conversation feels done (judged generally by Grice's Maxims), set continueConversation to false, so you can go about your way.`;
 }
 
-/**
- * Build user prompt for conversation turn
- */
 function buildConversationPrompt(
   agent: any,
   otherAgent: any,
@@ -186,7 +161,6 @@ function buildConversationPrompt(
   observations: any[],
   decisions: any[]
 ): string {
-  // Format conversation history with emotional context
   const conversationHistory = messages
     .map((msg, idx) => {
       const speaker = msg.agentId === agent._id ? "You" : otherAgent.name;
@@ -197,7 +171,6 @@ function buildConversationPrompt(
     })
     .join("\n");
 
-  // Format recent observations with salience
   const recentObservations = observations
     .slice(0, 5)
     .map((obs) => {
@@ -206,30 +179,25 @@ function buildConversationPrompt(
     })
     .join("\n  ");
 
-  // Format recent decisions for context
   const recentDecisions = decisions
     .slice(0, 3)
     .map((d) => `${d.action}${d.innerThought ? ` ("${d.innerThought}")` : ""}`)
     .join(", ");
 
-  // Interpret agent's current emotional state
   const myMood = interpretValence(agent.emotions.valence);
   const myEnergy = interpretArousal(agent.emotions.arousal);
   const emotionalState = `You feel ${myMood} and ${myEnergy}`;
 
-  // Interpret other agent's emotional state (emotional contagion context)
   const theirMood = interpretValence(otherAgent.emotions.valence);
   const theirEnergy = interpretArousal(otherAgent.emotions.arousal);
   const theirEmotionalState = `They seem ${theirMood} and ${theirEnergy}`;
 
-  // Format goals with weights
   const activeGoals = agent.goals
     .sort((a: any, b: any) => b.weight - a.weight)
     .slice(0, 3)
     .map((g: any) => `${g.name} (priority: ${(g.weight * 100).toFixed(0)}%)`)
     .join(", ");
 
-  // Relationship dynamics (from opinion)
   let relationshipContext = "";
   if (opinion) {
     const sentiment = opinion.sentiment;
@@ -248,7 +216,6 @@ function buildConversationPrompt(
     relationshipContext = `You have no strong opinion of ${otherAgent.name} yet. This is a chance to form an impression.`;
   }
 
-  // Urgent needs warnings
   const urgentNeeds = [];
   if (agent.needs.hunger > 0.8)
     urgentNeeds.push("HUNGRY - You're starving and need food soon");
@@ -326,9 +293,6 @@ Consider emotional contagion - their ${theirMood} ${theirEnergy} energy may infl
 ═══════════════════════════════════════════════════════════`.trim();
 }
 
-/**
- * Interpret valence value to human-readable mood
- */
 function interpretValence(valence: number): string {
   if (valence > 0.6) return "very happy";
   if (valence > 0.3) return "content";
@@ -339,9 +303,6 @@ function interpretValence(valence: number): string {
   return "very upset";
 }
 
-/**
- * Interpret arousal value to human-readable energy level
- */
 function interpretArousal(arousal: number): string {
   if (arousal > 0.8) return "extremely energized";
   if (arousal > 0.6) return "quite energetic";
@@ -350,18 +311,12 @@ function interpretArousal(arousal: number): string {
   return "very calm";
 }
 
-/**
- * Render a visual meter for needs
- */
 function renderMeter(value: number): string {
   const filled = Math.round(value * 10);
   const empty = 10 - filled;
   return "█".repeat(filled) + "░".repeat(empty);
 }
 
-/**
- * Call OpenAI API for conversation message generation
- */
 async function generateConversationMessage(
   agent: any,
   otherAgent: any,
@@ -418,9 +373,6 @@ async function generateConversationMessage(
   };
 }
 
-/**
- * Fallback response when LLM fails
- */
 function fallbackConversationResponse(agent: any): {
   message: string;
   continueConversation: boolean;
@@ -429,7 +381,6 @@ function fallbackConversationResponse(agent: any): {
 } {
   const { needs } = agent;
 
-  // Check if urgent needs require leaving
   if (needs.hunger > 0.8) {
     return {
       message: "Sorry, I really need to grab some food. Talk later!",
@@ -457,7 +408,6 @@ function fallbackConversationResponse(agent: any): {
     };
   }
 
-  // Default: continue conversation
   return {
     message: "Yeah, I hear you.",
     continueConversation: true,

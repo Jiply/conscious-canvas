@@ -1,17 +1,6 @@
-/**
- * Map Seeding and Generation
- *
- * Generates the initial campus map inspired by NUS UTown Singapore.
- * Creates a 200×150 tile grid with realistic building sizes and proper entrances.
- * Scale: 1 tile = 1 meter, so this is a 200m × 150m campus area.
- */
-
 import { v } from "convex/values";
 import { internalMutation } from "./_generated/server";
 
-/**
- * Tile type definition (matches schema)
- */
 type TileType =
   | "floor"
   | "wall"
@@ -36,18 +25,12 @@ type TileType =
   | "dorm_bed"
   | "kitchen_counter";
 
-/**
- * Entrance definition
- */
 interface Entrance {
   x: number;
   y: number;
   facing?: string;
 }
 
-/**
- * Place definition for seeding
- */
 interface PlaceDefinition {
   kind: string;
   name: string;
@@ -58,19 +41,6 @@ interface PlaceDefinition {
   realWorldInspiration: string;
 }
 
-/**
- * NUS UTown inspired place definitions - REALISTIC SCALE
- *
- * Scale: 1 tile = 1 meter
- * Grid: 200×150 tiles (200m × 150m campus)
- *
- * Realistic building sizes:
- * - Library: 60×40m (typical university library)
- * - Lecture Hall: 50×30m (large lecture theatre)
- * - Café: 30×20m (campus dining hall)
- * - Dorm: 80×50m (residential building with multiple floors)
- * - Quad: 60×40m (central green space)
- */
 const UTOWN_PLACES: PlaceDefinition[] = [
   {
     kind: "library",
@@ -79,9 +49,9 @@ const UTOWN_PLACES: PlaceDefinition[] = [
       "Modern 3-story learning hub with study spaces, computer labs, and collaboration areas",
     bounds: { x: 120, y: 20, width: 60, height: 40 },
     entrances: [
-      { x: 150, y: 60, facing: "south" }, // Main entrance
-      { x: 120, y: 40, facing: "west" }, // Side entrance
-      { x: 180, y: 40, facing: "east" }, // East entrance
+      { x: 150, y: 60, facing: "south" },
+      { x: 120, y: 40, facing: "west" },
+      { x: 180, y: 40, facing: "east" },
     ],
     isIndoor: true,
     realWorldInspiration: "NUS UTown ERC Library",
@@ -92,9 +62,9 @@ const UTOWN_PLACES: PlaceDefinition[] = [
     description: "Large lecture halls with seating for 200+ students each",
     bounds: { x: 20, y: 40, width: 50, height: 30 },
     entrances: [
-      { x: 45, y: 70, facing: "south" }, // Main entrance
-      { x: 20, y: 55, facing: "west" }, // West entrance
-      { x: 70, y: 55, facing: "east" }, // East entrance
+      { x: 45, y: 70, facing: "south" },
+      { x: 20, y: 55, facing: "west" },
+      { x: 70, y: 55, facing: "east" },
     ],
     isIndoor: true,
     realWorldInspiration: "NUS UTown Lecture Halls",
@@ -106,9 +76,9 @@ const UTOWN_PLACES: PlaceDefinition[] = [
       "Central dining hall with multiple food stations and seating areas",
     bounds: { x: 80, y: 50, width: 30, height: 20 },
     entrances: [
-      { x: 80, y: 60, facing: "west" }, // West entrance
-      { x: 110, y: 60, facing: "east" }, // East entrance
-      { x: 95, y: 50, facing: "north" }, // North entrance
+      { x: 80, y: 60, facing: "west" },
+      { x: 110, y: 60, facing: "east" },
+      { x: 95, y: 50, facing: "north" },
     ],
     isIndoor: true,
     realWorldInspiration: "NUS UTown Town Plaza",
@@ -120,10 +90,10 @@ const UTOWN_PLACES: PlaceDefinition[] = [
       "Large open grass field for recreation, outdoor gatherings, and events",
     bounds: { x: 90, y: 90, width: 60, height: 40 },
     entrances: [
-      { x: 90, y: 110, facing: "west" }, // West entrance
-      { x: 150, y: 110, facing: "east" }, // East entrance
-      { x: 120, y: 90, facing: "north" }, // North entrance
-      { x: 120, y: 130, facing: "south" }, // South entrance
+      { x: 90, y: 110, facing: "west" },
+      { x: 150, y: 110, facing: "east" },
+      { x: 120, y: 90, facing: "north" },
+      { x: 120, y: 130, facing: "south" },
     ],
     isIndoor: false,
     realWorldInspiration: "NUS UTown Central Green",
@@ -135,20 +105,16 @@ const UTOWN_PLACES: PlaceDefinition[] = [
       "Multi-story residential building with student rooms and common areas",
     bounds: { x: 10, y: 90, width: 80, height: 50 },
     entrances: [
-      { x: 50, y: 140, facing: "south" }, // Main entrance
-      { x: 10, y: 115, facing: "west" }, // West entrance
-      { x: 90, y: 115, facing: "east" }, // East entrance
+      { x: 50, y: 140, facing: "south" },
+      { x: 10, y: 115, facing: "west" },
+      { x: 90, y: 115, facing: "east" },
     ],
     isIndoor: true,
     realWorldInspiration: "NUS UTown Residential Halls",
   },
 ];
 
-/**
- * Internal building areas - detailed layouts for emergent behaviors
- */
 const INTERNAL_AREAS: PlaceDefinition[] = [
-  // Library internal areas
   {
     kind: "library_section",
     name: "Computer Lab",
@@ -183,7 +149,6 @@ const INTERNAL_AREAS: PlaceDefinition[] = [
     realWorldInspiration: "Library Study Rooms",
   },
 
-  // Café internal areas
   {
     kind: "cafe_stall",
     name: "Coffee Corner",
@@ -257,7 +222,6 @@ const INTERNAL_AREAS: PlaceDefinition[] = [
     realWorldInspiration: "Café Beverage Station",
   },
 
-  // Lecture hall internal areas
   {
     kind: "lecture_section",
     name: "Main Lecture Hall A",
@@ -302,15 +266,7 @@ const INTERNAL_AREAS: PlaceDefinition[] = [
   },
 ];
 
-/**
- * Dorm room definitions (subdivisions within the main dorm building)
- * These create individual rooms for students to have "home" behavior
- *
- * Realistic room sizes: 6×4m (24m²) - typical student room size
- * Dorm building: 80×50m with multiple floors
- */
 const DORM_ROOMS: PlaceDefinition[] = [
-  // Floor 1 - Ground floor rooms (8 bedrooms)
   {
     kind: "dorm_room",
     name: "Room 101",
@@ -384,7 +340,6 @@ const DORM_ROOMS: PlaceDefinition[] = [
     realWorldInspiration: "UTown Student Room",
   },
 
-  // Floor 2 - Second floor rooms (8 bedrooms)
   {
     kind: "dorm_room",
     name: "Room 201",
@@ -458,7 +413,6 @@ const DORM_ROOMS: PlaceDefinition[] = [
     realWorldInspiration: "UTown Student Room",
   },
 
-  // Floor 3 - Third floor rooms (8 bedrooms)
   {
     kind: "dorm_room",
     name: "Room 301",
@@ -532,7 +486,6 @@ const DORM_ROOMS: PlaceDefinition[] = [
     realWorldInspiration: "UTown Student Room",
   },
 
-  // Common areas - larger and more realistic
   {
     kind: "common_room",
     name: "Common Lounge",
@@ -569,13 +522,10 @@ const DORM_ROOMS: PlaceDefinition[] = [
   },
 ];
 
-/**
- * Initialize the map with UTown-inspired layout
- */
 export const initializeMap = internalMutation({
   args: {
     seed: v.optional(v.string()),
-    tileOffset: v.optional(v.number()), // Start inserting tiles from this offset
+    tileOffset: v.optional(v.number()),
   },
   returns: v.object({
     tilesCreated: v.number(),
@@ -594,7 +544,6 @@ export const initializeMap = internalMutation({
       `📊 Total landmarks to generate: ${UTOWN_PLACES.length + DORM_ROOMS.length + INTERNAL_AREAS.length}`
     );
 
-    // Create map settings (only if not continuing)
     if (tileOffset === 0) {
       await ctx.db.insert("map_settings", {
         gridWidth,
@@ -607,7 +556,6 @@ export const initializeMap = internalMutation({
       });
     }
 
-    // Step 1: Generate base grid (all grass by default)
     console.log(
       `📍 Generating base grid (${gridWidth}×${gridHeight} = ${gridWidth * gridHeight} tiles)...`
     );
@@ -626,12 +574,11 @@ export const initializeMap = internalMutation({
           y,
           tileType: "grass",
           isWalkable: true,
-          visualVariant: ((x + y) * 7) % 4, // Pseudo-random variant
+          visualVariant: ((x + y) * 7) % 4,
         });
       }
     }
 
-    // Step 2: Create main places and insert them (skip if continuing)
     const placeIdMap = new Map<string, string>();
 
     if (tileOffset === 0) {
@@ -656,7 +603,6 @@ export const initializeMap = internalMutation({
         console.log(`  ✓ Created ${placeDef.name} (${placeDef.kind})`);
       }
 
-      // Step 2b: Create dorm rooms
       console.log("🚪 Creating dorm rooms...");
       for (const roomDef of DORM_ROOMS) {
         const roomId = await ctx.db.insert("places", {
@@ -665,7 +611,7 @@ export const initializeMap = internalMutation({
           description: roomDef.description,
           bounds: roomDef.bounds,
           entrances: roomDef.entrances,
-          capacity: 2, // Small rooms have lower capacity
+          capacity: 2,
           isIndoor: roomDef.isIndoor,
           metadata: {
             realWorldInspiration: roomDef.realWorldInspiration,
@@ -675,7 +621,6 @@ export const initializeMap = internalMutation({
         console.log(`  ✓ Created ${roomDef.name} (${roomDef.kind})`);
       }
 
-      // Step 2c: Create internal areas
       console.log("🏢 Creating internal building areas...");
       for (const areaDef of INTERNAL_AREAS) {
         const areaId = await ctx.db.insert("places", {
@@ -684,7 +629,7 @@ export const initializeMap = internalMutation({
           description: areaDef.description,
           bounds: areaDef.bounds,
           entrances: areaDef.entrances,
-          capacity: areaDef.bounds.width * areaDef.bounds.height, // Capacity based on size
+          capacity: areaDef.bounds.width * areaDef.bounds.height,
           isIndoor: areaDef.isIndoor,
           metadata: {
             realWorldInspiration: areaDef.realWorldInspiration,
@@ -693,16 +638,14 @@ export const initializeMap = internalMutation({
         placeIdMap.set(`${areaDef.kind}_${areaDef.name}`, areaId);
         console.log(`  ✓ Created ${areaDef.name} (${areaDef.kind})`);
       }
-    } // End of tileOffset === 0 check
+    }
 
-    // Step 3: Generate tiles for main places
     console.log("🎨 Generating main landmark tiles...");
 
     for (const placeDef of UTOWN_PLACES) {
       const placeId = placeIdMap.get(`${placeDef.kind}_${placeDef.name}`);
       const { bounds, isIndoor, entrances, kind } = placeDef;
 
-      // Create entrance set for quick lookup
       const entranceSet = new Set(entrances.map((e) => `${e.x},${e.y}`));
 
       for (let y = bounds.y; y < bounds.y + bounds.height; y++) {
@@ -710,12 +653,10 @@ export const initializeMap = internalMutation({
           const tileIndex = y * gridWidth + x;
           const isEntrance = entranceSet.has(`${x},${y}`);
 
-          // Determine tile type
           let tileType: TileType;
           let isWalkable: boolean;
 
           if (isIndoor) {
-            // Indoor buildings
             const isPerimeter =
               x === bounds.x ||
               x === bounds.x + bounds.width - 1 ||
@@ -726,7 +667,6 @@ export const initializeMap = internalMutation({
               tileType = isEntrance ? "door" : "wall";
               isWalkable = isEntrance;
             } else {
-              // For dorm, we'll override interior tiles with rooms later
               if (kind === "dorm") {
                 tileType = "floor";
                 isWalkable = true;
@@ -736,7 +676,6 @@ export const initializeMap = internalMutation({
               }
             }
           } else {
-            // Outdoor areas (quad)
             tileType = "grass";
             isWalkable = true;
           }
@@ -749,7 +688,6 @@ export const initializeMap = internalMutation({
             visualVariant: (x * 13 + y * 17) % 3,
           };
 
-          // Associate with place if indoor (but not for dorm interior - rooms will override)
           if (isIndoor && placeId && kind !== "dorm") {
             (tiles[tileIndex] as any).placeId = placeId;
           }
@@ -757,14 +695,12 @@ export const initializeMap = internalMutation({
       }
     }
 
-    // Step 3b: Generate tiles for dorm rooms (subdivide the dorm interior)
     console.log("🚪 Generating dorm room tiles...");
 
     for (const roomDef of DORM_ROOMS) {
       const roomId = placeIdMap.get(`${roomDef.kind}_${roomDef.name}`);
       const { bounds, entrances } = roomDef;
 
-      // Create entrance set for quick lookup
       const entranceSet = new Set(entrances.map((e) => `${e.x},${e.y}`));
 
       for (let y = bounds.y; y < bounds.y + bounds.height; y++) {
@@ -772,7 +708,6 @@ export const initializeMap = internalMutation({
           const tileIndex = y * gridWidth + x;
           const isEntrance = entranceSet.has(`${x},${y}`);
 
-          // Determine tile type for room
           const isPerimeter =
             x === bounds.x ||
             x === bounds.x + bounds.width - 1 ||
@@ -786,7 +721,6 @@ export const initializeMap = internalMutation({
             tileType = isEntrance ? "door" : "wall";
             isWalkable = isEntrance;
           } else {
-            // Add variety to room interiors
             const roomVariant = (x + y) % 4;
             if (roomVariant === 0) tileType = "dorm_bed";
             else if (roomVariant === 1) tileType = "floor";
@@ -800,10 +734,9 @@ export const initializeMap = internalMutation({
             y,
             tileType,
             isWalkable,
-            visualVariant: (x * 7 + y * 11) % 2, // Different pattern for rooms
+            visualVariant: (x * 7 + y * 11) % 2,
           };
 
-          // Associate with room
           if (roomId) {
             (tiles[tileIndex] as any).placeId = roomId;
           }
@@ -811,14 +744,12 @@ export const initializeMap = internalMutation({
       }
     }
 
-    // Step 3c: Generate tiles for internal areas
     console.log("🏢 Generating internal area tiles...");
 
     for (const areaDef of INTERNAL_AREAS) {
       const areaId = placeIdMap.get(`${areaDef.kind}_${areaDef.name}`);
       const { bounds, entrances, kind } = areaDef;
 
-      // Create entrance set for quick lookup
       const entranceSet = new Set(entrances.map((e) => `${e.x},${e.y}`));
 
       for (let y = bounds.y; y < bounds.y + bounds.height; y++) {
@@ -826,7 +757,6 @@ export const initializeMap = internalMutation({
           const tileIndex = y * gridWidth + x;
           const isEntrance = entranceSet.has(`${x},${y}`);
 
-          // Determine tile type based on area kind
           const isPerimeter =
             x === bounds.x ||
             x === bounds.x + bounds.width - 1 ||
@@ -840,7 +770,6 @@ export const initializeMap = internalMutation({
             tileType = isEntrance ? "door" : "wall";
             isWalkable = isEntrance;
           } else {
-            // Special tile types based on area function
             if (kind === "cafe_stall") {
               tileType = "cafe_stall";
             } else if (kind === "library_section") {
@@ -864,7 +793,6 @@ export const initializeMap = internalMutation({
             visualVariant: (x * 13 + y * 17) % 3,
           };
 
-          // Associate with area
           if (areaId) {
             (tiles[tileIndex] as any).placeId = areaId;
           }
@@ -872,23 +800,18 @@ export const initializeMap = internalMutation({
       }
     }
 
-    // Step 4: Add connecting paths
     console.log("🛤️  Adding connecting paths...");
     addConnectingPaths(tiles, gridWidth, gridHeight);
 
-    // Step 5: Add terrain variety
     console.log("🌳 Adding terrain variety...");
     addTerrainVariety(tiles, gridWidth, gridHeight);
 
-    // Step 6: Add water features
     console.log("💧 Adding water features...");
     addWaterFeatures(tiles, gridWidth, gridHeight);
 
-    // Step 7: Add void boundaries (optional decorative borders)
     console.log("🌌 Adding boundary tiles...");
     addBoundaryVoid(tiles, gridWidth, gridHeight);
 
-    // Step 7: Filter out undefined tiles
     console.log("💾 Preparing tiles for database insertion...");
     const validTiles = tiles.filter(
       (tile) => tile !== undefined && tile !== null
@@ -897,8 +820,6 @@ export const initializeMap = internalMutation({
       `  📊 Total tiles to insert: ${validTiles.length} (filtered from ${tiles.length})`
     );
 
-    // Insert tiles in batches to stay under 16,000 write limit
-    // We'll insert 15,000 tiles per function call, starting from tileOffset
     const maxTilesPerCall = 15000;
     const batchSize = 100;
     let tilesCreated = 0;
@@ -939,19 +860,14 @@ export const initializeMap = internalMutation({
   },
 });
 
-/**
- * Add connecting paths between buildings
- */
 function addConnectingPaths(
   tiles: any[],
   gridWidth: number,
   gridHeight: number
 ): void {
-  // Path width
-  const pathWidth = 3; // Wider paths for larger campus
+  const pathWidth = 3;
 
-  // Main horizontal path (connecting left to right across campus)
-  const mainPathY = Math.floor(gridHeight * 0.6); // 30 for 50 height
+  const mainPathY = Math.floor(gridHeight * 0.6);
   for (let x = 0; x < gridWidth; x++) {
     for (let dy = 0; dy < pathWidth; dy++) {
       const y = mainPathY + dy;
@@ -965,11 +881,9 @@ function addConnectingPaths(
     }
   }
 
-  // Vertical path connecting dorm to main path
   for (let y = Math.floor(gridHeight * 0.7); y < gridHeight; y++) {
-    // 35 to 50
     for (let dx = 0; dx < pathWidth; dx++) {
-      const x = Math.floor(gridWidth * 0.6) + dx; // 48 for 80 width
+      const x = Math.floor(gridWidth * 0.6) + dx;
       if (x < gridWidth) {
         const idx = y * gridWidth + x;
         if (tiles[idx] && tiles[idx].tileType === "grass") {
@@ -980,15 +894,13 @@ function addConnectingPaths(
     }
   }
 
-  // Path from cafe to quad
   for (
     let y = Math.floor(gridHeight * 0.5);
     y < Math.floor(gridHeight * 0.7);
     y++
   ) {
-    // 25 to 35
     for (let dx = 0; dx < pathWidth; dx++) {
-      const x = Math.floor(gridWidth * 0.7) + dx; // 56 for 80 width
+      const x = Math.floor(gridWidth * 0.7) + dx;
       if (x < gridWidth) {
         const idx = y * gridWidth + x;
         if (tiles[idx] && tiles[idx].tileType === "grass") {
@@ -999,15 +911,13 @@ function addConnectingPaths(
     }
   }
 
-  // Path from library to main area
   for (
     let y = Math.floor(gridHeight * 0.4);
     y < Math.floor(gridHeight * 0.6);
     y++
   ) {
-    // 20 to 30
     for (let dx = 0; dx < pathWidth; dx++) {
-      const x = Math.floor(gridWidth * 0.8) + dx; // 64 for 80 width
+      const x = Math.floor(gridWidth * 0.8) + dx;
       if (x < gridWidth) {
         const idx = y * gridWidth + x;
         if (tiles[idx] && tiles[idx].tileType === "grass") {
@@ -1018,15 +928,13 @@ function addConnectingPaths(
     }
   }
 
-  // Path from lecture hall to main area
   for (
     let y = Math.floor(gridHeight * 0.5);
     y < Math.floor(gridHeight * 0.6);
     y++
   ) {
-    // 25 to 30
     for (let dx = 0; dx < pathWidth; dx++) {
-      const x = Math.floor(gridWidth * 0.3) + dx; // 24 for 80 width
+      const x = Math.floor(gridWidth * 0.3) + dx;
       if (x < gridWidth) {
         const idx = y * gridWidth + x;
         if (tiles[idx] && tiles[idx].tileType === "grass") {
@@ -1037,10 +945,9 @@ function addConnectingPaths(
     }
   }
 
-  // Cross-campus diagonal path
   for (let i = 0; i < Math.min(gridWidth, gridHeight); i++) {
-    const x = Math.floor(gridWidth * 0.25) + i; // 20 for 80 width
-    const y = Math.floor(gridHeight * 0.6) + i; // 30 for 50 height
+    const x = Math.floor(gridWidth * 0.25) + i;
+    const y = Math.floor(gridHeight * 0.6) + i;
     if (x < gridWidth && y < gridHeight) {
       for (let dx = 0; dx < pathWidth; dx++) {
         for (let dy = 0; dy < pathWidth; dy++) {
@@ -1058,16 +965,10 @@ function addConnectingPaths(
     }
   }
 
-  // Add micro-paths within buildings for more detailed navigation
   addMicroPaths(tiles, gridWidth);
 }
 
-/**
- * Add micro-paths within buildings for detailed navigation
- */
 function addMicroPaths(tiles: any[], gridWidth: number): void {
-  // Library internal paths
-  // Main corridor through library
   for (let x = 125; x < 180; x++) {
     for (let y = 35; y < 40; y++) {
       const idx = y * gridWidth + x;
@@ -1078,7 +979,6 @@ function addMicroPaths(tiles: any[], gridWidth: number): void {
     }
   }
 
-  // Cross-corridors in library
   for (let y = 25; y < 60; y++) {
     for (let x = 140; x < 145; x++) {
       const idx = y * gridWidth + x;
@@ -1089,8 +989,6 @@ function addMicroPaths(tiles: any[], gridWidth: number): void {
     }
   }
 
-  // Café internal paths - connecting all stalls
-  // Main café corridor
   for (let x = 80; x < 115; x++) {
     for (let y = 55; y < 60; y++) {
       const idx = y * gridWidth + x;
@@ -1101,7 +999,6 @@ function addMicroPaths(tiles: any[], gridWidth: number): void {
     }
   }
 
-  // Cross-corridor in café
   for (let y = 50; y < 70; y++) {
     for (let x = 95; x < 100; x++) {
       const idx = y * gridWidth + x;
@@ -1112,8 +1009,6 @@ function addMicroPaths(tiles: any[], gridWidth: number): void {
     }
   }
 
-  // Lecture hall internal paths
-  // Main corridor through lecture complex
   for (let x = 20; x < 70; x++) {
     for (let y = 42; y < 45; y++) {
       const idx = y * gridWidth + x;
@@ -1124,7 +1019,6 @@ function addMicroPaths(tiles: any[], gridWidth: number): void {
     }
   }
 
-  // Cross-corridor in lecture complex
   for (let y = 40; y < 70; y++) {
     for (let x = 35; x < 40; x++) {
       const idx = y * gridWidth + x;
@@ -1135,8 +1029,6 @@ function addMicroPaths(tiles: any[], gridWidth: number): void {
     }
   }
 
-  // Dorm internal paths
-  // Main corridor through dorm
   for (let x = 15; x < 85; x++) {
     for (let y = 100; y < 105; y++) {
       const idx = y * gridWidth + x;
@@ -1147,7 +1039,6 @@ function addMicroPaths(tiles: any[], gridWidth: number): void {
     }
   }
 
-  // Cross-corridors in dorm
   for (let y = 90; y < 140; y++) {
     for (let x = 35; x < 40; x++) {
       const idx = y * gridWidth + x;
@@ -1168,8 +1059,6 @@ function addMicroPaths(tiles: any[], gridWidth: number): void {
     }
   }
 
-  // Quad internal paths - create a network of walking paths
-  // Main quad paths
   for (let x = 90; x < 150; x++) {
     for (let y = 100; y < 105; y++) {
       const idx = y * gridWidth + x;
@@ -1211,15 +1100,11 @@ function addMicroPaths(tiles: any[], gridWidth: number): void {
   }
 }
 
-/**
- * Add terrain variety for more interesting environments
- */
 function addTerrainVariety(
   tiles: any[],
   gridWidth: number,
   gridHeight: number
 ): void {
-  // Add tall trees around campus perimeter and in clusters (proportional to grid size)
   const tallTreeClusters = [
     {
       x: Math.floor(gridWidth * 0.06),
@@ -1274,11 +1159,9 @@ function addTerrainVariety(
     }
   }
 
-  // Add short trees and bushes in scattered patterns
   for (let y = 0; y < gridHeight; y += 8) {
     for (let x = 0; x < gridWidth; x += 12) {
       if (Math.random() < 0.3) {
-        // 30% chance
         const treeX = x + Math.floor(Math.random() * 6);
         const treeY = y + Math.floor(Math.random() * 6);
         if (treeX < gridWidth && treeY < gridHeight) {
@@ -1286,7 +1169,7 @@ function addTerrainVariety(
           if (tiles[idx].tileType === "grass") {
             const treeType = Math.random() < 0.6 ? "short_tree" : "bush";
             tiles[idx].tileType = treeType;
-            tiles[idx].isWalkable = treeType === "bush"; // bushes are walkable
+            tiles[idx].isWalkable = treeType === "bush";
             tiles[idx].visualVariant = (treeX + treeY) % 2;
           }
         }
@@ -1294,7 +1177,6 @@ function addTerrainVariety(
     }
   }
 
-  // Add flower beds near buildings (proportional to grid size)
   const flowerBedAreas = [
     {
       x: Math.floor(gridWidth * 0.4),
@@ -1337,7 +1219,6 @@ function addTerrainVariety(
     }
   }
 
-  // Add concrete areas (plazas, courtyards)
   const concreteAreas = [
     {
       x: Math.floor(gridWidth * 0.5),
@@ -1368,7 +1249,6 @@ function addTerrainVariety(
     }
   }
 
-  // Add brick paths as decorative elements (proportional to grid size)
   const brickPaths = [
     {
       x: Math.floor(gridWidth * 0.3),
@@ -1406,15 +1286,11 @@ function addTerrainVariety(
   }
 }
 
-/**
- * Add decorative water features
- */
 function addWaterFeatures(
   tiles: any[],
   gridWidth: number,
   gridHeight: number
 ): void {
-  // Large pond near library (proportional to grid size)
   const pondX = Math.floor(gridWidth * 0.85);
   const pondY = Math.floor(gridHeight * 0.15);
   const pondWidth = Math.floor(gridWidth * 0.1);
@@ -1433,7 +1309,6 @@ function addWaterFeatures(
     }
   }
 
-  // Decorative fountain near cafe entrance
   const fountainX = Math.floor(gridWidth * 0.5);
   const fountainY = Math.floor(gridHeight * 0.6);
   if (fountainX < gridWidth && fountainY < gridHeight) {
@@ -1447,7 +1322,6 @@ function addWaterFeatures(
     }
   }
 
-  // Small decorative pond near quad
   const quadPondX = Math.floor(gridWidth * 0.6);
   const quadPondY = Math.floor(gridHeight * 0.75);
   const quadPondWidth = Math.floor(gridWidth * 0.05);
@@ -1467,24 +1341,18 @@ function addWaterFeatures(
   }
 }
 
-/**
- * Add void tiles at the map boundaries (optional)
- */
 function addBoundaryVoid(
   tiles: any[],
   gridWidth: number,
   gridHeight: number
 ): void {
-  // Top and bottom borders
   for (let x = 0; x < gridWidth; x++) {
-    // Top border
     const topIdx = 0 * gridWidth + x;
     if (tiles[topIdx].tileType === "grass") {
       tiles[topIdx].tileType = "void";
       tiles[topIdx].isWalkable = false;
     }
 
-    // Bottom border
     const bottomIdx = (gridHeight - 1) * gridWidth + x;
     if (tiles[bottomIdx].tileType === "grass") {
       tiles[bottomIdx].tileType = "void";
@@ -1492,16 +1360,13 @@ function addBoundaryVoid(
     }
   }
 
-  // Left and right borders
   for (let y = 0; y < gridHeight; y++) {
-    // Left border
     const leftIdx = y * gridWidth + 0;
     if (tiles[leftIdx].tileType === "grass") {
       tiles[leftIdx].tileType = "void";
       tiles[leftIdx].isWalkable = false;
     }
 
-    // Right border
     const rightIdx = y * gridWidth + (gridWidth - 1);
     if (tiles[rightIdx].tileType === "grass") {
       tiles[rightIdx].tileType = "void";

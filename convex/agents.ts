@@ -1,11 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
-// ========== MUTATIONS ==========
-
-/**
- * Update agent emotional state
- */
 export const updateAgentEmotions = mutation({
   args: {
     agentId: v.id("agents"),
@@ -28,9 +23,6 @@ export const updateAgentEmotions = mutation({
   },
 });
 
-/**
- * Set agent path (after pathfinding)
- */
 export const setAgentPath = mutation({
   args: {
     agentId: v.id("agents"),
@@ -54,9 +46,6 @@ export const setAgentPath = mutation({
   },
 });
 
-/**
- * Update when agent should make next decision
- */
 export const setNextDecisionTime = mutation({
   args: {
     agentId: v.id("agents"),
@@ -72,11 +61,6 @@ export const setNextDecisionTime = mutation({
   },
 });
 
-// ========== QUERIES ==========
-
-/**
- * Get all agents
- */
 export const listAgents = query({
   args: {},
   returns: v.array(
@@ -126,9 +110,6 @@ export const listAgents = query({
   },
 });
 
-/**
- * Get a single agent by ID
- */
 export const getAgent = query({
   args: { agentId: v.id("agents") },
   returns: v.union(
@@ -179,12 +160,6 @@ export const getAgent = query({
   },
 });
 
-// ========== MIGRATION HELPERS ==========
-
-/**
- * Migration: Add currentConversationId field to all existing agents
- * This can be safely run multiple times (idempotent)
- */
 export const migrateAddConversationField = mutation({
   args: {},
   returns: v.number(),
@@ -193,7 +168,6 @@ export const migrateAddConversationField = mutation({
     let count = 0;
 
     for (const agent of agents) {
-      // Only update if the field doesn't exist (undefined check)
       if (!("currentConversationId" in agent)) {
         await ctx.db.patch(agent._id, {
           currentConversationId: undefined,
@@ -202,7 +176,6 @@ export const migrateAddConversationField = mutation({
       }
     }
 
-    // console.log(`✓ Migrated ${count} agents to have currentConversationId field`);
     return count;
   },
 });

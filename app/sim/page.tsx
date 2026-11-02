@@ -45,10 +45,6 @@ import { Separator } from "@/components/ui/separator";
 import type { Id } from "@/convex/_generated/dataModel";
 import { ConversationSheet } from "@/components/ConversationSheet";
 
-/**
- * Map agent names to profile picture assets in /public folder
- * Only use the actual PNG files that exist: 01.png through 10.png
- */
 const AGENT_PROFILE_PICTURES: Record<string, string> = {
   "Maya Chen": "/01.png",
   "Prof. James Wilson": "/02.png",
@@ -60,11 +56,8 @@ const AGENT_PROFILE_PICTURES: Record<string, string> = {
   "Marcus Johnson": "/08.png",
 };
 
-/**
- * Get profile picture URL for an agent
- */
 function getProfilePicture(agentName: string) {
-  return AGENT_PROFILE_PICTURES[agentName] || `/01.png`; // Default to 01.png
+  return AGENT_PROFILE_PICTURES[agentName] || `/01.png`;
 }
 
 export default function SimPage() {
@@ -78,7 +71,6 @@ export default function SimPage() {
   const places = useQuery(api.map.getPlaces) ?? [];
   const agents = useQuery(api.agents.listAgents) ?? [];
 
-  // Check if observers API exists (may not if schema hasn't deployed yet)
   const hasObserversAPI =
     `observers` in api && `getWorldState` in api.observers;
 
@@ -86,7 +78,6 @@ export default function SimPage() {
     ? useQuery(api.observers.getWorldState)
     : { isRunning: true, observerCount: 1, adminEnabled: true };
 
-  // Use reactive observer count from worldState (updates in real-time for all clients)
   const observerCount = worldState?.observerCount ?? 1;
 
   const toggleAdmin = hasObserversAPI
@@ -98,7 +89,6 @@ export default function SimPage() {
     y: number;
   } | null>(null);
 
-  // Filter agents based on search query
   const filteredAgents = useMemo(() => {
     if (!searchQuery.trim()) return agents;
 
@@ -112,7 +102,6 @@ export default function SimPage() {
     );
   }, [agents, searchQuery]);
 
-  // Filter places to show only main landmarks
   const mainPlaces = useMemo(() => {
     return places.filter(
       (place) =>
@@ -120,21 +109,17 @@ export default function SimPage() {
     );
   }, [places]);
 
-  // Handle centering camera on a place
   const handleCenterOnPlace = (place: (typeof places)[0]) => {
-    // Calculate center of place bounds
     const centerX = place.bounds.x + place.bounds.width / 2;
     const centerY = place.bounds.y + place.bounds.height / 2;
     setCenterOnPlace({ x: centerX, y: centerY });
   };
 
-  // Handle clicking on an agent
   const handleAgentClick = (agentId: Id<"agents">) => {
     setChosenAgentId(agentId);
     setIsConvoSheetOpen(true);
   };
 
-  // Update elapsed time every second
   useEffect(() => {
     if (!startTime) return;
 
