@@ -117,7 +117,7 @@ export const makeAgentDecision = action({
       };
     }
     else if (agent.needs.hunger >= 0.95) {
-      const cafe = allPlaces.find((p: any) => p.kind.toLowerCase() === "cafe");
+      const cafe = allPlaces.find((p) => p.kind.toLowerCase() === "cafe");
       if (cafe) {
         decision = {
           action: "MoveTo" as const,
@@ -127,7 +127,7 @@ export const makeAgentDecision = action({
         };
       }
     } else if (agent.needs.sleepiness >= 0.95) {
-      const dorm = allPlaces.find((p: any) => p.kind.toLowerCase() === "dorm");
+      const dorm = allPlaces.find((p) => p.kind.toLowerCase() === "dorm");
       if (dorm) {
         decision = {
           action: "MoveTo" as const,
@@ -138,7 +138,7 @@ export const makeAgentDecision = action({
       }
     } else if (agent.needs.studyPressure >= 0.95) {
       const library = allPlaces.find(
-        (p: any) => p.kind.toLowerCase() === "library"
+        (p) => p.kind.toLowerCase() === "library"
       );
       if (library) {
         decision = {
@@ -219,7 +219,7 @@ export const makeAgentDecision = action({
     if (decision.action === "MoveTo" && decision.targetPlaceId) {
       try {
         const targetPlace = allPlaces.find(
-          (p: any) => p._id === decision.targetPlaceId
+          (p) => p._id === decision.targetPlaceId
         );
 
         if (

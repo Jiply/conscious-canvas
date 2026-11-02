@@ -1,5 +1,6 @@
 import { v } from "convex/values";
-import { mutation } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
+import { type MutationCtx, mutation } from "./_generated/server";
 
 const MAP_CENTER_X = 100;
 const MAP_CENTER_Y = 75;
@@ -12,6 +13,12 @@ function getRandomCenterPosition() {
     x: Math.round(MAP_CENTER_X + Math.cos(angle) * distance),
     y: Math.round(MAP_CENTER_Y + Math.sin(angle) * distance),
   };
+}
+
+async function clearSimulationData(ctx: MutationCtx) {
+  for (const table of ["agents", "observations", "opinions", "decisions"] as const) {
+    for (const doc of await ctx.db.query(table).collect()) await ctx.db.delete(doc._id);
+  }
 }
 
 const AGENT_PROFILE_TEMPLATES = [
@@ -159,29 +166,11 @@ export const seedAgents = mutation({
   handler: async (ctx) => {
     console.log("🌱 Starting agent seeding...");
 
-    const agents = await ctx.db.query("agents").collect();
-    for (const agent of agents) {
-      await ctx.db.delete(agent._id);
-    }
-
-    const observations = await ctx.db.query("observations").collect();
-    for (const obs of observations) {
-      await ctx.db.delete(obs._id);
-    }
-
-    const opinions = await ctx.db.query("opinions").collect();
-    for (const opinion of opinions) {
-      await ctx.db.delete(opinion._id);
-    }
-
-    const decisions = await ctx.db.query("decisions").collect();
-    for (const decision of decisions) {
-      await ctx.db.delete(decision._id);
-    }
+    await clearSimulationData(ctx);
 
     console.log("✅ Cleared existing data");
 
-    const agentIds: string[] = [];
+    const agentIds: Id<"agents">[] = [];
 
     for (const template of AGENT_PROFILE_TEMPLATES) {
       const pos = getRandomCenterPosition();
@@ -211,8 +200,8 @@ export const seedAgents = mutation({
         const sentiment = (Math.random() - 0.3) * 1.5;
 
         await ctx.db.insert("opinions", {
-          agentId: agentIds[agent1Idx] as any,
-          targetAgentId: agentIds[agent2Idx] as any,
+          agentId: agentIds[agent1Idx],
+          targetAgentId: agentIds[agent2Idx],
           sentiment: Math.max(-1, Math.min(1, sentiment)),
           summary: `Haven't interacted much yet`,
           traits: {},
@@ -235,25 +224,7 @@ export const clearAllData = mutation({
   args: {},
   returns: v.null(),
   handler: async (ctx) => {
-    const agents = await ctx.db.query("agents").collect();
-    for (const agent of agents) {
-      await ctx.db.delete(agent._id);
-    }
-
-    const observations = await ctx.db.query("observations").collect();
-    for (const obs of observations) {
-      await ctx.db.delete(obs._id);
-    }
-
-    const opinions = await ctx.db.query("opinions").collect();
-    for (const opinion of opinions) {
-      await ctx.db.delete(opinion._id);
-    }
-
-    const decisions = await ctx.db.query("decisions").collect();
-    for (const decision of decisions) {
-      await ctx.db.delete(decision._id);
-    }
+    await clearSimulationData(ctx);
 
     return null;
   },
