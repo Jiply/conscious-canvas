@@ -15,14 +15,13 @@ export function useHeartbeat() {
   const convex = useConvex();
   const [isLeader, setIsLeader] = useState(false);
   const [observerCount, setObserverCount] = useState(0);
-  const [startTime, setStartTime] = useState<number | null>(null);
   const [stats, setStats] = useState<{
     processedAgents: number;
     latencyMs: number;
     lastTickAt: number;
     observerCount: number;
   } | null>(null);
-  const sessionIdRef = useRef(getStoredId('observer_session_id'));
+  getStoredId('observer_session_id');
   const leaderIdRef = useRef(getStoredId('heartbeat_leader_id'));
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const mountedRef = useRef(true);
@@ -30,35 +29,7 @@ export function useHeartbeat() {
   useEffect(() => {
     mountedRef.current = true;
 
-    const hasObserversAPI = 'observers' in api && 'heartbeat' in (api.observers as any);
-
-    if (!hasObserversAPI) {
-      setObserverCount(1);
-      return;
-    }
-
-    async function sendObserverHeartbeat() {
-      if (!mountedRef.current) return;
-
-      try {
-        const result = await convex.mutation((api as any).observers.heartbeat, {
-          sessionId: sessionIdRef.current,
-        });
-        if (!mountedRef.current) return;
-        setObserverCount(result.observerCount);
-      } catch {
-        setObserverCount(1);
-      }
-      if (startTime === null) setStartTime(Date.now());
-    }
-
-    sendObserverHeartbeat();
-    const observerInterval = setInterval(sendObserverHeartbeat, 5000);
-
-    return () => {
-      mountedRef.current = false;
-      clearInterval(observerInterval);
-    };
+    setObserverCount(1);
   }, [convex]);
 
   useEffect(() => {
@@ -99,5 +70,5 @@ export function useHeartbeat() {
     };
   }, [convex, observerCount]);
 
-  return { isLeader, stats, startTime };
+  return { isLeader, stats };
 }

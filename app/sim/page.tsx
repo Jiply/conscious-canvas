@@ -34,8 +34,8 @@ import { PixiMap } from '@/components/PixiMap';
 import { Button } from '@/components/ui/button';
 import { EventFeed } from '@/components/EventFeed';
 import { useHeartbeat } from '@/hooks/use-heartbeat';
-import { useMemo, useState, useEffect } from 'react';
-import { useQuery, useMutation } from 'convex/react';
+import { useMemo, useState } from 'react';
+import { useQuery } from 'convex/react';
 import { Separator } from '@/components/ui/separator';
 import { getProfilePicture } from '@/lib/utils';
 import type { Id } from '@/convex/_generated/dataModel';
@@ -43,24 +43,13 @@ import { ConversationSheet } from '@/components/ConversationSheet';
 
 export default function SimPage() {
   const [searchQuery, setSearchQuery] = useState(``);
-  const { isLeader, stats, startTime } = useHeartbeat();
-  const [elapsedTime, setElapsedTime] = useState(`00:00:00`);
+  const { isLeader, stats } = useHeartbeat();
   const [isWorldReady, setIsWorldReady] = useState(false);
   const [isConvoSheetOpen, setIsConvoSheetOpen] = useState(false);
   const [chosenAgentId, setChosenAgentId] = useState<Id<`agents`> | null>(null);
 
   const places = useQuery(api.map.getPlaces) ?? [];
   const agents = useQuery(api.agents.listAgents) ?? [];
-
-  const hasObserversAPI = `observers` in api && `getWorldState` in api.observers;
-
-  const worldState = hasObserversAPI
-    ? useQuery(api.observers.getWorldState)
-    : { isRunning: true, observerCount: 1, adminEnabled: true };
-
-  const observerCount = worldState?.observerCount ?? 1;
-
-  const toggleAdmin = hasObserversAPI ? useMutation(api.observers.toggleAdmin) : async () => {};
 
   const [centerOnPlace, setCenterOnPlace] = useState<{
     x: number;
@@ -96,21 +85,6 @@ export default function SimPage() {
     setIsConvoSheetOpen(true);
   };
 
-  useEffect(() => {
-    if (!startTime) return;
-
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      setElapsedTime(
-        [elapsed / 3600000, (elapsed % 3600000) / 60000, (elapsed % 60000) / 1000]
-          .map(part => Math.floor(part).toString().padStart(2, '0'))
-          .join(':')
-      );
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [startTime]);
-
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="flex h-screen w-full">
@@ -141,8 +115,8 @@ export default function SimPage() {
               <div className="flex items-center gap-2 text-sm">
                 <EyeIcon className="size-4 flex-shrink-0" />
                 <span className="text-muted-foreground whitespace-nowrap">Observers:</span>
-                <Badge className="text-xs font-mono whitespace-nowrap" variant={observerCount > 0 ? 'default' : 'outline'}>
-                  {observerCount}
+                <Badge className="text-xs font-mono whitespace-nowrap" variant="default">
+                  1
                 </Badge>
               </div>
               <div className="flex items-center gap-2 text-sm">
@@ -301,31 +275,11 @@ export default function SimPage() {
             <SidebarGroup>
               <SidebarGroupContent>
                 <div className="flex flex-col gap-2 p-2">
-                  <Button
-                    variant={worldState?.adminEnabled ? 'outline' : 'default'}
-                    size="sm"
-                    className="w-full justify-start gap-2"
-                    onClick={() =>
-                      toggleAdmin({
-                        enabled: !(worldState?.adminEnabled ?? true),
-                      })
-                    }
-                  >
-                    {worldState?.adminEnabled ? (
-                      <>
-                        <PauseCircleIcon className="h-4 w-4" />
-                        Freeze Universe
-                      </>
-                    ) : (
-                      <>
-                        <PlayCircleIcon className="h-4 w-4" />
-                        Unfreeze Universe
-                      </>
-                    )}
+                  <Button variant="outline" size="sm" className="w-full justify-start gap-2">
+                    <PauseCircleIcon className="h-4 w-4" />
+                    Freeze Universe
                   </Button>
-                  <div className="text-xs text-muted-foreground px-2">
-                    {worldState?.adminEnabled ? 'Admin: Simulation enabled' : 'Admin: Simulation disabled'}
-                  </div>
+                  <div className="text-xs text-muted-foreground px-2">Admin: Simulation enabled</div>
                 </div>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -340,18 +294,18 @@ export default function SimPage() {
             <div className="ml-auto flex items-center gap-2">
               <Badge variant="outline" className="gap-1">
                 <ClockIcon className="size-3" />
-                <span className="text-xs font-mono">{elapsedTime}</span>
+                <span className="text-xs font-mono">00:00:00</span>
               </Badge>
             </div>
           </header>
           <main className="flex-1 overflow-hidden bg-muted/20 p-6 flex gap-6">
             <div className="flex-1 rounded-lg border border-dashed border-border overflow-hidden">
               <PixiMap
-                observerCount={observerCount}
+                observerCount={1}
                 onWorldReady={setIsWorldReady}
                 onAgentClick={handleAgentClick}
                 centerOnLocation={centerOnPlace}
-                isWorldRunning={observerCount > 0}
+                isWorldRunning
                 onCenterComplete={() => setCenterOnPlace(null)}
               />
             </div>

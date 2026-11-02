@@ -98,34 +98,21 @@ export const makeAgentDecision = action({
         innerThought: `${closestAgent.agent.name} is right here - I should say hi and talk to them!`,
         emotionDelta: { valence: 0.1, arousal: 0.15 },
       };
-    } else if (agent.needs.hunger >= 0.95) {
-      const cafe = allPlaces.find(p => p.kind.toLowerCase() === 'cafe');
-      if (cafe) {
+    } else {
+      const urgent = (
+        [
+          ['hunger', 'cafe', `CRITICAL HUNGER! Must eat immediately or I'll collapse!`, -0.3, 0.2],
+          ['sleepiness', 'dorm', `CRITICAL EXHAUSTION! Must sleep immediately or I'll collapse!`, -0.3, -0.2],
+          ['studyPressure', 'library', `CRITICAL DEADLINE! Must study immediately or I'll fail!`, -0.2, 0.3],
+        ] as const
+      ).find(([need]) => agent.needs[need] >= 0.95);
+      const place = urgent && allPlaces.find(p => p.kind.toLowerCase() === urgent[1]);
+      if (urgent && place) {
         decision = {
           action: 'MoveTo' as const,
-          targetPlaceId: cafe._id,
-          innerThought: `CRITICAL HUNGER! Must eat immediately or I'll collapse!`,
-          emotionDelta: { valence: -0.3, arousal: 0.2 },
-        };
-      }
-    } else if (agent.needs.sleepiness >= 0.95) {
-      const dorm = allPlaces.find(p => p.kind.toLowerCase() === 'dorm');
-      if (dorm) {
-        decision = {
-          action: 'MoveTo' as const,
-          targetPlaceId: dorm._id,
-          innerThought: `CRITICAL EXHAUSTION! Must sleep immediately or I'll collapse!`,
-          emotionDelta: { valence: -0.3, arousal: -0.2 },
-        };
-      }
-    } else if (agent.needs.studyPressure >= 0.95) {
-      const library = allPlaces.find(p => p.kind.toLowerCase() === 'library');
-      if (library) {
-        decision = {
-          action: 'MoveTo' as const,
-          targetPlaceId: library._id,
-          innerThought: `CRITICAL DEADLINE! Must study immediately or I'll fail!`,
-          emotionDelta: { valence: -0.2, arousal: 0.3 },
+          targetPlaceId: place._id,
+          innerThought: urgent[2],
+          emotionDelta: { valence: urgent[3], arousal: urgent[4] },
         };
       }
     }
