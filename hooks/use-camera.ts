@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect, useRef } from "react";
-import type { MapSettings } from "@/lib/mapTypes";
+import { useState, useCallback, useEffect, useRef } from 'react';
+import type { MapSettings } from '@/lib/mapTypes';
 
 interface CameraState {
   x: number;
@@ -60,7 +60,7 @@ export function useCamera({
       e.preventDefault();
       const zoomFactor = 1 - e.deltaY * 0.001;
 
-      setCamera((prev) => {
+      setCamera(prev => {
         const newScale = Math.max(getMinScale(), Math.min(5, prev.scale * zoomFactor));
         const rect = canvas.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
@@ -72,8 +72,8 @@ export function useCamera({
     };
 
     // passive: false lets handleWheel preventDefault page scroll
-    canvas.addEventListener("wheel", handleWheel, { passive: false });
-    return () => canvas.removeEventListener("wheel", handleWheel);
+    canvas.addEventListener('wheel', handleWheel, { passive: false });
+    return () => canvas.removeEventListener('wheel', handleWheel);
   }, [mapSettings, canvasRef, constrainCamera, getMinScale]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -87,7 +87,7 @@ export function useCamera({
 
       const dx = e.clientX - lastPosRef.current.x;
       const dy = e.clientY - lastPosRef.current.y;
-      setCamera((prev) => constrainCamera({ ...prev, x: prev.x + dx, y: prev.y + dy }));
+      setCamera(prev => constrainCamera({ ...prev, x: prev.x + dx, y: prev.y + dy }));
       lastPosRef.current = { x: e.clientX, y: e.clientY };
     },
     [mapSettings, constrainCamera]

@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from "react";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import type { Tile } from "@/lib/mapTypes";
+import { useState, useEffect, useRef } from 'react';
+import { useQuery } from 'convex/react';
+import { api } from '@/convex/_generated/api';
+import type { Tile } from '@/lib/mapTypes';
 
 // Parallel 4000-tile batches stay under Convex read limits
 export function useTileCache() {
@@ -13,16 +13,11 @@ export function useTileCache() {
   const [totalBatches, setTotalBatches] = useState(0);
   const hasInitialized = useRef(false);
 
-  const batch0 = useQuery(
-    api.map.getTilesBatch,
-    hasInitialized.current ? "skip" : { batchIndex: 0, batchSize: 4000 }
-  );
-  const batches = [1, 2, 3, 4, 5, 6, 7].map((batchIndex) =>
+  const batch0 = useQuery(api.map.getTilesBatch, hasInitialized.current ? 'skip' : { batchIndex: 0, batchSize: 4000 });
+  const batches = [1, 2, 3, 4, 5, 6, 7].map(batchIndex =>
     useQuery(
       api.map.getTilesBatch,
-      totalBatches > batchIndex && !batchesLoaded.has(batchIndex)
-        ? { batchIndex, batchSize: 4000 }
-        : "skip"
+      totalBatches > batchIndex && !batchesLoaded.has(batchIndex) ? { batchIndex, batchSize: 4000 } : 'skip'
     )
   );
 
@@ -30,7 +25,7 @@ export function useTileCache() {
     if (!batch0 || hasInitialized.current) return;
 
     setTotalBatches(batch0.totalBatches);
-    setTiles(new Map(batch0.tiles.map((tile) => [`${tile.x},${tile.y}`, tile])));
+    setTiles(new Map(batch0.tiles.map(tile => [`${tile.x},${tile.y}`, tile])));
     setBatchesLoaded(new Set([0]));
     setTotalTiles(batch0.tiles.length);
     setProgress((1 / batch0.totalBatches) * 100);
@@ -42,13 +37,13 @@ export function useTileCache() {
       const batchIndex = i + 1;
       if (!batch || batchesLoaded.has(batchIndex)) return;
 
-      setTiles((prevTiles) => {
+      setTiles(prevTiles => {
         const newTiles = new Map(prevTiles);
         for (const tile of batch.tiles) newTiles.set(`${tile.x},${tile.y}`, tile);
         return newTiles;
       });
-      setBatchesLoaded((prev) => new Set([...prev, batchIndex]));
-      setTotalTiles((prev) => prev + batch.tiles.length);
+      setBatchesLoaded(prev => new Set([...prev, batchIndex]));
+      setTotalTiles(prev => prev + batch.tiles.length);
       setProgress(((batchIndex + 1) / batch.totalBatches) * 100);
     }, [batch])
   );

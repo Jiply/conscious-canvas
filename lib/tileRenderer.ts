@@ -1,5 +1,5 @@
-import type { TileType } from "@/lib/mapTypes";
-import type { Graphics } from "pixi.js";
+import type { TileType } from '@/lib/mapTypes';
+import type { Graphics } from 'pixi.js';
 
 interface TileRenderStyle {
   shadow?: boolean;
@@ -8,13 +8,13 @@ interface TileRenderStyle {
   borderWidth: number;
   patternColor?: number;
   opacity?: number;
-  pattern?: "solid" | "grid" | "diagonal" | "dots" | "brick";
+  pattern?: 'solid' | 'grid' | 'diagonal' | 'dots' | 'brick';
 }
 
 const TILE_RENDER_STYLES: Record<TileType, TileRenderStyle> = {
   floor: {
     borderWidth: 1,
-    pattern: "grid",
+    pattern: 'grid',
     baseColor: 0xe8e4d9,
     borderColor: 0xd0ccc0,
     patternColor: 0xd5d1c6,
@@ -23,7 +23,7 @@ const TILE_RENDER_STYLES: Record<TileType, TileRenderStyle> = {
   wall: {
     shadow: true,
     borderWidth: 2,
-    pattern: "brick",
+    pattern: 'brick',
     baseColor: 0x8b7355,
     borderColor: 0x6a5544,
     patternColor: 0x755f4a,
@@ -31,13 +31,13 @@ const TILE_RENDER_STYLES: Record<TileType, TileRenderStyle> = {
   },
   door: {
     borderWidth: 2,
-    pattern: "solid",
+    pattern: 'solid',
     baseColor: 0xa0826d,
     borderColor: 0x8b7355,
     opacity: 0.95,
   },
   grass: {
-    pattern: "dots",
+    pattern: 'dots',
     borderWidth: 0.5,
     baseColor: 0x7cb342,
     borderColor: 0x689f38,
@@ -45,39 +45,39 @@ const TILE_RENDER_STYLES: Record<TileType, TileRenderStyle> = {
   },
   water: {
     borderWidth: 1,
-    pattern: "diagonal",
+    pattern: 'diagonal',
     baseColor: 0x42a5f5,
     borderColor: 0x2196f3,
     patternColor: 0x64b5f6,
   },
   path: {
     borderWidth: 1,
-    pattern: "grid",
+    pattern: 'grid',
     baseColor: 0xbdbdbd,
     borderColor: 0x9e9e9e,
     patternColor: 0xa8a8a8,
   },
   void: {
     borderWidth: 0,
-    pattern: "solid",
+    pattern: 'solid',
     baseColor: 0x212121,
     borderColor: 0x000000,
   },
   tall_tree: {
     shadow: true,
     borderWidth: 1,
-    pattern: "solid",
+    pattern: 'solid',
     baseColor: 0x2e7d32,
     borderColor: 0x1b5e20,
   },
   short_tree: {
     borderWidth: 1,
-    pattern: "solid",
+    pattern: 'solid',
     baseColor: 0x558b2f,
     borderColor: 0x33691e,
   },
   bush: {
-    pattern: "dots",
+    pattern: 'dots',
     borderWidth: 0.5,
     baseColor: 0x689f38,
     borderColor: 0x558b2f,
@@ -85,21 +85,21 @@ const TILE_RENDER_STYLES: Record<TileType, TileRenderStyle> = {
   },
   flower_bed: {
     borderWidth: 1,
-    pattern: "dots",
+    pattern: 'dots',
     baseColor: 0xf48fb1,
     borderColor: 0xf06292,
     patternColor: 0xf8bbd0,
   },
   concrete: {
     borderWidth: 1,
-    pattern: "grid",
+    pattern: 'grid',
     baseColor: 0x9e9e9e,
     borderColor: 0x757575,
     patternColor: 0xbdbdbd,
   },
   brick_path: {
     borderWidth: 1,
-    pattern: "brick",
+    pattern: 'brick',
     baseColor: 0xa1887f,
     borderColor: 0x8d6e63,
     patternColor: 0xbcaaa4,
@@ -107,14 +107,14 @@ const TILE_RENDER_STYLES: Record<TileType, TileRenderStyle> = {
   cafe_stall: {
     opacity: 0.95,
     borderWidth: 2,
-    pattern: "solid",
+    pattern: 'solid',
     baseColor: 0xd7ccc8,
     borderColor: 0xbcaaa4,
   },
   study_desk: {
     opacity: 0.95,
     borderWidth: 1,
-    pattern: "solid",
+    pattern: 'solid',
     baseColor: 0xbcaaa4,
     borderColor: 0xa1887f,
   },
@@ -122,49 +122,49 @@ const TILE_RENDER_STYLES: Record<TileType, TileRenderStyle> = {
     shadow: true,
     opacity: 1.0,
     borderWidth: 2,
-    pattern: "solid",
+    pattern: 'solid',
     baseColor: 0x8d6e63,
     borderColor: 0x6d4c41,
   },
   lounge_chair: {
     opacity: 0.95,
     borderWidth: 1,
-    pattern: "solid",
+    pattern: 'solid',
     baseColor: 0xb39ddb,
     borderColor: 0x9575cd,
   },
   laundry_machine: {
     opacity: 1.0,
     borderWidth: 2,
-    pattern: "solid",
+    pattern: 'solid',
     baseColor: 0x90caf9,
     borderColor: 0x64b5f6,
   },
   lecture_seat: {
     opacity: 0.95,
     borderWidth: 1,
-    pattern: "solid",
+    pattern: 'solid',
     baseColor: 0x9fa8da,
     borderColor: 0x7986cb,
   },
   library_desk: {
     opacity: 0.95,
     borderWidth: 1,
-    pattern: "solid",
+    pattern: 'solid',
     baseColor: 0xa1887f,
     borderColor: 0x8d6e63,
   },
   dorm_bed: {
     opacity: 0.95,
     borderWidth: 1,
-    pattern: "solid",
+    pattern: 'solid',
     baseColor: 0xce93d8,
     borderColor: 0xba68c8,
   },
   kitchen_counter: {
     opacity: 0.95,
     borderWidth: 1,
-    pattern: "solid",
+    pattern: 'solid',
     baseColor: 0xffe082,
     borderColor: 0xffd54f,
   },
@@ -187,16 +187,8 @@ export function renderTile(
   graphics.rect(x, y, tileSize, tileSize);
   graphics.fill({ color: baseColor, alpha });
 
-  if (style.pattern && style.pattern !== "solid" && style.patternColor) {
-    drawPattern(
-      graphics,
-      x,
-      y,
-      tileSize,
-      style.pattern,
-      style.patternColor,
-      alpha
-    );
+  if (style.pattern && style.pattern !== 'solid' && style.patternColor) {
+    drawPattern(graphics, x, y, tileSize, style.pattern, style.patternColor, alpha);
   }
 
   if (style.borderWidth > 0) {
@@ -214,7 +206,7 @@ function drawPattern(
   x: number,
   y: number,
   tileSize: number,
-  pattern: "grid" | "diagonal" | "dots" | "brick",
+  pattern: 'grid' | 'diagonal' | 'dots' | 'brick',
   color: number,
   baseAlpha: number = 1.0
 ): void {
@@ -222,7 +214,7 @@ function drawPattern(
   const quarterSize = tileSize / 4;
 
   switch (pattern) {
-    case "grid":
+    case 'grid':
       graphics.moveTo(x + halfSize, y);
       graphics.lineTo(x + halfSize, y + tileSize);
       graphics.moveTo(x, y + halfSize);
@@ -230,7 +222,7 @@ function drawPattern(
       graphics.stroke({ width: 0.5, color, alpha: 0.3 * baseAlpha });
       break;
 
-    case "diagonal":
+    case 'diagonal':
       for (let i = -1; i <= 1; i++) {
         const offset = i * quarterSize;
         graphics.moveTo(x + offset, y + tileSize);
@@ -239,7 +231,7 @@ function drawPattern(
       graphics.stroke({ width: 1, color, alpha: 0.2 * baseAlpha });
       break;
 
-    case "dots":
+    case 'dots':
       const dotPositions = [
         [x + quarterSize, y + quarterSize],
         [x + tileSize - quarterSize, y + quarterSize],
@@ -254,7 +246,7 @@ function drawPattern(
       }
       break;
 
-    case "brick":
+    case 'brick':
       const brickHeight = tileSize / 3;
 
       graphics.moveTo(x, y + brickHeight);
@@ -278,5 +270,5 @@ function drawPattern(
 
 export function getTileColorString(tileType: TileType): string {
   const style = TILE_RENDER_STYLES[tileType];
-  return `#${style.baseColor.toString(16).padStart(6, "0")}`;
+  return `#${style.baseColor.toString(16).padStart(6, '0')}`;
 }

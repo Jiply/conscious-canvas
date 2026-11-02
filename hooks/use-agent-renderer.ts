@@ -1,7 +1,7 @@
-import { useRef, useEffect } from "react";
-import { getProfilePicture } from "@/lib/utils";
-import type { Id, Doc } from "@/convex/_generated/dataModel";
-import { Text, Assets, Sprite, Graphics, Container, TextStyle } from "pixi.js";
+import { useRef, useEffect } from 'react';
+import { getProfilePicture } from '@/lib/utils';
+import type { Id, Doc } from '@/convex/_generated/dataModel';
+import { Text, Assets, Sprite, Graphics, Container, TextStyle } from 'pixi.js';
 
 type AgentData = {
   animationStartTime: number;
@@ -37,7 +37,7 @@ export function useAgentRenderer({
     const agentContainers = agentContainersRef.current;
     const activeAgentIds = new Set<string>();
 
-    agents.forEach((a) => {
+    agents.forEach(a => {
       activeAgentIds.add(a._id);
       const targetX = a.pos.x * tileSize;
       const targetY = a.pos.y * tileSize;
@@ -51,17 +51,17 @@ export function useAgentRenderer({
         visionRadius.circle(0, 0, 20 * tileSize);
         visionRadius.fill({ color: 0x3b82f6, alpha: 0.08 });
         visionRadius.stroke({ width: 2, color: 0x3b82f6, alpha: 0.25 });
-        visionRadius.eventMode = "none";
+        visionRadius.eventMode = 'none';
         agentContainer.addChild(visionRadius);
 
         const profileContainer = new Container();
-        profileContainer.eventMode = "static";
-        profileContainer.cursor = "pointer";
+        profileContainer.eventMode = 'static';
+        profileContainer.cursor = 'pointer';
 
         if (onAgentClick) {
-          profileContainer.on("pointerdown", (event) => {
+          profileContainer.on('pointerdown', event => {
             event.stopPropagation();
-            onAgentClick(a._id as Id<"agents">);
+            onAgentClick(a._id as Id<'agents'>);
           });
         }
 
@@ -78,13 +78,13 @@ export function useAgentRenderer({
         profileSprite.mask = circleMask;
 
         Assets.load(getProfilePicture(a.name))
-          .then((texture) => {
+          .then(texture => {
             if (profileSprite.destroyed) return;
             profileSprite.texture = texture;
             profileSprite.width = 32;
             profileSprite.height = 32;
           })
-          .catch((error) => console.error(`  ❌ Failed to load texture for ${a.name}:`, error));
+          .catch(error => console.error(`  ❌ Failed to load texture for ${a.name}:`, error));
 
         const border = new Graphics();
         border.circle(0, 0, 16);
@@ -100,16 +100,16 @@ export function useAgentRenderer({
         const label = new Text({
           text: a.name,
           style: new TextStyle({
-            fontFamily: "Arial, sans-serif",
+            fontFamily: 'Arial, sans-serif',
             fontSize: 11,
-            fontWeight: "bold",
+            fontWeight: 'bold',
             fill: 0xffffff,
             stroke: { color: 0x000000, width: 2.5 },
           }),
         });
         label.anchor.set(0.5);
         label.y = -22;
-        label.eventMode = "none";
+        label.eventMode = 'none';
         agentContainer.addChild(label);
 
         agentContainer.x = targetX;
@@ -172,21 +172,13 @@ export function useAgentRenderer({
         if (agentData.container.destroyed || !agentData.container.visible) continue;
 
         const progress = Math.min((now - agentData.animationStartTime) / ANIMATION_DURATION, 1);
-        const currentX =
-          agentData.startX + (agentData.targetX - agentData.startX) * progress;
-        const currentY =
-          agentData.startY + (agentData.targetY - agentData.startY) * progress;
+        const currentX = agentData.startX + (agentData.targetX - agentData.startX) * progress;
+        const currentY = agentData.startY + (agentData.targetY - agentData.startY) * progress;
 
         const wobbleX =
-          Math.sin(
-            now * 0.001 * WOBBLE_FREQUENCY * agentData.wobbleSpeed +
-              agentData.wobbleOffsetX
-          ) * WOBBLE_AMPLITUDE;
+          Math.sin(now * 0.001 * WOBBLE_FREQUENCY * agentData.wobbleSpeed + agentData.wobbleOffsetX) * WOBBLE_AMPLITUDE;
         const wobbleY =
-          Math.sin(
-            now * 0.001 * WOBBLE_FREQUENCY * agentData.wobbleSpeed +
-              agentData.wobbleOffsetY
-          ) * WOBBLE_AMPLITUDE;
+          Math.sin(now * 0.001 * WOBBLE_FREQUENCY * agentData.wobbleSpeed + agentData.wobbleOffsetY) * WOBBLE_AMPLITUDE;
 
         agentData.container.x = currentX + wobbleX;
         agentData.container.y = currentY + wobbleY;

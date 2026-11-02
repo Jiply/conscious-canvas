@@ -1,8 +1,8 @@
-import { useEffect, useRef } from "react";
-import { Sprite } from "pixi.js";
-import type { Container, Renderer } from "pixi.js";
-import { getTileTexture, preGenerateAllTileTextures } from "@/lib/textureGenerator";
-import type { Tile, MapSettings } from "@/lib/mapTypes";
+import { useEffect, useRef } from 'react';
+import { Sprite } from 'pixi.js';
+import type { Container, Renderer } from 'pixi.js';
+import { getTileTexture, preGenerateAllTileTextures } from '@/lib/textureGenerator';
+import type { Tile, MapSettings } from '@/lib/mapTypes';
 
 export function useTileRendererCached({
   tilesLayer,
@@ -66,19 +66,13 @@ export function useTileRendererCached({
 
     const minX = Math.max(0, Math.floor(viewportLeft / tileSize) - padding);
     const minY = Math.max(0, Math.floor(viewportTop / tileSize) - padding);
-    const maxX = Math.min(
-      mapSettings.gridWidth,
-      Math.ceil(viewportRight / tileSize) + padding
-    );
-    const maxY = Math.min(
-      mapSettings.gridHeight,
-      Math.ceil(viewportBottom / tileSize) + padding
-    );
+    const maxX = Math.min(mapSettings.gridWidth, Math.ceil(viewportRight / tileSize) + padding);
+    const maxY = Math.min(mapSettings.gridHeight, Math.ceil(viewportBottom / tileSize) + padding);
 
     for (const [key, sprite] of renderedSprites.current.entries()) {
       if (sprite.destroyed) continue;
 
-      const [xStr, yStr] = key.split(",");
+      const [xStr, yStr] = key.split(',');
       const tileX = parseInt(xStr);
       const tileY = parseInt(yStr);
       sprite.visible = tileX >= minX && tileX < maxX && tileY >= minY && tileY < maxY;

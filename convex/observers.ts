@@ -1,5 +1,5 @@
-import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { v } from 'convex/values';
+import { mutation, query } from './_generated/server';
 
 export const heartbeat = mutation({
   args: {
@@ -13,8 +13,8 @@ export const heartbeat = mutation({
     const now = Date.now();
 
     const existing = await ctx.db
-      .query("observer")
-      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
+      .query('observer')
+      .withIndex('by_session', q => q.eq('sessionId', args.sessionId))
       .first();
 
     if (existing) {
@@ -22,7 +22,7 @@ export const heartbeat = mutation({
         lastHeartbeatAt: now,
       });
     } else {
-      await ctx.db.insert("observer", {
+      await ctx.db.insert('observer', {
         sessionId: args.sessionId,
         lastHeartbeatAt: now,
         metadata: {
@@ -30,29 +30,29 @@ export const heartbeat = mutation({
         },
       });
 
-      await ctx.db.insert("events", {
+      await ctx.db.insert('events', {
         timestamp: now,
-        type: "world",
-        description: "👁️ A new observer has entered the simulation",
+        type: 'world',
+        description: '👁️ A new observer has entered the simulation',
         metadata: {
-          severity: "info",
+          severity: 'info',
         },
       });
     }
 
     const cutoff = now - 15000;
     const activeObservers = await ctx.db
-      .query("observer")
-      .withIndex("by_heartbeat")
-      .filter((q) => q.gte(q.field("lastHeartbeatAt"), cutoff))
+      .query('observer')
+      .withIndex('by_heartbeat')
+      .filter(q => q.gte(q.field('lastHeartbeatAt'), cutoff))
       .collect();
 
     const observerCount = activeObservers.length;
 
-    const worldSettings = await ctx.db.query("world_settings").first();
+    const worldSettings = await ctx.db.query('world_settings').first();
 
     if (!worldSettings) {
-      await ctx.db.insert("world_settings", {
+      await ctx.db.insert('world_settings', {
         isRunning: observerCount > 0,
         observerCount,
         adminEnabled: true,
@@ -66,35 +66,33 @@ export const heartbeat = mutation({
       const shouldRun = observerCount > 0 && worldSettings.adminEnabled;
 
       if (!wasRunning && shouldRun) {
-        const timestamp = new Date(now).toLocaleTimeString("en-US", {
+        const timestamp = new Date(now).toLocaleTimeString('en-US', {
           hour12: false,
         });
         console.log(
-          `⏰ [${timestamp}] 🌍 World AWAKENS: ${observerCount} ${observerCount === 1 ? "observer" : "observers"} watching`
+          `⏰ [${timestamp}] 🌍 World AWAKENS: ${observerCount} ${observerCount === 1 ? 'observer' : 'observers'} watching`
         );
 
-        await ctx.db.insert("events", {
+        await ctx.db.insert('events', {
           timestamp: now,
-          type: "world",
-          description: `🌍 Universe awakens: ${observerCount} ${observerCount === 1 ? "observer" : "observers"} watching`,
+          type: 'world',
+          description: `🌍 Universe awakens: ${observerCount} ${observerCount === 1 ? 'observer' : 'observers'} watching`,
           metadata: {
-            severity: "important",
+            severity: 'important',
           },
         });
       } else if (wasRunning && !shouldRun) {
-        const timestamp = new Date(now).toLocaleTimeString("en-US", {
+        const timestamp = new Date(now).toLocaleTimeString('en-US', {
           hour12: false,
         });
-        console.log(
-          `⏰ [${timestamp}] 🧊 Universe FROZEN: No observers remain`
-        );
+        console.log(`⏰ [${timestamp}] 🧊 Universe FROZEN: No observers remain`);
 
-        await ctx.db.insert("events", {
+        await ctx.db.insert('events', {
           timestamp: now,
-          type: "world",
+          type: 'world',
           description: `🧊 Universe frozen: No observers remain`,
           metadata: {
-            severity: "important",
+            severity: 'important',
           },
         });
       }
@@ -102,8 +100,7 @@ export const heartbeat = mutation({
       await ctx.db.patch(worldSettings._id, {
         isRunning: shouldRun,
         observerCount,
-        simulationStartedAt:
-          !wasRunning && shouldRun ? now : worldSettings.simulationStartedAt,
+        simulationStartedAt: !wasRunning && shouldRun ? now : worldSettings.simulationStartedAt,
       });
     }
 
@@ -121,8 +118,8 @@ export const getWorldState = query({
     observerCount: v.number(),
     adminEnabled: v.boolean(),
   }),
-  handler: async (ctx) => {
-    const worldSettings = await ctx.db.query("world_settings").first();
+  handler: async ctx => {
+    const worldSettings = await ctx.db.query('world_settings').first();
 
     if (!worldSettings) {
       return {
@@ -147,10 +144,10 @@ export const toggleAdmin = mutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const now = Date.now();
-    const worldSettings = await ctx.db.query("world_settings").first();
+    const worldSettings = await ctx.db.query('world_settings').first();
 
     if (!worldSettings) {
-      await ctx.db.insert("world_settings", {
+      await ctx.db.insert('world_settings', {
         isRunning: false,
         observerCount: 0,
         adminEnabled: args.enabled,
@@ -164,14 +161,14 @@ export const toggleAdmin = mutation({
       });
     }
 
-    await ctx.db.insert("events", {
+    await ctx.db.insert('events', {
       timestamp: now,
-      type: "world",
+      type: 'world',
       description: args.enabled
-        ? "⚙️ Admin enabled simulation - universe can run"
-        : "⚙️ Admin disabled simulation - universe force frozen",
+        ? '⚙️ Admin enabled simulation - universe can run'
+        : '⚙️ Admin disabled simulation - universe force frozen',
       metadata: {
-        severity: "critical",
+        severity: 'critical',
       },
     });
 
@@ -182,14 +179,14 @@ export const toggleAdmin = mutation({
 export const cleanupStaleObservers = mutation({
   args: {},
   returns: v.number(),
-  handler: async (ctx) => {
+  handler: async ctx => {
     const now = Date.now();
     const cutoff = now - 60000;
 
     const staleObservers = await ctx.db
-      .query("observer")
-      .withIndex("by_heartbeat")
-      .filter((q) => q.lt(q.field("lastHeartbeatAt"), cutoff))
+      .query('observer')
+      .withIndex('by_heartbeat')
+      .filter(q => q.lt(q.field('lastHeartbeatAt'), cutoff))
       .collect();
 
     for (const observer of staleObservers) {

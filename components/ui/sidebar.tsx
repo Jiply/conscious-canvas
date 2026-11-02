@@ -1,17 +1,6 @@
-"use client";
-import {
-  Sheet,
-  SheetTitle,
-  SheetHeader,
-  SheetContent,
-  SheetDescription,
-} from "@/components/ui/sheet";
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-  TooltipProvider,
-} from "@/components/ui/tooltip";
+'use client';
+import { Sheet, SheetTitle, SheetHeader, SheetContent, SheetDescription } from '@/components/ui/sheet';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import {
   useMemo,
   useState,
@@ -21,13 +10,13 @@ import {
   createContext,
   type CSSProperties,
   type ComponentProps,
-} from "react";
-import { cn } from "@/lib/utils";
-import { Slot } from "@radix-ui/react-slot";
-import { PanelLeftIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { type VariantProps, cva } from "class-variance-authority";
+} from 'react';
+import { cn } from '@/lib/utils';
+import { Slot } from '@radix-ui/react-slot';
+import { PanelLeftIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { type VariantProps, cva } from 'class-variance-authority';
 
 const SIDEBAR_WIDTH = `18rem`;
 const SIDEBAR_WIDTH_ICON = `3rem`;
@@ -84,15 +73,12 @@ function SidebarProvider({
   );
 
   const toggleSidebar = useCallback(() => {
-    return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open);
+    return isMobile ? setOpenMobile(open => !open) : setOpen(open => !open);
   }, [isMobile, setOpen, setOpenMobile]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (
-        event.key === SIDEBAR_KEYBOARD_SHORTCUT &&
-        (event.metaKey || event.ctrlKey)
-      ) {
+      if (event.key === SIDEBAR_KEYBOARD_SHORTCUT && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
         toggleSidebar();
       }
@@ -124,15 +110,12 @@ function SidebarProvider({
           data-slot="sidebar-wrapper"
           style={
             {
-              "--sidebar-width": SIDEBAR_WIDTH,
-              "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
+              '--sidebar-width': SIDEBAR_WIDTH,
+              '--sidebar-width-icon': SIDEBAR_WIDTH_ICON,
               ...style,
             } as CSSProperties
           }
-          className={cn(
-            `group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full`,
-            className
-          )}
+          className={cn(`group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full`, className)}
           {...props}
         >
           {children}
@@ -160,10 +143,7 @@ function Sidebar({
     return (
       <div
         data-slot="sidebar"
-        className={cn(
-          `bg-sidebar text-sidebar-foreground flex h-full w-(--sidebar-width) flex-col`,
-          className
-        )}
+        className={cn(`bg-sidebar text-sidebar-foreground flex h-full w-(--sidebar-width) flex-col`, className)}
         {...props}
       >
         {children}
@@ -179,7 +159,7 @@ function Sidebar({
           data-mobile="true"
           data-slot="sidebar"
           data-sidebar="sidebar"
-          style={{ "--sidebar-width": SIDEBAR_WIDTH_MOBILE } as CSSProperties}
+          style={{ '--sidebar-width': SIDEBAR_WIDTH_MOBILE } as CSSProperties}
           className="bg-sidebar text-sidebar-foreground w-(--sidebar-width) p-0 [&>button]:hidden"
         >
           <SheetHeader className="sr-only">
@@ -238,11 +218,7 @@ function Sidebar({
   );
 }
 
-function SidebarTrigger({
-  onClick,
-  className,
-  ...props
-}: ComponentProps<typeof Button>) {
+function SidebarTrigger({ onClick, className, ...props }: ComponentProps<typeof Button>) {
   const { toggleSidebar } = useSidebar();
 
   return (
@@ -252,7 +228,7 @@ function SidebarTrigger({
       data-sidebar="trigger"
       data-slot="sidebar-trigger"
       className={cn(`size-7`, className)}
-      onClick={(event) => {
+      onClick={event => {
         onClick?.(event);
         toggleSidebar();
       }}
@@ -316,12 +292,7 @@ function SidebarHeader({ className, ...props }: ComponentProps<`div`>) {
 
 function SidebarFooter({ className, ...props }: ComponentProps<`div`>) {
   return (
-    <div
-      data-sidebar="footer"
-      data-slot="sidebar-footer"
-      className={cn(`flex flex-col gap-2 p-2`, className)}
-      {...props}
-    />
+    <div data-sidebar="footer" data-slot="sidebar-footer" className={cn(`flex flex-col gap-2 p-2`, className)} {...props} />
   );
 }
 
@@ -330,10 +301,7 @@ function SidebarContent({ className, ...props }: ComponentProps<`div`>) {
     <div
       data-sidebar="content"
       data-slot="sidebar-content"
-      className={cn(
-        `flex min-h-0 grow flex-col border-y group-data-[collapsible=icon]:overflow-hidden`,
-        className
-      )}
+      className={cn(`flex min-h-0 grow flex-col border-y group-data-[collapsible=icon]:overflow-hidden`, className)}
       {...props}
     />
   );
@@ -350,11 +318,7 @@ function SidebarGroup({ className, ...props }: ComponentProps<`div`>) {
   );
 }
 
-function SidebarGroupLabel({
-  className,
-  asChild = false,
-  ...props
-}: ComponentProps<`div`> & { asChild?: boolean }) {
+function SidebarGroupLabel({ className, asChild = false, ...props }: ComponentProps<`div`> & { asChild?: boolean }) {
   const Comp = asChild ? Slot : `div`;
 
   return (
@@ -456,12 +420,7 @@ function SidebarMenuButton({
   return (
     <Tooltip>
       <TooltipTrigger asChild>{button}</TooltipTrigger>
-      <TooltipContent
-        side="right"
-        align="center"
-        hidden={state !== `collapsed` || isMobile}
-        {...tooltip}
-      />
+      <TooltipContent side="right" align="center" hidden={state !== `collapsed` || isMobile} {...tooltip} />
     </Tooltip>
   );
 }

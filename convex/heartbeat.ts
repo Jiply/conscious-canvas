@@ -1,7 +1,7 @@
-import { v } from "convex/values";
-import { type MutationCtx, mutation } from "./_generated/server";
-import type { Doc, Id } from "./_generated/dataModel";
-import { api, internal } from "./_generated/api";
+import { v } from 'convex/values';
+import { type MutationCtx, mutation } from './_generated/server';
+import type { Doc, Id } from './_generated/dataModel';
+import { api, internal } from './_generated/api';
 
 const VISION_WIDTH = 7;
 const VISION_DEPTH = 20;
@@ -19,17 +19,17 @@ export const tick = mutation({
   handler: async (ctx, args) => {
     const startTime = Date.now();
 
-    let state = await ctx.db.query("heartbeat_state").first();
+    let state = await ctx.db.query('heartbeat_state').first();
 
     if (!state) {
-      const stateId = await ctx.db.insert("heartbeat_state", {
+      const stateId = await ctx.db.insert('heartbeat_state', {
         isRunning: false,
         currentLeaderId: args.leaderId,
         lastStartedAt: 0,
         lastCompletedAt: 0,
       });
       state = await ctx.db.get(stateId);
-      if (!state) throw new Error("Failed to create heartbeat state");
+      if (!state) throw new Error('Failed to create heartbeat state');
     }
 
     if (state.currentLeaderId !== args.leaderId) {
@@ -45,7 +45,7 @@ export const tick = mutation({
       if (Date.now() - state.lastStartedAt > STALE_LOCK_TIMEOUT) {
         await ctx.db.patch(state._id, { isRunning: false });
       } else {
-        throw new Error("Heartbeat already running");
+        throw new Error('Heartbeat already running');
       }
     }
 
@@ -55,17 +55,13 @@ export const tick = mutation({
     });
 
     try {
-      const agents = await ctx.db.query("agents").collect();
+      const agents = await ctx.db.query('agents').collect();
 
-      await Promise.all(
-        agents.map((agent) => processAgentTick(ctx, agent, agents))
-      );
+      await Promise.all(agents.map(agent => processAgentTick(ctx, agent, agents)));
 
       // processAgentTick may have modified needs, so re-read agents
-      const freshAgents = await ctx.db.query("agents").collect();
-      await Promise.all(
-        freshAgents.map((agent) => updateAgentNeeds(ctx, agent))
-      );
+      const freshAgents = await ctx.db.query('agents').collect();
+      await Promise.all(freshAgents.map(agent => updateAgentNeeds(ctx, agent)));
 
       await ctx.db.patch(state._id, {
         isRunning: false,
@@ -85,17 +81,13 @@ export const tick = mutation({
   },
 });
 
-async function processAgentTick(
-  ctx: MutationCtx,
-  agent: Doc<"agents">,
-  allAgents: Doc<"agents">[]
-) {
+async function processAgentTick(ctx: MutationCtx, agent: Doc<'agents'>, allAgents: Doc<'agents'>[]) {
   const visibleAgents = await getAgentsInVision(ctx, agent, allAgents);
 
-  const observations = visibleAgents.map((visible) => ({
+  const observations = visibleAgents.map(visible => ({
     agentId: agent._id,
     targetId: visible.agent._id,
-    targetType: "agent" as const,
+    targetType: 'agent' as const,
     location: visible.agent.pos,
     distance: visible.distance,
     summary: `Saw ${visible.agent.name} at distance ${visible.distance.toFixed(1)} tiles`,
@@ -103,9 +95,7 @@ async function processAgentTick(
   }));
 
   if (observations.length > 0) {
-    await Promise.all(
-      observations.map((obs) => ctx.db.insert("observations", obs))
-    );
+    await Promise.all(observations.map(obs => ctx.db.insert('observations', obs)));
 
     for (const obs of observations) {
       console.log(`👁️  ${agent.name}: ${obs.summary}`);
@@ -114,18 +104,16 @@ async function processAgentTick(
 
   await pruneOldObservations(ctx, agent._id, 50);
 
-  const visibleAgentIds = visibleAgents.map((v) => v.agent._id);
+  const visibleAgentIds = visibleAgents.map(v => v.agent._id);
 
   const allOpinions = await ctx.db
-    .query("opinions")
-    .withIndex("by_agent", (q) => q.eq("agentId", agent._id))
+    .query('opinions')
+    .withIndex('by_agent', q => q.eq('agentId', agent._id))
     .collect();
 
-  const visibleOpinions = allOpinions.filter((op) =>
-    visibleAgentIds.includes(op.targetAgentId)
-  );
+  const visibleOpinions = allOpinions.filter(op => visibleAgentIds.includes(op.targetAgentId));
 
-  const nearbyAgents = visibleAgents.filter((v) => v.distance < TALKING_RANGE);
+  const nearbyAgents = visibleAgents.filter(v => v.distance < TALKING_RANGE);
 
   if (agent.currentConversationId) {
     await processConversationTurnForAgent(ctx, agent);
@@ -139,17 +127,11 @@ async function processAgentTick(
 
   const now = Date.now();
   if (now >= agent.nextDecisionAt) {
-    await makeAgentDecision(
-      ctx,
-      agent,
-      nearbyAgents,
-      visibleAgents,
-      visibleOpinions
-    );
+    await makeAgentDecision(ctx, agent, nearbyAgents, visibleAgents, visibleOpinions);
   }
 }
 
-async function updateAgentNeeds(ctx: MutationCtx, agent: Doc<"agents">) {
+async function updateAgentNeeds(ctx: MutationCtx, agent: Doc<'agents'>) {
   const TICK_INTERVAL = 5;
   const TIME_COMPRESSION = 2;
   const SIMULATED_SECONDS = TICK_INTERVAL * TIME_COMPRESSION;
@@ -161,22 +143,10 @@ async function updateAgentNeeds(ctx: MutationCtx, agent: Doc<"agents">) {
   const socialDriveGrowthRate = 0.015 / HOUR_IN_SECONDS;
 
   const newNeeds = {
-    hunger: Math.min(
-      1,
-      agent.needs.hunger + hungerGrowthRate * SIMULATED_SECONDS
-    ),
-    sleepiness: Math.min(
-      1,
-      agent.needs.sleepiness + sleepinessGrowthRate * SIMULATED_SECONDS
-    ),
-    studyPressure: Math.min(
-      1,
-      agent.needs.studyPressure + studyPressureGrowthRate * SIMULATED_SECONDS
-    ),
-    socialDrive: Math.min(
-      1,
-      agent.needs.socialDrive + socialDriveGrowthRate * SIMULATED_SECONDS
-    ),
+    hunger: Math.min(1, agent.needs.hunger + hungerGrowthRate * SIMULATED_SECONDS),
+    sleepiness: Math.min(1, agent.needs.sleepiness + sleepinessGrowthRate * SIMULATED_SECONDS),
+    studyPressure: Math.min(1, agent.needs.studyPressure + studyPressureGrowthRate * SIMULATED_SECONDS),
+    socialDrive: Math.min(1, agent.needs.socialDrive + socialDriveGrowthRate * SIMULATED_SECONDS),
   };
 
   console.log(
@@ -188,7 +158,7 @@ async function updateAgentNeeds(ctx: MutationCtx, agent: Doc<"agents">) {
   });
 }
 
-async function executePathMovement(ctx: MutationCtx, agent: Doc<"agents">) {
+async function executePathMovement(ctx: MutationCtx, agent: Doc<'agents'>) {
   if (!agent.path || agent.path.length === 0) return;
 
   const nextStep = agent.path.length > 1 ? agent.path[1] : agent.path[0];
@@ -201,20 +171,16 @@ async function executePathMovement(ctx: MutationCtx, agent: Doc<"agents">) {
   if (agent.path.length <= 1) {
     await ctx.db.patch(agent._id, {
       path: undefined,
-      state: "Idle",
+      state: 'Idle',
     });
 
     const activeDecision = await ctx.db
-      .query("decisions")
-      .withIndex("by_agent", (q) => q.eq("agentId", agent._id))
-      .order("desc")
+      .query('decisions')
+      .withIndex('by_agent', q => q.eq('agentId', agent._id))
+      .order('desc')
       .first();
 
-    if (
-      activeDecision &&
-      !activeDecision.completedAt &&
-      activeDecision.action === "MoveTo"
-    ) {
+    if (activeDecision && !activeDecision.completedAt && activeDecision.action === 'MoveTo') {
       await ctx.db.patch(activeDecision._id, {
         completedAt: Date.now(),
       });
@@ -236,29 +202,25 @@ function isAgentInPlace(
   );
 }
 
-async function performActionAtPlace(
-  ctx: MutationCtx,
-  agent: Doc<"agents">,
-  placeId: Id<"places">
-) {
+async function performActionAtPlace(ctx: MutationCtx, agent: Doc<'agents'>, placeId: Id<'places'>) {
   const place = await ctx.db.get(placeId);
   if (!place) return;
 
   if (!isAgentInPlace(agent.pos, place.bounds)) return;
 
   const placeKind = place.kind.toLowerCase();
-  let decisionAction: "Eat" | "Sleep" | "Study" | null = null;
+  let decisionAction: 'Eat' | 'Sleep' | 'Study' | null = null;
   const newNeeds = { ...agent.needs };
 
-  if (placeKind === "cafe" && agent.needs.hunger > 0.1) {
+  if (placeKind === 'cafe' && agent.needs.hunger > 0.1) {
     newNeeds.hunger = Math.max(0, agent.needs.hunger - 0.4);
-    decisionAction = "Eat";
-  } else if (placeKind === "dorm" && agent.needs.sleepiness > 0.1) {
+    decisionAction = 'Eat';
+  } else if (placeKind === 'dorm' && agent.needs.sleepiness > 0.1) {
     newNeeds.sleepiness = Math.max(0, agent.needs.sleepiness - 0.5);
-    decisionAction = "Sleep";
-  } else if (placeKind === "library" && agent.needs.studyPressure > 0.1) {
+    decisionAction = 'Sleep';
+  } else if (placeKind === 'library' && agent.needs.studyPressure > 0.1) {
     newNeeds.studyPressure = Math.max(0, agent.needs.studyPressure - 0.3);
-    decisionAction = "Study";
+    decisionAction = 'Study';
   }
 
   if (decisionAction) {
@@ -268,7 +230,7 @@ async function performActionAtPlace(
 
     console.log(`🍽️  ${agent.name}: ${decisionAction} at ${place.name}`);
 
-    await ctx.db.insert("decisions", {
+    await ctx.db.insert('decisions', {
       agentId: agent._id,
       action: decisionAction,
       targetPlaceId: placeId,
@@ -280,15 +242,15 @@ async function performActionAtPlace(
 
 async function makeAgentDecision(
   ctx: MutationCtx,
-  agent: Doc<"agents">,
-  nearbyAgents: Array<{ agent: Doc<"agents">; distance: number }>,
-  _visibleAgents: Array<{ agent: Doc<"agents">; distance: number }>,
-  visibleOpinions: Doc<"opinions">[]
+  agent: Doc<'agents'>,
+  nearbyAgents: Array<{ agent: Doc<'agents'>; distance: number }>,
+  _visibleAgents: Array<{ agent: Doc<'agents'>; distance: number }>,
+  visibleOpinions: Doc<'opinions'>[]
 ) {
   const activeDecision = await ctx.db
-    .query("decisions")
-    .withIndex("by_agent", (q) => q.eq("agentId", agent._id))
-    .order("desc")
+    .query('decisions')
+    .withIndex('by_agent', q => q.eq('agentId', agent._id))
+    .order('desc')
     .first();
 
   if (activeDecision && !activeDecision.completedAt) return;
@@ -298,10 +260,10 @@ async function makeAgentDecision(
       agentId: agent._id,
     });
   } catch (error) {
-    await ctx.db.insert("decisions", {
+    await ctx.db.insert('decisions', {
       agentId: agent._id,
-      action: "Idle",
-      innerThought: "Taking a moment to think...",
+      action: 'Idle',
+      innerThought: 'Taking a moment to think...',
       completedAt: Date.now(),
     });
   }
@@ -309,10 +271,10 @@ async function makeAgentDecision(
 
 async function getAgentsInVision(
   ctx: MutationCtx,
-  agent: Doc<"agents">,
-  allAgents: Doc<"agents">[]
-): Promise<Array<{ agent: Doc<"agents">; distance: number }>> {
-  const visible: Array<{ agent: Doc<"agents">; distance: number }> = [];
+  agent: Doc<'agents'>,
+  allAgents: Doc<'agents'>[]
+): Promise<Array<{ agent: Doc<'agents'>; distance: number }>> {
+  const visible: Array<{ agent: Doc<'agents'>; distance: number }> = [];
 
   const headingX = Math.cos(agent.headingRad);
   const headingY = Math.sin(agent.headingRad);
@@ -334,13 +296,7 @@ async function getAgentsInVision(
     if (forwardDist < 0 || forwardDist > VISION_DEPTH) continue;
     if (sidewaysDist > VISION_WIDTH / 2) continue;
 
-    const hasLineOfSight = await checkLineOfSight(
-      ctx,
-      agent.pos,
-      other.pos,
-      allAgents,
-      agent._id
-    );
+    const hasLineOfSight = await checkLineOfSight(ctx, agent.pos, other.pos, allAgents, agent._id);
 
     if (!hasLineOfSight) continue;
 
@@ -354,8 +310,8 @@ async function checkLineOfSight(
   ctx: MutationCtx,
   from: { x: number; y: number },
   to: { x: number; y: number },
-  allAgents: Doc<"agents">[],
-  observerAgentId: Id<"agents">
+  allAgents: Doc<'agents'>[],
+  observerAgentId: Id<'agents'>
 ): Promise<boolean> {
   const x0 = Math.round(from.x);
   const y0 = Math.round(from.y);
@@ -374,17 +330,14 @@ async function checkLineOfSight(
   while (true) {
     if ((x !== x0 || y !== y0) && (x !== x1 || y !== y1)) {
       const tile = await ctx.db
-        .query("map_tiles")
-        .withIndex("by_coordinates", (q) => q.eq("x", x).eq("y", y))
+        .query('map_tiles')
+        .withIndex('by_coordinates', q => q.eq('x', x).eq('y', y))
         .first();
 
       if (tile && !tile.isWalkable) return false;
 
       const blockingAgent = allAgents.find(
-        (a) =>
-          a._id !== observerAgentId &&
-          Math.round(a.pos.x) === x &&
-          Math.round(a.pos.y) === y
+        a => a._id !== observerAgentId && Math.round(a.pos.x) === x && Math.round(a.pos.y) === y
       );
 
       if (blockingAgent) return false;
@@ -406,24 +359,16 @@ async function checkLineOfSight(
   return true;
 }
 
-async function processConversationTurnForAgent(ctx: MutationCtx, agent: Doc<"agents">) {
+async function processConversationTurnForAgent(ctx: MutationCtx, agent: Doc<'agents'>) {
   if (!agent.currentConversationId) return;
 
-  await ctx.scheduler.runAfter(
-    0,
-    internal.conversations.processConversationTurn,
-    {
-      agentId: agent._id,
-      conversationId: agent.currentConversationId,
-    }
-  );
+  await ctx.scheduler.runAfter(0, internal.conversations.processConversationTurn, {
+    agentId: agent._id,
+    conversationId: agent.currentConversationId,
+  });
 }
 
-function calculateSalience(
-  distance: number,
-  target: Doc<"agents">,
-  _observer: Doc<"agents">
-): number {
+function calculateSalience(distance: number, target: Doc<'agents'>, _observer: Doc<'agents'>): number {
   const distanceFactor = 1 - distance / VISION_DEPTH;
 
   const arousalFactor = target.emotions.arousal;
@@ -431,18 +376,13 @@ function calculateSalience(
   return Math.min(1, 0.3 + distanceFactor * 0.4 + arousalFactor * 0.3);
 }
 
-async function pruneOldObservations(
-  ctx: MutationCtx,
-  agentId: Id<"agents">,
-  keepCount: number
-) {
+async function pruneOldObservations(ctx: MutationCtx, agentId: Id<'agents'>, keepCount: number) {
   const observations = await ctx.db
-    .query("observations")
-    .withIndex("by_agent", (q) => q.eq("agentId", agentId))
-    .order("desc")
+    .query('observations')
+    .withIndex('by_agent', q => q.eq('agentId', agentId))
+    .order('desc')
     .collect();
 
   const toDelete = observations.slice(keepCount);
-  await Promise.all(toDelete.map((obs) => ctx.db.delete(obs._id)));
+  await Promise.all(toDelete.map(obs => ctx.db.delete(obs._id)));
 }
-

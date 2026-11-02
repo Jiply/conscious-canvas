@@ -1,64 +1,50 @@
-"use node";
-import OpenAI from "openai";
-import { v } from "convex/values";
-import { api } from "./_generated/api";
-import { internalAction } from "./_generated/server";
+'use node';
+import OpenAI from 'openai';
+import { v } from 'convex/values';
+import { api } from './_generated/api';
+import { internalAction } from './_generated/server';
 
 export const processConversationTurn = internalAction({
   args: {
-    agentId: v.id("agents"),
-    conversationId: v.id("conversations"),
+    agentId: v.id('agents'),
+    conversationId: v.id('conversations'),
   },
   returns: v.object({
     continueConversation: v.boolean(),
     messageContent: v.string(),
   }),
   handler: async (ctx, args) => {
-
     const agent = await ctx.runQuery(api.agents.getAgent, {
       agentId: args.agentId,
     });
-    if (!agent) throw new Error("Agent not found");
+    if (!agent) throw new Error('Agent not found');
 
-    const conversation = await ctx.runQuery(
-      api.conversationsMutations.getAgentActiveConversation,
-      {
-        agentId: args.agentId,
-      }
-    );
-    if (!conversation) throw new Error("No active conversation");
+    const conversation = await ctx.runQuery(api.conversationsMutations.getAgentActiveConversation, {
+      agentId: args.agentId,
+    });
+    if (!conversation) throw new Error('No active conversation');
 
-    const messages = await ctx.runQuery(
-      api.conversationsMutations.getConversationMessages,
-      {
-        conversationId: args.conversationId,
-      }
-    );
+    const messages = await ctx.runQuery(api.conversationsMutations.getConversationMessages, {
+      conversationId: args.conversationId,
+    });
 
-    const otherParticipantId = conversation.participantIds.find(
-      (id) => id !== args.agentId
-    );
-    if (!otherParticipantId) throw new Error("No other participant found");
+    const otherParticipantId = conversation.participantIds.find(id => id !== args.agentId);
+    if (!otherParticipantId) throw new Error('No other participant found');
 
     const otherAgent = await ctx.runQuery(api.agents.getAgent, {
       agentId: otherParticipantId,
     });
-    if (!otherAgent) throw new Error("Other agent not found");
+    if (!otherAgent) throw new Error('Other agent not found');
 
     const opinions = await ctx.runQuery(api.opinions.getAgentOpinions, {
       agentId: args.agentId,
     });
-    const opinionOfOther = opinions.find(
-      (op) => op.targetAgentId === otherParticipantId
-    );
+    const opinionOfOther = opinions.find(op => op.targetAgentId === otherParticipantId);
 
-    const observations = await ctx.runQuery(
-      api.observations.getRecentObservations,
-      {
-        agentId: args.agentId,
-        limit: 5,
-      }
-    );
+    const observations = await ctx.runQuery(api.observations.getRecentObservations, {
+      agentId: args.agentId,
+      limit: 5,
+    });
 
     const decisions = await ctx.runQuery(api.decisions.getDecisionHistory, {
       agentId: args.agentId,
@@ -67,27 +53,14 @@ export const processConversationTurn = internalAction({
 
     let response;
     try {
-      response = await generateConversationMessage(
-        agent,
-        otherAgent,
-        opinionOfOther,
-        messages,
-        observations,
-        decisions
-      );
+      response = await generateConversationMessage(agent, otherAgent, opinionOfOther, messages, observations, decisions);
       if ((response as any).thoughts) {
-        console.log(
-          `💭 ${agent.name} (thinking): ${(response as any).thoughts}`
-        );
+        console.log(`💭 ${agent.name} (thinking): ${(response as any).thoughts}`);
       }
-      console.log(
-        `💬 ${agent.name} → ${otherAgent.name}: "${response.message}"`
-      );
+      console.log(`💬 ${agent.name} → ${otherAgent.name}: "${response.message}"`);
     } catch (error) {
       response = fallbackConversationResponse(agent);
-      console.log(
-        `💬 ${agent.name} → ${otherAgent.name}: "${response.message}" (fallback)`
-      );
+      console.log(`💬 ${agent.name} → ${otherAgent.name}: "${response.message}" (fallback)`);
     }
 
     await ctx.runMutation(api.conversationsMutations.addMessage, {
@@ -101,14 +74,8 @@ export const processConversationTurn = internalAction({
     if (response.emotionDelta) {
       await ctx.runMutation(api.agents.updateAgentEmotions, {
         agentId: args.agentId,
-        valence: Math.max(
-          -1,
-          Math.min(1, agent.emotions.valence + response.emotionDelta.valence)
-        ),
-        arousal: Math.max(
-          0,
-          Math.min(1, agent.emotions.arousal + response.emotionDelta.arousal)
-        ),
+        valence: Math.max(-1, Math.min(1, agent.emotions.valence + response.emotionDelta.valence)),
+        arousal: Math.max(0, Math.min(1, agent.emotions.arousal + response.emotionDelta.arousal)),
       });
     }
 
@@ -163,26 +130,26 @@ function buildConversationPrompt(
 ): string {
   const conversationHistory = messages
     .map((msg, idx) => {
-      const speaker = msg.agentId === agent._id ? "You" : otherAgent.name;
+      const speaker = msg.agentId === agent._id ? 'You' : otherAgent.name;
       const emotion = msg.emotionSnapshot
         ? ` [felt ${interpretValence(msg.emotionSnapshot.valence)}, ${interpretArousal(msg.emotionSnapshot.arousal)}]`
-        : "";
+        : '';
       return `${idx + 1}. ${speaker}: "${msg.content}"${emotion}`;
     })
-    .join("\n");
+    .join('\n');
 
   const recentObservations = observations
     .slice(0, 5)
-    .map((obs) => {
-      const salience = obs.salience > 0.7 ? "⭐ " : "";
+    .map(obs => {
+      const salience = obs.salience > 0.7 ? '⭐ ' : '';
       return `${salience}${obs.summary}`;
     })
-    .join("\n  ");
+    .join('\n  ');
 
   const recentDecisions = decisions
     .slice(0, 3)
-    .map((d) => `${d.action}${d.innerThought ? ` ("${d.innerThought}")` : ""}`)
-    .join(", ");
+    .map(d => `${d.action}${d.innerThought ? ` ("${d.innerThought}")` : ''}`)
+    .join(', ');
 
   const myMood = interpretValence(agent.emotions.valence);
   const myEnergy = interpretArousal(agent.emotions.arousal);
@@ -196,9 +163,9 @@ function buildConversationPrompt(
     .sort((a: any, b: any) => b.weight - a.weight)
     .slice(0, 3)
     .map((g: any) => `${g.name} (priority: ${(g.weight * 100).toFixed(0)}%)`)
-    .join(", ");
+    .join(', ');
 
-  let relationshipContext = "";
+  let relationshipContext = '';
   if (opinion) {
     const sentiment = opinion.sentiment;
     if (sentiment > 0.6) {
@@ -217,24 +184,17 @@ function buildConversationPrompt(
   }
 
   const urgentNeeds = [];
-  if (agent.needs.hunger > 0.8)
-    urgentNeeds.push("HUNGRY - You're starving and need food soon");
-  if (agent.needs.sleepiness > 0.8)
-    urgentNeeds.push("EXHAUSTED - You're extremely tired and need rest");
-  if (agent.needs.studyPressure > 0.8)
-    urgentNeeds.push("STRESSED - Academic pressure is crushing you");
-  if (agent.needs.socialDrive > 0.8)
-    urgentNeeds.push("LONELY - You desperately need social connection");
+  if (agent.needs.hunger > 0.8) urgentNeeds.push("HUNGRY - You're starving and need food soon");
+  if (agent.needs.sleepiness > 0.8) urgentNeeds.push("EXHAUSTED - You're extremely tired and need rest");
+  if (agent.needs.studyPressure > 0.8) urgentNeeds.push('STRESSED - Academic pressure is crushing you');
+  if (agent.needs.socialDrive > 0.8) urgentNeeds.push('LONELY - You desperately need social connection');
 
-  const urgentWarning =
-    urgentNeeds.length > 0
-      ? `\nURGENT NEEDS:\n${urgentNeeds.map((n) => `  - ${n}`).join("\n")}\n`
-      : "";
+  const urgentWarning = urgentNeeds.length > 0 ? `\nURGENT NEEDS:\n${urgentNeeds.map(n => `  - ${n}`).join('\n')}\n` : '';
 
   return `
 ═══════════════════════════════════════════════════════════
 YOU: ${agent.name} (${agent.role})
-${agent.personality ? `PERSONALITY: ${agent.personality}` : ""}
+${agent.personality ? `PERSONALITY: ${agent.personality}` : ''}
 ═══════════════════════════════════════════════════════════
 
 ╔══ YOUR EMOTIONAL STATE ══╗
@@ -244,14 +204,14 @@ ${agent.personality ? `PERSONALITY: ${agent.personality}` : ""}
 ╚═══════════════════════════╝
 
 ╔══ YOUR NEEDS ══╗
-│ • Hunger: ${renderMeter(agent.needs.hunger)} ${agent.needs.hunger.toFixed(2)} ${agent.needs.hunger > 0.8 ? "🚨 CRITICAL" : agent.needs.hunger > 0.6 ? "⚠️ High" : ""}
-│ • Sleepiness: ${renderMeter(agent.needs.sleepiness)} ${agent.needs.sleepiness.toFixed(2)} ${agent.needs.sleepiness > 0.8 ? "🚨 CRITICAL" : agent.needs.sleepiness > 0.6 ? "⚠️ High" : ""}
-│ • Study Pressure: ${renderMeter(agent.needs.studyPressure)} ${agent.needs.studyPressure.toFixed(2)} ${agent.needs.studyPressure > 0.8 ? "🚨 CRITICAL" : agent.needs.studyPressure > 0.6 ? "⚠️ High" : ""}
-│ • Social Drive: ${renderMeter(agent.needs.socialDrive)} ${agent.needs.socialDrive.toFixed(2)} ${agent.needs.socialDrive > 0.8 ? "🚨 Very High" : ""}
+│ • Hunger: ${renderMeter(agent.needs.hunger)} ${agent.needs.hunger.toFixed(2)} ${agent.needs.hunger > 0.8 ? '🚨 CRITICAL' : agent.needs.hunger > 0.6 ? '⚠️ High' : ''}
+│ • Sleepiness: ${renderMeter(agent.needs.sleepiness)} ${agent.needs.sleepiness.toFixed(2)} ${agent.needs.sleepiness > 0.8 ? '🚨 CRITICAL' : agent.needs.sleepiness > 0.6 ? '⚠️ High' : ''}
+│ • Study Pressure: ${renderMeter(agent.needs.studyPressure)} ${agent.needs.studyPressure.toFixed(2)} ${agent.needs.studyPressure > 0.8 ? '🚨 CRITICAL' : agent.needs.studyPressure > 0.6 ? '⚠️ High' : ''}
+│ • Social Drive: ${renderMeter(agent.needs.socialDrive)} ${agent.needs.socialDrive.toFixed(2)} ${agent.needs.socialDrive > 0.8 ? '🚨 Very High' : ''}
 ╚═════════════════╝
 ${urgentWarning}
 ╔══ YOUR GOALS ══╗
-│ ${activeGoals || "No specific goals right now"}
+│ ${activeGoals || 'No specific goals right now'}
 ╚═════════════════╝
 
 ═══════════════════════════════════════════════════════════
@@ -269,15 +229,15 @@ TALKING TO: ${otherAgent.name} (${otherAgent.role})
 ╚════════════════════════╝
 
 ╔══ CONVERSATION HISTORY (${messages.length} messages) ══╗
-${conversationHistory || "│ [Just started - no messages yet]"}
+${conversationHistory || '│ [Just started - no messages yet]'}
 ╚═══════════════════════════════════════════════════════╝
 
 ╔══ RECENT OBSERVATIONS ══╗
-${recentObservations ? `  ${recentObservations}` : "  Nothing notable recently"}
+${recentObservations ? `  ${recentObservations}` : '  Nothing notable recently'}
 ╚══════════════════════════╝
 
 ╔══ YOUR RECENT ACTIONS ══╗
-│ ${recentDecisions || "No recent actions"}
+│ ${recentDecisions || 'No recent actions'}
 ╚══════════════════════════╝
 
 ═══════════════════════════════════════════════════════════
@@ -294,27 +254,27 @@ Consider emotional contagion - their ${theirMood} ${theirEnergy} energy may infl
 }
 
 function interpretValence(valence: number): string {
-  if (valence > 0.6) return "very happy";
-  if (valence > 0.3) return "content";
-  if (valence > 0.1) return "slightly positive";
-  if (valence > -0.1) return "neutral";
-  if (valence > -0.3) return "slightly down";
-  if (valence > -0.6) return "unhappy";
-  return "very upset";
+  if (valence > 0.6) return 'very happy';
+  if (valence > 0.3) return 'content';
+  if (valence > 0.1) return 'slightly positive';
+  if (valence > -0.1) return 'neutral';
+  if (valence > -0.3) return 'slightly down';
+  if (valence > -0.6) return 'unhappy';
+  return 'very upset';
 }
 
 function interpretArousal(arousal: number): string {
-  if (arousal > 0.8) return "extremely energized";
-  if (arousal > 0.6) return "quite energetic";
-  if (arousal > 0.4) return "alert";
-  if (arousal > 0.2) return "relaxed";
-  return "very calm";
+  if (arousal > 0.8) return 'extremely energized';
+  if (arousal > 0.6) return 'quite energetic';
+  if (arousal > 0.4) return 'alert';
+  if (arousal > 0.2) return 'relaxed';
+  return 'very calm';
 }
 
 function renderMeter(value: number): string {
   const filled = Math.round(value * 10);
   const empty = 10 - filled;
-  return "█".repeat(filled) + "░".repeat(empty);
+  return '█'.repeat(filled) + '░'.repeat(empty);
 }
 
 async function generateConversationMessage(
@@ -331,38 +291,31 @@ async function generateConversationMessage(
   emotionDelta?: { valence: number; arousal: number };
 }> {
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error("OPENAI_API_KEY environment variable is not set");
+  if (!apiKey) throw new Error('OPENAI_API_KEY environment variable is not set');
 
   const openai = new OpenAI({ apiKey });
 
   const systemPrompt = buildConversationSystemPrompt();
-  const userPrompt = buildConversationPrompt(
-    agent,
-    otherAgent,
-    opinion,
-    messages,
-    observations,
-    decisions
-  );
+  const userPrompt = buildConversationPrompt(agent, otherAgent, opinion, messages, observations, decisions);
 
   const completion = await openai.chat.completions.create({
     messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
     ],
     max_tokens: 200,
     temperature: 1.0,
-    model: "gpt-3.5-turbo",
-    response_format: { type: "json_object" },
+    model: 'gpt-3.5-turbo',
+    response_format: { type: 'json_object' },
   });
 
   const content = completion.choices[0].message.content;
-  if (!content) throw new Error("No content in OpenAI response");
+  if (!content) throw new Error('No content in OpenAI response');
 
   const parsed = JSON.parse(content);
 
   return {
-    message: parsed.message || "...",
+    message: parsed.message || '...',
     continueConversation: parsed.continueConversation ?? true,
     reasonForLeaving: parsed.reasonForLeaving,
     emotionDelta: parsed.emotionDelta || { valence: 0, arousal: 0 },
@@ -379,9 +332,9 @@ function fallbackConversationResponse(agent: any): {
 
   if (needs.hunger > 0.8) {
     return {
-      message: "Sorry, I really need to grab some food. Talk later!",
+      message: 'Sorry, I really need to grab some food. Talk later!',
       continueConversation: false,
-      reasonForLeaving: "Urgent hunger",
+      reasonForLeaving: 'Urgent hunger',
       emotionDelta: { valence: -0.1, arousal: 0.1 },
     };
   }
@@ -390,22 +343,22 @@ function fallbackConversationResponse(agent: any): {
     return {
       message: "I'm really tired, I should go rest. Catch you later!",
       continueConversation: false,
-      reasonForLeaving: "Urgent sleepiness",
+      reasonForLeaving: 'Urgent sleepiness',
       emotionDelta: { valence: -0.1, arousal: -0.1 },
     };
   }
 
   if (needs.studyPressure > 0.8) {
     return {
-      message: "I need to hit the books. See you around!",
+      message: 'I need to hit the books. See you around!',
       continueConversation: false,
-      reasonForLeaving: "Urgent study pressure",
+      reasonForLeaving: 'Urgent study pressure',
       emotionDelta: { valence: -0.05, arousal: 0.05 },
     };
   }
 
   return {
-    message: "Yeah, I hear you.",
+    message: 'Yeah, I hear you.',
     continueConversation: true,
     emotionDelta: { valence: 0, arousal: 0 },
   };

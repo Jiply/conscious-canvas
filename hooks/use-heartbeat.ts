@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from "react";
-import { useConvex } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { useEffect, useRef, useState } from 'react';
+import { useConvex } from 'convex/react';
+import { api } from '@/convex/_generated/api';
 
 function getStoredId(key: string) {
-  if (typeof window === "undefined") return crypto.randomUUID();
+  if (typeof window === 'undefined') return crypto.randomUUID();
   const stored = localStorage.getItem(key);
   if (stored) return stored;
   const newId = crypto.randomUUID();
@@ -22,16 +22,15 @@ export function useHeartbeat() {
     lastTickAt: number;
     observerCount: number;
   } | null>(null);
-  const sessionIdRef = useRef(getStoredId("observer_session_id"));
-  const leaderIdRef = useRef(getStoredId("heartbeat_leader_id"));
+  const sessionIdRef = useRef(getStoredId('observer_session_id'));
+  const leaderIdRef = useRef(getStoredId('heartbeat_leader_id'));
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const mountedRef = useRef(true);
 
   useEffect(() => {
     mountedRef.current = true;
 
-    const hasObserversAPI =
-      "observers" in api && "heartbeat" in (api.observers as any);
+    const hasObserversAPI = 'observers' in api && 'heartbeat' in (api.observers as any);
 
     if (!hasObserversAPI) {
       setObserverCount(1);

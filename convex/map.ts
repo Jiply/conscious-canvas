@@ -1,9 +1,9 @@
-import { v } from "convex/values";
-import { mapSettingsFields, mapTileFields, placeFields } from "./schema";
-import { internal } from "./_generated/api";
-import { type MutationCtx, query, mutation } from "./_generated/server";
+import { v } from 'convex/values';
+import { mapSettingsFields, mapTileFields, placeFields } from './schema';
+import { internal } from './_generated/api';
+import { type MutationCtx, query, mutation } from './_generated/server';
 
-async function deleteAll(ctx: MutationCtx, table: "map_tiles" | "places" | "map_settings") {
+async function deleteAll(ctx: MutationCtx, table: 'map_tiles' | 'places' | 'map_settings') {
   const docs = await ctx.db.query(table).collect();
   for (const doc of docs) await ctx.db.delete(doc._id);
   return docs.length;
@@ -11,20 +11,13 @@ async function deleteAll(ctx: MutationCtx, table: "map_tiles" | "places" | "map_
 
 export const getMapSettings = query({
   args: {},
-  returns: v.union(
-    v.object({ _id: v.id("map_settings"), _creationTime: v.number(), ...mapSettingsFields }),
-    v.null()
-  ),
-  handler: async (ctx) => {
-    console.log("🔍 [CONVEX] getMapSettings query START");
-    const settings = await ctx.db.query("map_settings").first();
-    console.log(
-      `✅ [CONVEX] getMapSettings query COMPLETE: ${settings ? "1 settings document" : "No settings found"}`
-    );
+  returns: v.union(v.object({ _id: v.id('map_settings'), _creationTime: v.number(), ...mapSettingsFields }), v.null()),
+  handler: async ctx => {
+    console.log('🔍 [CONVEX] getMapSettings query START');
+    const settings = await ctx.db.query('map_settings').first();
+    console.log(`✅ [CONVEX] getMapSettings query COMPLETE: ${settings ? '1 settings document' : 'No settings found'}`);
     if (settings) {
-      console.log(
-        `   📐 Map dimensions: ${settings.gridWidth}x${settings.gridHeight} tiles (${settings.tileSize}px each)\n`
-      );
+      console.log(`   📐 Map dimensions: ${settings.gridWidth}x${settings.gridHeight} tiles (${settings.tileSize}px each)\n`);
     }
     return settings;
   },
@@ -36,9 +29,7 @@ export const getTilesBatch = query({
     batchSize: v.optional(v.number()),
   },
   returns: v.object({
-    tiles: v.array(
-      v.object({ _id: v.id("map_tiles"), _creationTime: v.number(), ...mapTileFields })
-    ),
+    tiles: v.array(v.object({ _id: v.id('map_tiles'), _creationTime: v.number(), ...mapTileFields })),
     batchIndex: v.number(),
     totalBatches: v.number(),
     hasMore: v.boolean(),
@@ -47,20 +38,16 @@ export const getTilesBatch = query({
     const batchSize = args.batchSize || 4000;
     const skip = args.batchIndex * batchSize;
 
-    console.log(
-      `🔍 [CONVEX] getTilesBatch query START: batch ${args.batchIndex} (skip ${skip}, take ${batchSize})`
-    );
+    console.log(`🔍 [CONVEX] getTilesBatch query START: batch ${args.batchIndex} (skip ${skip}, take ${batchSize})`);
 
-    const allTiles = await ctx.db.query("map_tiles").collect();
+    const allTiles = await ctx.db.query('map_tiles').collect();
     const totalTiles = allTiles.length;
     const totalBatches = Math.ceil(totalTiles / batchSize);
 
     const tiles = allTiles.slice(skip, skip + batchSize);
     const hasMore = skip + batchSize < totalTiles;
 
-    console.log(
-      `✅ [CONVEX] getTilesBatch COMPLETE: ${tiles.length} tiles (batch ${args.batchIndex + 1}/${totalBatches})\n`
-    );
+    console.log(`✅ [CONVEX] getTilesBatch COMPLETE: ${tiles.length} tiles (batch ${args.batchIndex + 1}/${totalBatches})\n`);
 
     return {
       tiles,
@@ -78,9 +65,7 @@ export const getTilesByRegion = query({
     width: v.number(),
     height: v.number(),
   },
-  returns: v.array(
-    v.object({ _id: v.id("map_tiles"), _creationTime: v.number(), ...mapTileFields })
-  ),
+  returns: v.array(v.object({ _id: v.id('map_tiles'), _creationTime: v.number(), ...mapTileFields })),
   handler: async (ctx, args) => {
     const { x, y, width, height } = args;
     const queryStart = Date.now();
@@ -91,21 +76,16 @@ export const getTilesByRegion = query({
       `🔍 [CONVEX] getTilesByRegion query START: region=(${x},${y}) size=${width}x${height} (${width * height} tiles requested)`
     );
 
-    console.log("   → Querying database for all tiles...");
-    const allTiles = await ctx.db.query("map_tiles").collect();
+    console.log('   → Querying database for all tiles...');
+    const allTiles = await ctx.db.query('map_tiles').collect();
     console.log(`   ✓ Database returned ${allTiles.length} total tiles`);
 
     console.log(`   → Filtering tiles for region bounds...`);
-    let tiles = allTiles.filter(
-      (tile) =>
-        tile.x >= x && tile.x < x + width && tile.y >= y && tile.y < y + height
-    );
+    let tiles = allTiles.filter(tile => tile.x >= x && tile.x < x + width && tile.y >= y && tile.y < y + height);
 
     // stays under Convex's array size limit
     if (tiles.length > MAX_TILES) {
-      console.log(
-        `   ⚠️  Result too large (${tiles.length} tiles), limiting to ${MAX_TILES}`
-      );
+      console.log(`   ⚠️  Result too large (${tiles.length} tiles), limiting to ${MAX_TILES}`);
       tiles = tiles.slice(0, MAX_TILES);
     }
 
@@ -114,11 +94,9 @@ export const getTilesByRegion = query({
     const queryEnd = Date.now();
     const duration = queryEnd - queryStart;
     console.log(
-      `✅ [CONVEX] getTilesByRegion query COMPLETE: ${tiles.length} tiles fetched in ${duration}ms ${tiles.length > 0 ? `(${(duration / tiles.length).toFixed(2)}ms/tile)` : ""}`
+      `✅ [CONVEX] getTilesByRegion query COMPLETE: ${tiles.length} tiles fetched in ${duration}ms ${tiles.length > 0 ? `(${(duration / tiles.length).toFixed(2)}ms/tile)` : ''}`
     );
-    console.log(
-      `   📊 Query breakdown: DB query + filter = ${duration}ms total\n`
-    );
+    console.log(`   📊 Query breakdown: DB query + filter = ${duration}ms total\n`);
 
     return tiles;
   },
@@ -126,18 +104,14 @@ export const getTilesByRegion = query({
 
 export const getPlaces = query({
   args: {},
-  returns: v.array(
-    v.object({ _id: v.id("places"), _creationTime: v.number(), ...placeFields })
-  ),
-  handler: async (ctx) => {
-    console.log("🔍 [CONVEX] getPlaces query START");
-    const places = await ctx.db.query("places").collect();
-    console.log(
-      `✅ [CONVEX] getPlaces query COMPLETE: ${places.length} places fetched`
-    );
+  returns: v.array(v.object({ _id: v.id('places'), _creationTime: v.number(), ...placeFields })),
+  handler: async ctx => {
+    console.log('🔍 [CONVEX] getPlaces query START');
+    const places = await ctx.db.query('places').collect();
+    console.log(`✅ [CONVEX] getPlaces query COMPLETE: ${places.length} places fetched`);
     if (places.length > 0) {
-      const placeKinds = [...new Set(places.map((p) => p.kind))];
-      console.log(`   📍 Place types: ${placeKinds.join(", ")}\n`);
+      const placeKinds = [...new Set(places.map(p => p.kind))];
+      console.log(`   📍 Place types: ${placeKinds.join(', ')}\n`);
     }
     return places;
   },
@@ -163,33 +137,32 @@ export const initMap = mutation({
     tilesCreated?: number;
     placesCreated?: number;
   }> => {
-    const existingSettings = await ctx.db.query("map_settings").first();
+    const existingSettings = await ctx.db.query('map_settings').first();
 
     if (existingSettings && !args.force) {
       return {
         success: false,
-        message: "Map already initialized. Use force=true to regenerate.",
+        message: 'Map already initialized. Use force=true to regenerate.',
       };
     }
 
     if (args.force && existingSettings) {
-      console.log("🗑️  Clearing existing map data...");
+      console.log('🗑️  Clearing existing map data...');
 
-      await deleteAll(ctx, "map_tiles");
-      await deleteAll(ctx, "places");
+      await deleteAll(ctx, 'map_tiles');
+      await deleteAll(ctx, 'places');
       await ctx.db.delete(existingSettings._id);
 
-      console.log("✓ Existing data cleared");
+      console.log('✓ Existing data cleared');
     }
 
-    const result: { tilesCreated: number; placesCreated: number } =
-      await ctx.runMutation(internal.seedMap.initializeMap, {
-        seed: args.seed,
-      });
+    const result: { tilesCreated: number; placesCreated: number } = await ctx.runMutation(internal.seedMap.initializeMap, {
+      seed: args.seed,
+    });
 
     return {
       success: true,
-      message: "Map initialized successfully!",
+      message: 'Map initialized successfully!',
       tilesCreated: result.tilesCreated,
       placesCreated: result.placesCreated,
     };
@@ -209,14 +182,12 @@ export const clearAllTiles = mutation({
     const batchSize = args.batchSize || 1000;
     console.log(`🗑️  Clearing map tiles (batch size: ${batchSize})...`);
 
-    const tiles = await ctx.db.query("map_tiles").take(batchSize);
+    const tiles = await ctx.db.query('map_tiles').take(batchSize);
     for (const tile of tiles) await ctx.db.delete(tile._id);
 
-    const hasMore = (await ctx.db.query("map_tiles").first()) !== null;
+    const hasMore = (await ctx.db.query('map_tiles').first()) !== null;
 
-    console.log(
-      `✅ Deleted ${tiles.length} tiles${hasMore ? " (more remaining)" : ""}`
-    );
+    console.log(`✅ Deleted ${tiles.length} tiles${hasMore ? ' (more remaining)' : ''}`);
     return {
       success: true,
       tilesDeleted: tiles.length,
@@ -231,9 +202,9 @@ export const clearAllPlaces = mutation({
     success: v.boolean(),
     placesDeleted: v.number(),
   }),
-  handler: async (ctx) => {
-    console.log("🗑️  Clearing all places...");
-    const deletedCount = await deleteAll(ctx, "places");
+  handler: async ctx => {
+    console.log('🗑️  Clearing all places...');
+    const deletedCount = await deleteAll(ctx, 'places');
     console.log(`✅ Deleted ${deletedCount} places`);
     return {
       success: true,
@@ -248,9 +219,9 @@ export const clearMapSettings = mutation({
     success: v.boolean(),
     settingsDeleted: v.number(),
   }),
-  handler: async (ctx) => {
-    console.log("🗑️  Clearing map settings...");
-    const deletedCount = await deleteAll(ctx, "map_settings");
+  handler: async ctx => {
+    console.log('🗑️  Clearing map settings...');
+    const deletedCount = await deleteAll(ctx, 'map_settings');
     console.log(`✅ Deleted ${deletedCount} map settings`);
     return {
       success: true,
@@ -267,16 +238,14 @@ export const clearAllMapData = mutation({
     placesDeleted: v.number(),
     settingsDeleted: v.number(),
   }),
-  handler: async (ctx) => {
-    console.log("🗑️  Clearing all map data...");
+  handler: async ctx => {
+    console.log('🗑️  Clearing all map data...');
 
-    const tilesDeleted = await deleteAll(ctx, "map_tiles");
-    const placesDeleted = await deleteAll(ctx, "places");
-    const settingsDeleted = await deleteAll(ctx, "map_settings");
+    const tilesDeleted = await deleteAll(ctx, 'map_tiles');
+    const placesDeleted = await deleteAll(ctx, 'places');
+    const settingsDeleted = await deleteAll(ctx, 'map_settings');
 
-    console.log(
-      `✅ Cleared: ${tilesDeleted} tiles, ${placesDeleted} places, ${settingsDeleted} settings`
-    );
+    console.log(`✅ Cleared: ${tilesDeleted} tiles, ${placesDeleted} places, ${settingsDeleted} settings`);
     return {
       success: true,
       tilesDeleted,
@@ -285,4 +254,3 @@ export const clearAllMapData = mutation({
     };
   },
 });
-

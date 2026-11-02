@@ -1,8 +1,8 @@
-"use client";
-import { cn } from "@/lib/utils";
-import { XIcon } from "lucide-react";
-import type { ComponentProps } from "react";
-import * as SH from "@radix-ui/react-dialog";
+'use client';
+import { cn } from '@/lib/utils';
+import { XIcon } from 'lucide-react';
+import type { ComponentProps } from 'react';
+import * as SH from '@radix-ui/react-dialog';
 
 function Sheet({ ...props }: ComponentProps<typeof SH.Root>) {
   return <SH.Root data-slot="sheet" {...props} />;
@@ -12,10 +12,7 @@ function SheetPortal({ ...props }: ComponentProps<typeof SH.Portal>) {
   return <SH.Portal data-slot="sheet-portal" {...props} />;
 }
 
-function SheetOverlay({
-  className,
-  ...props
-}: ComponentProps<typeof SH.Overlay>) {
+function SheetOverlay({ className, ...props }: ComponentProps<typeof SH.Overlay>) {
   return (
     <SH.Overlay
       data-slot="sheet-overlay"
@@ -49,8 +46,7 @@ function SheetContent({
             `data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left inset-y-0 left-0 h-full w-3/4 sm:max-w-sm`,
           side === `bottom` &&
             `data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 h-auto`,
-          side === `top` &&
-            `data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top inset-x-0 top-0 h-auto`,
+          side === `top` && `data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top inset-x-0 top-0 h-auto`,
           className
         )}
         {...props}
@@ -66,42 +62,17 @@ function SheetContent({
 }
 
 function SheetHeader({ className, ...props }: ComponentProps<`div`>) {
-  return (
-    <div
-      data-slot="sheet-header"
-      className={cn(`flex flex-col gap-1.5 p-4`, className)}
-      {...props}
-    />
-  );
+  return <div data-slot="sheet-header" className={cn(`flex flex-col gap-1.5 p-4`, className)} {...props} />;
 }
 
 function SheetTitle({ className, ...props }: ComponentProps<typeof SH.Title>) {
+  return <SH.Title data-slot="sheet-title" className={cn(`text-foreground font-semibold`, className)} {...props} />;
+}
+
+function SheetDescription({ className, ...props }: ComponentProps<typeof SH.Description>) {
   return (
-    <SH.Title
-      data-slot="sheet-title"
-      className={cn(`text-foreground font-semibold`, className)}
-      {...props}
-    />
+    <SH.Description data-slot="sheet-description" className={cn(`text-muted-foreground text-sm`, className)} {...props} />
   );
 }
 
-function SheetDescription({
-  className,
-  ...props
-}: ComponentProps<typeof SH.Description>) {
-  return (
-    <SH.Description
-      data-slot="sheet-description"
-      className={cn(`text-muted-foreground text-sm`, className)}
-      {...props}
-    />
-  );
-}
-
-export {
-  Sheet,
-  SheetTitle,
-  SheetHeader,
-  SheetContent,
-  SheetDescription,
-};
+export { Sheet, SheetTitle, SheetHeader, SheetContent, SheetDescription };

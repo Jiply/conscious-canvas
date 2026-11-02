@@ -1,7 +1,7 @@
-import { useEffect } from "react";
-import { Container, Graphics, Text, TextStyle } from "pixi.js";
-import type { MapSettings } from "@/lib/mapTypes";
-import type { Doc } from "@/convex/_generated/dataModel";
+import { useEffect } from 'react';
+import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import type { MapSettings } from '@/lib/mapTypes';
+import type { Doc } from '@/convex/_generated/dataModel';
 
 export function usePlaceRenderer({
   placesLayer,
@@ -10,7 +10,7 @@ export function usePlaceRenderer({
   isCameraReady,
 }: {
   placesLayer: Container | null;
-  places: Doc<"places">[] | undefined;
+  places: Doc<'places'>[] | undefined;
   mapSettings: MapSettings | undefined;
   isCameraReady: boolean;
 }) {
@@ -21,7 +21,7 @@ export function usePlaceRenderer({
     const tileSize = mapSettings.tileSize;
 
     places
-      .filter((p) => p.kind !== "dorm_room" && p.kind !== "common_room" && p.kind !== "study_room")
+      .filter(p => p.kind !== 'dorm_room' && p.kind !== 'common_room' && p.kind !== 'study_room')
       .forEach((place, index) => {
         const bounds = place.bounds;
         const centerX = (bounds.x + bounds.width / 2) * tileSize;
@@ -39,9 +39,9 @@ export function usePlaceRenderer({
         const label = new Text({
           text: place.name,
           style: new TextStyle({
-            fontFamily: "Arial, sans-serif",
+            fontFamily: 'Arial, sans-serif',
             fontSize: 14,
-            fontWeight: "bold",
+            fontWeight: 'bold',
             fill: 0xffffff,
             stroke: { color: 0x000000, width: 3 },
             dropShadow: { alpha: 0.8, angle: Math.PI / 6, blur: 2, color: 0x000000, distance: 2 },
@@ -56,7 +56,7 @@ export function usePlaceRenderer({
           const infoLabel = new Text({
             text: `Capacity: ${place.capacity}`,
             style: new TextStyle({
-              fontFamily: "Arial, sans-serif",
+              fontFamily: 'Arial, sans-serif',
               fontSize: 10,
               fill: 0xcccccc,
               stroke: { color: 0x000000, width: 2 },

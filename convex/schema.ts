@@ -1,5 +1,5 @@
-import { v } from "convex/values";
-import { defineSchema, defineTable } from "convex/server";
+import { v } from 'convex/values';
+import { defineSchema, defineTable } from 'convex/server';
 
 export const mapSettingsFields = {
   gridWidth: v.number(),
@@ -15,32 +15,32 @@ export const mapTileFields = {
   x: v.number(),
   y: v.number(),
   tileType: v.union(
-    v.literal("floor"),
-    v.literal("wall"),
-    v.literal("door"),
-    v.literal("grass"),
-    v.literal("water"),
-    v.literal("path"),
-    v.literal("void"),
-    v.literal("tall_tree"),
-    v.literal("short_tree"),
-    v.literal("bush"),
-    v.literal("flower_bed"),
-    v.literal("concrete"),
-    v.literal("brick_path"),
-    v.literal("cafe_stall"),
-    v.literal("study_desk"),
-    v.literal("bookshelf"),
-    v.literal("lounge_chair"),
-    v.literal("laundry_machine"),
-    v.literal("lecture_seat"),
-    v.literal("library_desk"),
-    v.literal("dorm_bed"),
-    v.literal("kitchen_counter")
+    v.literal('floor'),
+    v.literal('wall'),
+    v.literal('door'),
+    v.literal('grass'),
+    v.literal('water'),
+    v.literal('path'),
+    v.literal('void'),
+    v.literal('tall_tree'),
+    v.literal('short_tree'),
+    v.literal('bush'),
+    v.literal('flower_bed'),
+    v.literal('concrete'),
+    v.literal('brick_path'),
+    v.literal('cafe_stall'),
+    v.literal('study_desk'),
+    v.literal('bookshelf'),
+    v.literal('lounge_chair'),
+    v.literal('laundry_machine'),
+    v.literal('lecture_seat'),
+    v.literal('library_desk'),
+    v.literal('dorm_bed'),
+    v.literal('kitchen_counter')
   ),
   isWalkable: v.boolean(),
   visualVariant: v.optional(v.number()),
-  placeId: v.optional(v.id("places")),
+  placeId: v.optional(v.id('places')),
   metadata: v.optional(
     v.object({
       biome: v.optional(v.string()),
@@ -82,11 +82,7 @@ export const placeFields = {
 
 export const agentFields = {
   name: v.string(),
-  role: v.union(
-    v.literal("student"),
-    v.literal("prof"),
-    v.literal("barista")
-  ),
+  role: v.union(v.literal('student'), v.literal('prof'), v.literal('barista')),
   personality: v.optional(v.string()),
   profilePicture: v.optional(v.string()),
 
@@ -94,16 +90,10 @@ export const agentFields = {
   headingRad: v.number(),
   path: v.optional(v.array(v.object({ x: v.number(), y: v.number() }))),
 
-  state: v.union(
-    v.literal("Idle"),
-    v.literal("Transit"),
-    v.literal("AtLocation"),
-    v.literal("Interact"),
-    v.literal("Sleep")
-  ),
+  state: v.union(v.literal('Idle'), v.literal('Transit'), v.literal('AtLocation'), v.literal('Interact'), v.literal('Sleep')),
   nextDecisionAt: v.number(),
 
-  currentConversationId: v.optional(v.id("conversations")),
+  currentConversationId: v.optional(v.id('conversations')),
 
   emotions: v.object({
     valence: v.number(),
@@ -125,8 +115,8 @@ export const agentFields = {
 };
 
 export const opinionFields = {
-  agentId: v.id("agents"),
-  targetAgentId: v.id("agents"),
+  agentId: v.id('agents'),
+  targetAgentId: v.id('agents'),
 
   sentiment: v.number(),
   summary: v.string(),
@@ -135,19 +125,19 @@ export const opinionFields = {
 };
 
 export const decisionFields = {
-  agentId: v.id("agents"),
+  agentId: v.id('agents'),
 
   action: v.union(
-    v.literal("MoveTo"),
-    v.literal("EngageConversation"),
-    v.literal("Study"),
-    v.literal("Eat"),
-    v.literal("Idle"),
-    v.literal("Sleep")
+    v.literal('MoveTo'),
+    v.literal('EngageConversation'),
+    v.literal('Study'),
+    v.literal('Eat'),
+    v.literal('Idle'),
+    v.literal('Sleep')
   ),
 
-  targetPlaceId: v.optional(v.id("places")),
-  targetAgentId: v.optional(v.id("agents")),
+  targetPlaceId: v.optional(v.id('places')),
+  targetAgentId: v.optional(v.id('agents')),
 
   utterance: v.optional(v.string()),
   innerThought: v.optional(v.string()),
@@ -158,18 +148,18 @@ export const decisionFields = {
 };
 
 export const conversationFields = {
-  participantIds: v.array(v.id("agents")),
-  status: v.union(v.literal("active"), v.literal("completed")),
+  participantIds: v.array(v.id('agents')),
+  status: v.union(v.literal('active'), v.literal('completed')),
   startedAt: v.number(),
   completedAt: v.optional(v.number()),
   location: v.optional(v.object({ x: v.number(), y: v.number() })),
-  nearestPlaceId: v.optional(v.id("places")),
+  nearestPlaceId: v.optional(v.id('places')),
   turnCount: v.number(),
 };
 
 export const messageFields = {
-  conversationId: v.id("conversations"),
-  agentId: v.id("agents"),
+  conversationId: v.id('conversations'),
+  agentId: v.id('agents'),
   content: v.string(),
   emotionSnapshot: v.optional(
     v.object({
@@ -185,12 +175,12 @@ export default defineSchema({
   map_settings: defineTable(mapSettingsFields),
 
   map_tiles: defineTable(mapTileFields)
-    .index("by_coordinates", ["x", "y"])
-    .index("by_place", ["placeId"])
-    .index("by_type", ["tileType"])
-    .index("by_walkable", ["isWalkable"]),
+    .index('by_coordinates', ['x', 'y'])
+    .index('by_place', ['placeId'])
+    .index('by_type', ['tileType'])
+    .index('by_walkable', ['isWalkable']),
 
-  places: defineTable(placeFields).index("by_kind", ["kind"]),
+  places: defineTable(placeFields).index('by_kind', ['kind']),
 
   world_settings: defineTable({
     isRunning: v.boolean(),
@@ -212,47 +202,37 @@ export default defineSchema({
       })
     ),
   })
-    .index("by_session", ["sessionId"])
-    .index("by_heartbeat", ["lastHeartbeatAt"]),
+    .index('by_session', ['sessionId'])
+    .index('by_heartbeat', ['lastHeartbeatAt']),
 
   agents: defineTable(agentFields),
 
   observations: defineTable({
-    agentId: v.id("agents"),
-    targetId: v.optional(v.id("agents")),
-    targetType: v.union(
-      v.literal("agent"),
-      v.literal("place"),
-      v.literal("event")
-    ),
+    agentId: v.id('agents'),
+    targetId: v.optional(v.id('agents')),
+    targetType: v.union(v.literal('agent'), v.literal('place'), v.literal('event')),
 
     location: v.object({ x: v.number(), y: v.number() }),
     distance: v.optional(v.number()),
-    nearestPlaceId: v.optional(v.id("places")),
+    nearestPlaceId: v.optional(v.id('places')),
     timeOfDay: v.optional(v.string()),
 
     summary: v.optional(v.string()),
     salience: v.number(),
   })
-    .index("by_agent", ["agentId"])
-    .index("by_target", ["targetId"]),
+    .index('by_agent', ['agentId'])
+    .index('by_target', ['targetId']),
 
   opinions: defineTable(opinionFields)
-    .index("by_agent", ["agentId"])
-    .index("by_target", ["targetAgentId"])
-    .index("by_pair", ["agentId", "targetAgentId"]),
+    .index('by_agent', ['agentId'])
+    .index('by_target', ['targetAgentId'])
+    .index('by_pair', ['agentId', 'targetAgentId']),
 
-  decisions: defineTable(decisionFields)
-    .index("by_agent", ["agentId"])
-    .index("by_status", ["agentId", "completedAt"]),
+  decisions: defineTable(decisionFields).index('by_agent', ['agentId']).index('by_status', ['agentId', 'completedAt']),
 
-  conversations: defineTable(conversationFields)
-    .index("by_status", ["status"])
-    .index("by_participant", ["participantIds"]),
+  conversations: defineTable(conversationFields).index('by_status', ['status']).index('by_participant', ['participantIds']),
 
-  messages: defineTable(messageFields)
-    .index("by_conversation", ["conversationId"])
-    .index("by_agent", ["agentId"]),
+  messages: defineTable(messageFields).index('by_conversation', ['conversationId']).index('by_agent', ['agentId']),
 
   heartbeat_state: defineTable({
     isRunning: v.boolean(),
@@ -264,22 +244,22 @@ export default defineSchema({
   events: defineTable({
     timestamp: v.number(),
     type: v.union(
-      v.literal("decision"),
-      v.literal("conversation"),
-      v.literal("observation"),
-      v.literal("world"),
-      v.literal("movement")
+      v.literal('decision'),
+      v.literal('conversation'),
+      v.literal('observation'),
+      v.literal('world'),
+      v.literal('movement')
     ),
-    agentIds: v.optional(v.array(v.id("agents"))),
+    agentIds: v.optional(v.array(v.id('agents'))),
     description: v.string(),
     location: v.optional(v.object({ x: v.number(), y: v.number() })),
     metadata: v.optional(
       v.object({
-        placeId: v.optional(v.id("places")),
+        placeId: v.optional(v.id('places')),
         severity: v.optional(v.string()),
       })
     ),
   })
-    .index("by_timestamp", ["timestamp"])
-    .index("by_type", ["type"]),
+    .index('by_timestamp', ['timestamp'])
+    .index('by_type', ['type']),
 });

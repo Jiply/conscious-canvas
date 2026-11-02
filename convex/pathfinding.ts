@@ -1,5 +1,5 @@
-import { v } from "convex/values";
-import { type QueryCtx, query } from "./_generated/server";
+import { v } from 'convex/values';
+import { type QueryCtx, query } from './_generated/server';
 
 interface PathNode {
   x: number;
@@ -17,10 +17,7 @@ export const findPath = query({
     goalX: v.number(),
     goalY: v.number(),
   },
-  returns: v.union(
-    v.array(v.object({ x: v.number(), y: v.number() })),
-    v.null()
-  ),
+  returns: v.union(v.array(v.object({ x: v.number(), y: v.number() })), v.null()),
   handler: async (ctx, args) => {
     const startNode: PathNode = {
       x: Math.round(args.startX),
@@ -63,9 +60,7 @@ export const findPath = query({
         const h = heuristic(neighbor.x, neighbor.y, goalX, goalY);
         const f = g + h;
 
-        const existingNode = openList.find(
-          (node) => node.x === neighbor.x && node.y === neighbor.y
-        );
+        const existingNode = openList.find(node => node.x === neighbor.x && node.y === neighbor.y);
 
         if (existingNode) {
           if (g < existingNode.g) {
@@ -90,11 +85,7 @@ export const findPath = query({
   },
 });
 
-async function getWalkableNeighbors(
-  ctx: QueryCtx,
-  x: number,
-  y: number
-): Promise<Array<{ x: number; y: number }>> {
+async function getWalkableNeighbors(ctx: QueryCtx, x: number, y: number): Promise<Array<{ x: number; y: number }>> {
   const neighbors: Array<{ x: number; y: number }> = [];
 
   const directions = [
@@ -109,8 +100,8 @@ async function getWalkableNeighbors(
     const ny = y + dir.dy;
 
     const tile = await ctx.db
-      .query("map_tiles")
-      .withIndex("by_coordinates", (q) => q.eq("x", nx).eq("y", ny))
+      .query('map_tiles')
+      .withIndex('by_coordinates', q => q.eq('x', nx).eq('y', ny))
       .first();
 
     if (tile && tile.isWalkable) neighbors.push({ x: nx, y: ny });

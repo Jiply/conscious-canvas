@@ -1,22 +1,20 @@
-import { v } from "convex/values";
-import { opinionFields } from "./schema";
-import { mutation, query } from "./_generated/server";
+import { v } from 'convex/values';
+import { opinionFields } from './schema';
+import { mutation, query } from './_generated/server';
 
 export const upsertOpinion = mutation({
   args: {
-    agentId: v.id("agents"),
-    targetAgentId: v.id("agents"),
+    agentId: v.id('agents'),
+    targetAgentId: v.id('agents'),
     sentiment: v.number(),
     summary: v.string(),
     traits: v.optional(v.record(v.string(), v.number())),
   },
-  returns: v.id("opinions"),
+  returns: v.id('opinions'),
   handler: async (ctx, args) => {
     const existing = await ctx.db
-      .query("opinions")
-      .withIndex("by_pair", (q) =>
-        q.eq("agentId", args.agentId).eq("targetAgentId", args.targetAgentId)
-      )
+      .query('opinions')
+      .withIndex('by_pair', q => q.eq('agentId', args.agentId).eq('targetAgentId', args.targetAgentId))
       .unique();
 
     if (existing) {
@@ -27,7 +25,7 @@ export const upsertOpinion = mutation({
       });
       return existing._id;
     } else {
-      const opinionId = await ctx.db.insert("opinions", {
+      const opinionId = await ctx.db.insert('opinions', {
         agentId: args.agentId,
         targetAgentId: args.targetAgentId,
         sentiment: args.sentiment,
@@ -40,14 +38,12 @@ export const upsertOpinion = mutation({
 });
 
 export const getAgentOpinions = query({
-  args: { agentId: v.id("agents") },
-  returns: v.array(
-    v.object({ _id: v.id("opinions"), _creationTime: v.number(), ...opinionFields })
-  ),
+  args: { agentId: v.id('agents') },
+  returns: v.array(v.object({ _id: v.id('opinions'), _creationTime: v.number(), ...opinionFields })),
   handler: async (ctx, args) => {
     return await ctx.db
-      .query("opinions")
-      .withIndex("by_agent", (q) => q.eq("agentId", args.agentId))
+      .query('opinions')
+      .withIndex('by_agent', q => q.eq('agentId', args.agentId))
       .collect();
   },
 });

@@ -1,23 +1,20 @@
-"use client";
-import { useQuery } from "convex/react";
-import { MessageCircle } from "lucide-react";
-import { api } from "@/convex/_generated/api";
-import { Badge } from "@/components/ui/badge";
+'use client';
+import { useQuery } from 'convex/react';
+import { MessageCircle } from 'lucide-react';
+import { api } from '@/convex/_generated/api';
+import { Badge } from '@/components/ui/badge';
 
 export function EventFeed() {
-  const conversations = useQuery(
-    api.conversationsMutations.getRecentConversations,
-    { limit: 15 }
-  );
+  const conversations = useQuery(api.conversationsMutations.getRecentConversations, { limit: 15 });
 
-  const getStatusColor = (status: "active" | "completed") =>
-    status === "active"
-      ? "bg-green-500/10 text-green-500 border-green-500/20"
-      : "bg-gray-500/10 text-gray-500 border-gray-500/20";
+  const getStatusColor = (status: 'active' | 'completed') =>
+    status === 'active'
+      ? 'bg-green-500/10 text-green-500 border-green-500/20'
+      : 'bg-gray-500/10 text-gray-500 border-gray-500/20';
 
   const formatTimestamp = (timestamp: number) => {
     const diff = Date.now() - timestamp;
-    if (diff < 1000) return "just now";
+    if (diff < 1000) return 'just now';
     if (diff < 60000) return `${Math.floor(diff / 1000)}s ago`;
     if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
     return `${Math.floor(diff / 3600000)}h ago`;
@@ -38,25 +35,16 @@ export function EventFeed() {
               No conversations yet. Start the simulation to see activity.
             </div>
           ) : (
-            conversations.map((conversation) => (
-              <div
-                key={conversation._id}
-                className="p-2.5 rounded-md border bg-card hover:bg-accent/50 transition-colors"
-              >
+            conversations.map(conversation => (
+              <div key={conversation._id} className="p-2.5 rounded-md border bg-card hover:bg-accent/50 transition-colors">
                 <div className="flex items-start gap-2">
-                  <div
-                    className={`p-1.5 rounded-md border ${getStatusColor(conversation.status)}`}
-                  >
+                  <div className={`p-1.5 rounded-md border ${getStatusColor(conversation.status)}`}>
                     <MessageCircle className="h-3 w-3" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs leading-relaxed break-words">
-                      {conversation.participantNames.join(" & ")}
-                    </p>
+                    <p className="text-xs leading-relaxed break-words">{conversation.participantNames.join(' & ')}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] text-muted-foreground">
-                        {formatTimestamp(conversation.startedAt)}
-                      </span>
+                      <span className="text-[10px] text-muted-foreground">{formatTimestamp(conversation.startedAt)}</span>
                       <Badge variant="outline" className="text-[9px] h-4 px-1">
                         {conversation.status}
                       </Badge>

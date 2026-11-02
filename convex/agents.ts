@@ -1,17 +1,17 @@
-import { v } from "convex/values";
-import { agentFields } from "./schema";
-import { mutation, query } from "./_generated/server";
+import { v } from 'convex/values';
+import { agentFields } from './schema';
+import { mutation, query } from './_generated/server';
 
 export const updateAgentEmotions = mutation({
   args: {
-    agentId: v.id("agents"),
+    agentId: v.id('agents'),
     valence: v.optional(v.number()),
     arousal: v.optional(v.number()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
     const agent = await ctx.db.get(args.agentId);
-    if (!agent) throw new Error("Agent not found");
+    if (!agent) throw new Error('Agent not found');
 
     await ctx.db.patch(args.agentId, {
       emotions: {
@@ -26,7 +26,7 @@ export const updateAgentEmotions = mutation({
 
 export const setAgentPath = mutation({
   args: {
-    agentId: v.id("agents"),
+    agentId: v.id('agents'),
     path: v.array(v.object({ x: v.number(), y: v.number() })),
     state: agentFields.state,
   },
@@ -43,7 +43,7 @@ export const setAgentPath = mutation({
 
 export const setNextDecisionTime = mutation({
   args: {
-    agentId: v.id("agents"),
+    agentId: v.id('agents'),
     nextDecisionAt: v.number(),
   },
   returns: v.null(),
@@ -58,20 +58,15 @@ export const setNextDecisionTime = mutation({
 
 export const listAgents = query({
   args: {},
-  returns: v.array(
-    v.object({ _id: v.id("agents"), _creationTime: v.number(), ...agentFields })
-  ),
-  handler: async (ctx) => {
-    return await ctx.db.query("agents").collect();
+  returns: v.array(v.object({ _id: v.id('agents'), _creationTime: v.number(), ...agentFields })),
+  handler: async ctx => {
+    return await ctx.db.query('agents').collect();
   },
 });
 
 export const getAgent = query({
-  args: { agentId: v.id("agents") },
-  returns: v.union(
-    v.object({ _id: v.id("agents"), _creationTime: v.number(), ...agentFields }),
-    v.null()
-  ),
+  args: { agentId: v.id('agents') },
+  returns: v.union(v.object({ _id: v.id('agents'), _creationTime: v.number(), ...agentFields }), v.null()),
   handler: async (ctx, args) => {
     return await ctx.db.get(args.agentId);
   },
@@ -80,12 +75,12 @@ export const getAgent = query({
 export const migrateAddConversationField = mutation({
   args: {},
   returns: v.number(),
-  handler: async (ctx) => {
-    const agents = await ctx.db.query("agents").collect();
+  handler: async ctx => {
+    const agents = await ctx.db.query('agents').collect();
     let count = 0;
 
     for (const agent of agents) {
-      if (!("currentConversationId" in agent)) {
+      if (!('currentConversationId' in agent)) {
         await ctx.db.patch(agent._id, {
           currentConversationId: undefined,
         });
