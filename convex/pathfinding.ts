@@ -175,22 +175,3 @@ function reconstructPath(goalNode: PathNode): Array<{ x: number; y: number }> {
 
   return path;
 }
-
-/**
- * Calculate path length (for debugging/optimization)
- */
-export const calculatePathLength = query({
-  args: {
-    path: v.array(v.object({ x: v.number(), y: v.number() })),
-  },
-  returns: v.number(),
-  handler: async (ctx, args) => {
-    let length = 0;
-    for (let i = 1; i < args.path.length; i++) {
-      const dx = args.path[i].x - args.path[i - 1].x;
-      const dy = args.path[i].y - args.path[i - 1].y;
-      length += Math.sqrt(dx * dx + dy * dy);
-    }
-    return length;
-  },
-});

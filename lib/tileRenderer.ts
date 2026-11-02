@@ -6,10 +6,9 @@
  */
 
 import type { TileType } from "@/lib/mapTypes";
-import { getTileTexture } from "@/lib/textureGenerator";
-import { Sprite, Renderer, Graphics, Container } from "pixi.js";
+import type { Graphics } from "pixi.js";
 
-export interface TileRenderStyle {
+interface TileRenderStyle {
   shadow?: boolean;
   baseColor: number;
   borderColor: number;
@@ -22,7 +21,7 @@ export interface TileRenderStyle {
 /**
  * Visual styles for each tile type
  */
-export const TILE_RENDER_STYLES: Record<TileType, TileRenderStyle> = {
+const TILE_RENDER_STYLES: Record<TileType, TileRenderStyle> = {
   floor: {
     borderWidth: 1,
     pattern: "grid",
@@ -306,149 +305,9 @@ function drawPattern(
 }
 
 /**
- * Batch render multiple tiles efficiently using Graphics API (legacy)
- * Note: This is kept for reference but should be replaced with renderTilesAsSprites
- */
-export function renderTiles(
-  graphics: Graphics,
-  tiles: Array<{
-    x: number;
-    y: number;
-    tileType: TileType;
-    visualVariant?: number;
-  }>,
-  tileSize: number
-): void {
-  graphics.clear();
-
-  for (const tile of tiles) {
-    const pixelX = tile.x * tileSize;
-    const pixelY = tile.y * tileSize;
-    renderTile(
-      graphics,
-      pixelX,
-      pixelY,
-      tileSize,
-      tile.tileType,
-      tile.visualVariant || 0
-    );
-  }
-}
-
-/**
- * Get a human-readable description of a tile type
- */
-export function getTileDescription(tileType: TileType): string {
-  const descriptions: Record<TileType, string> = {
-    floor: "Indoor floor surface",
-    wall: "Solid wall or barrier",
-    door: "Entrance or exit",
-    grass: "Grass lawn or field",
-    water: "Water feature (non-walkable)",
-    path: "Paved walkway",
-    void: "Empty space or boundary",
-    // Terrain variety
-    tall_tree: "Tall tree (non-walkable)",
-    short_tree: "Short tree (non-walkable)",
-    bush: "Bush or shrub (walkable)",
-    flower_bed: "Decorative flower bed",
-    concrete: "Concrete plaza or courtyard",
-    brick_path: "Decorative brick pathway",
-    // Building interiors
-    cafe_stall: "Café food stall",
-    study_desk: "Study desk",
-    bookshelf: "Library bookshelf",
-    lounge_chair: "Lounge seating",
-    laundry_machine: "Laundry machine",
-    lecture_seat: "Lecture hall seating",
-    library_desk: "Library study desk",
-    dorm_bed: "Dorm room bed",
-    kitchen_counter: "Kitchen counter",
-  };
-  return descriptions[tileType];
-}
-
-/**
  * Get a color string for UI display
  */
 export function getTileColorString(tileType: TileType): string {
   const style = TILE_RENDER_STYLES[tileType];
   return `#${style.baseColor.toString(16).padStart(6, "0")}`;
-}
-
-/**
- * Render tiles using Sprites with SMART REUSE (incremental updates)
- * Only creates/updates/removes sprites that changed - much faster for panning!
- */
-export function renderTilesAsSprites(
-  container: Container,
-  renderer: Renderer,
-  tiles: Array<{
-    x: number;
-    y: number;
-    tileType: TileType;
-    visualVariant?: number;
-  }>,
-  tileSize: number
-): void {
-  // Build a map of new tiles by coordinate key
-  const newTileMap = new Map<string, (typeof tiles)[0]>();
-  for (const tile of tiles) {
-    const key = `${tile.x},${tile.y}`;
-    newTileMap.set(key, tile);
-  }
-
-  // Track existing sprites by coordinate key
-  const existingSpriteMap = new Map<string, Sprite>();
-  const childrenToRemove: Sprite[] = [];
-
-  // Check existing sprites
-  for (const child of container.children) {
-    if (child instanceof Sprite) {
-      const tileX = Math.round(child.x / tileSize);
-      const tileY = Math.round(child.y / tileSize);
-      const key = `${tileX},${tileY}`;
-
-      if (newTileMap.has(key)) {
-        // Keep this sprite, mark it as existing
-        existingSpriteMap.set(key, child);
-      } else {
-        // This sprite is no longer needed
-        childrenToRemove.push(child);
-      }
-    }
-  }
-
-  // Remove sprites that are no longer visible
-  let removed = 0;
-  for (const child of childrenToRemove) {
-    container.removeChild(child);
-    child.destroy();
-    removed++;
-  }
-
-  // Add new sprites for tiles that don't exist yet
-  let created = 0;
-  let reused = 0;
-  for (const [key, tile] of newTileMap) {
-    if (existingSpriteMap.has(key)) {
-      // Sprite already exists, reuse it
-      reused++;
-    } else {
-      // Create new sprite
-      const texture = getTileTexture(
-        renderer,
-        tile.tileType,
-        tileSize,
-        tile.visualVariant || 0
-      );
-
-      const sprite = new Sprite(texture);
-      sprite.x = tile.x * tileSize;
-      sprite.y = tile.y * tileSize;
-
-      container.addChild(sprite);
-      created++;
-    }
-  }
 }

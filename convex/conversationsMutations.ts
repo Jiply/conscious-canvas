@@ -199,32 +199,6 @@ export const getAgentActiveConversation = query({
 });
 
 /**
- * Get all active conversations
- */
-export const getActiveConversations = query({
-  args: {},
-  returns: v.array(
-    v.object({
-      _id: v.id("conversations"),
-      _creationTime: v.number(),
-      participantIds: v.array(v.id("agents")),
-      status: v.union(v.literal("active"), v.literal("completed")),
-      startedAt: v.number(),
-      completedAt: v.optional(v.number()),
-      location: v.optional(v.object({ x: v.number(), y: v.number() })),
-      nearestPlaceId: v.optional(v.id("places")),
-      turnCount: v.number(),
-    })
-  ),
-  handler: async (ctx) => {
-    return await ctx.db
-      .query("conversations")
-      .withIndex("by_status", (q) => q.eq("status", "active"))
-      .collect();
-  },
-});
-
-/**
  * Get recent conversations with participant names
  * Used for displaying recent activity in the UI
  */

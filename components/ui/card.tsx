@@ -47,19 +47,6 @@ function CardDescription({ className, ...props }: ComponentProps<`div`>) {
   );
 }
 
-function CardAction({ className, ...props }: ComponentProps<`div`>) {
-  return (
-    <div
-      data-slot="card-action"
-      className={cn(
-        `col-start-2 row-span-2 row-start-1 self-start justify-self-end`,
-        className
-      )}
-      {...props}
-    />
-  );
-}
-
 function CardContent({ className, ...props }: ComponentProps<`div`>) {
   return (
     <div
@@ -70,22 +57,10 @@ function CardContent({ className, ...props }: ComponentProps<`div`>) {
   );
 }
 
-function CardFooter({ className, ...props }: ComponentProps<`div`>) {
-  return (
-    <div
-      data-slot="card-footer"
-      className={cn(`flex items-center px-6 [.border-t]:pt-6`, className)}
-      {...props}
-    />
-  );
-}
-
 export {
   Card,
   CardTitle,
-  CardAction,
   CardHeader,
-  CardFooter,
   CardContent,
   CardDescription,
 };

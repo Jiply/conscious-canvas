@@ -18,7 +18,6 @@ interface TileCacheState {
   isLoading: boolean;
   progress: number; // 0-100
   totalTiles: number;
-  error: string | null;
 }
 
 /**
@@ -31,7 +30,6 @@ export function useTileCache(): TileCacheState {
   const [isLoading, setIsLoading] = useState(true);
   const [progress, setProgress] = useState(0);
   const [totalTiles, setTotalTiles] = useState(0);
-  const [error, setError] = useState<string | null>(null);
 
   // Track which batches we've loaded
   const [batchesLoaded, setBatchesLoaded] = useState<Set<number>>(new Set());
@@ -186,28 +184,5 @@ export function useTileCache(): TileCacheState {
     isLoading,
     progress,
     totalTiles,
-    error,
   };
-}
-
-/**
- * Helper function to get tiles in a region from the cache
- */
-export function getTilesInRegion(
-  tileCache: Map<string, Tile>,
-  region: { x: number; y: number; width: number; height: number }
-): Tile[] {
-  const tiles: Tile[] = [];
-
-  for (let y = region.y; y < region.y + region.height; y++) {
-    for (let x = region.x; x < region.x + region.width; x++) {
-      const key = `${x},${y}`;
-      const tile = tileCache.get(key);
-      if (tile) {
-        tiles.push(tile);
-      }
-    }
-  }
-
-  return tiles;
 }

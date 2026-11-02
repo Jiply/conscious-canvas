@@ -184,7 +184,7 @@ export const makeAgentDecision = action({
           console.log(`💭 ${agent.name}: "${decision.utterance}"`);
         }
       } catch (error) {
-        decision = heuristicFallback(agent);
+        decision = heuristicFallback();
       }
     } else {
       // Log heuristic decisions for public display
@@ -227,7 +227,7 @@ export const makeAgentDecision = action({
 
         if (targetAgent && !targetAgent.currentConversationId) {
           // Create conversation between the two agents
-          const conversationId = await ctx.runMutation(
+          await ctx.runMutation(
             api.conversationsMutations.createConversation,
             {
               initiatorId: args.agentId,
@@ -555,7 +555,7 @@ function calculateEmotionDelta(action: string): {
  * Heuristic fallback when LLM is unavailable or too slow
  * NOTE: Eat, Sleep, Study are NOT valid decision actions - agents must MoveTo appropriate places!
  */
-function heuristicFallback(agent: any): {
+function heuristicFallback(): {
   action: "MoveTo" | "EngageConversation" | "Idle";
   targetPlaceId?: any;
   targetAgentId?: any;
@@ -563,7 +563,6 @@ function heuristicFallback(agent: any): {
   innerThought?: string;
   emotionDelta?: { valence: number; arousal: number };
 } {
-  const { needs } = agent;
 
   // NOTE: hunger, sleepiness, and studyPressure require MoveTo decisions
   // We can't perform Eat/Sleep/Study directly - that happens when agent reaches the place

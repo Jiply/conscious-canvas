@@ -1,7 +1,7 @@
 // Import React hooks for side effects, refs, and state management
 import { useEffect, useRef, useState } from "react";
 // Import Convex client hook to make database mutations
-import { useConvex, useQuery } from "convex/react";
+import { useConvex } from "convex/react";
 // Import generated API endpoints from Convex
 import { api } from "@/convex/_generated/api";
 

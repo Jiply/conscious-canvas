@@ -20,7 +20,7 @@ const textureCache = new Map<string, Texture>();
  * Generate a texture for a specific tile type and variant
  * Uses the existing renderTile function to maintain visual consistency
  */
-export function generateTileTexture(
+export function getTileTexture(
   renderer: Renderer,
   tileType: TileType,
   tileSize: number,
@@ -77,42 +77,7 @@ export function preGenerateAllTileTextures(
 
   for (const tileType of tileTypes) {
     for (let variant = 0; variant < maxVariants; variant++) {
-      generateTileTexture(renderer, tileType, tileSize, variant);
+      getTileTexture(renderer, tileType, tileSize, variant);
     }
   }
-}
-
-/**
- * Get a texture for a tile (generates if not cached)
- */
-export function getTileTexture(
-  renderer: Renderer,
-  tileType: TileType,
-  tileSize: number,
-  variant: number = 0
-): Texture {
-  return generateTileTexture(renderer, tileType, tileSize, variant);
-}
-
-/**
- * Clear all cached textures (useful for cleanup or tile size changes)
- */
-export function clearTextureCache(): void {
-  for (const texture of textureCache.values()) {
-    texture.destroy();
-  }
-  textureCache.clear();
-}
-
-/**
- * Get cache statistics
- */
-export function getTextureCacheStats(): {
-  count: number;
-  types: string[];
-} {
-  return {
-    count: textureCache.size,
-    types: Array.from(textureCache.keys()),
-  };
 }

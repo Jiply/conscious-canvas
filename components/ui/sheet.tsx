@@ -8,14 +8,6 @@ function Sheet({ ...props }: ComponentProps<typeof SH.Root>) {
   return <SH.Root data-slot="sheet" {...props} />;
 }
 
-function SheetTrigger({ ...props }: ComponentProps<typeof SH.Trigger>) {
-  return <SH.Trigger data-slot="sheet-trigger" {...props} />;
-}
-
-function SheetClose({ ...props }: ComponentProps<typeof SH.Close>) {
-  return <SH.Close data-slot="sheet-close" {...props} />;
-}
-
 function SheetPortal({ ...props }: ComponentProps<typeof SH.Portal>) {
   return <SH.Portal data-slot="sheet-portal" {...props} />;
 }
@@ -83,16 +75,6 @@ function SheetHeader({ className, ...props }: ComponentProps<`div`>) {
   );
 }
 
-function SheetFooter({ className, ...props }: ComponentProps<`div`>) {
-  return (
-    <div
-      data-slot="sheet-footer"
-      className={cn(`mt-auto flex flex-col gap-2 p-4`, className)}
-      {...props}
-    />
-  );
-}
-
 function SheetTitle({ className, ...props }: ComponentProps<typeof SH.Title>) {
   return (
     <SH.Title
@@ -119,10 +101,7 @@ function SheetDescription({
 export {
   Sheet,
   SheetTitle,
-  SheetClose,
   SheetHeader,
-  SheetFooter,
-  SheetTrigger,
   SheetContent,
   SheetDescription,
 };
