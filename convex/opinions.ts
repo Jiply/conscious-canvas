@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { opinionFields } from "./schema";
 import { mutation, query } from "./_generated/server";
 
 export const upsertOpinion = mutation({
@@ -41,15 +42,7 @@ export const upsertOpinion = mutation({
 export const getAgentOpinions = query({
   args: { agentId: v.id("agents") },
   returns: v.array(
-    v.object({
-      _id: v.id("opinions"),
-      _creationTime: v.number(),
-      agentId: v.id("agents"),
-      targetAgentId: v.id("agents"),
-      sentiment: v.number(),
-      summary: v.string(),
-      traits: v.optional(v.record(v.string(), v.number())),
-    })
+    v.object({ _id: v.id("opinions"), _creationTime: v.number(), ...opinionFields })
   ),
   handler: async (ctx, args) => {
     return await ctx.db

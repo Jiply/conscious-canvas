@@ -431,9 +431,7 @@ async function callOpenAIForDecision(
   emotionDelta?: { valence: number; arousal: number };
 }> {
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY environment variable is not set");
-  }
+  if (!apiKey) throw new Error("OPENAI_API_KEY environment variable is not set");
 
   const openai = new OpenAI({
     apiKey: apiKey,
@@ -451,9 +449,7 @@ async function callOpenAIForDecision(
   });
 
   const content = completion.choices[0].message.content;
-  if (!content) {
-    throw new Error("No content in OpenAI response");
-  }
+  if (!content) throw new Error("No content in OpenAI response");
 
   const parsed = JSON.parse(content);
 

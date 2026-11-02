@@ -1,46 +1,19 @@
 import { useEffect, useRef, useState } from "react";
-import { Application, Container, Graphics } from "pixi.js";
+import { Application, Container } from "pixi.js";
 
-interface UsePixiAppOptions {
-  width: number;
-  height: number;
-}
-
-interface PixiAppRefs {
-  app: Application | null;
-  worldContainer: Container | null;
-  tilesLayer: Container | null;
-  skeletonLayer: Graphics | null;
-  placesLayer: Container | null;
-  agentsLayer: Container | null;
-  renderer: any | null;
-}
-
-export function usePixiApp({ width, height }: UsePixiAppOptions) {
+export function usePixiApp({ width, height }: { width: number; height: number }) {
   const canvasRef = useRef<HTMLDivElement>(null);
-
   const appRef = useRef<Application | null>(null);
-
   const worldContainerRef = useRef<Container | null>(null);
-
   const tilesLayerRef = useRef<Container | null>(null);
-
-  const skeletonLayerRef = useRef<Graphics | null>(null);
-
   const placesLayerRef = useRef<Container | null>(null);
-
   const agentsLayerRef = useRef<Container | null>(null);
-
   const lastFrameTimeRef = useRef(performance.now());
-
   const [isInitialized, setIsInitialized] = useState(false);
-
   const [fps, setFps] = useState(60);
 
   useEffect(() => {
-    if (!canvasRef.current || appRef.current || width === 0 || height === 0) {
-      return;
-    }
+    if (!canvasRef.current || appRef.current || width === 0 || height === 0) return;
 
     const app = new Application();
 
@@ -63,65 +36,48 @@ export function usePixiApp({ width, height }: UsePixiAppOptions) {
         app.stage.addChild(worldContainer);
         worldContainerRef.current = worldContainer;
 
-        const skeletonLayer = new Graphics();
         const tilesLayer = new Container();
         const placesLayer = new Container();
         const agentsLayer = new Container();
-
-        worldContainer.addChild(skeletonLayer);
-        worldContainer.addChild(tilesLayer);
-        worldContainer.addChild(placesLayer);
-        worldContainer.addChild(agentsLayer);
-
-        skeletonLayerRef.current = skeletonLayer;
+        worldContainer.addChild(tilesLayer, placesLayer, agentsLayer);
         tilesLayerRef.current = tilesLayer;
         placesLayerRef.current = placesLayer;
         agentsLayerRef.current = agentsLayer;
 
-        const fpsUpdate = () => {
+        app.ticker.add(() => {
           const now = performance.now();
-          const delta = now - lastFrameTimeRef.current;
-          const currentFps = 1000 / delta;
-          setFps(Math.round(currentFps));
+          setFps(Math.round(1000 / (now - lastFrameTimeRef.current)));
           lastFrameTimeRef.current = now;
-        };
-        app.ticker.add(fpsUpdate);
+        });
 
         setIsInitialized(true);
       });
 
     return () => {
-      if (appRef.current) {
-        appRef.current.destroy(true, { children: true });
-        appRef.current = null;
-        worldContainerRef.current = null;
-        skeletonLayerRef.current = null;
-        tilesLayerRef.current = null;
-        placesLayerRef.current = null;
-        agentsLayerRef.current = null;
-      }
+      if (!appRef.current) return;
+      appRef.current.destroy(true, { children: true });
+      appRef.current = null;
+      worldContainerRef.current = null;
+      tilesLayerRef.current = null;
+      placesLayerRef.current = null;
+      agentsLayerRef.current = null;
     };
   }, [width, height]);
 
   useEffect(() => {
     if (!appRef.current || width === 0 || height === 0) return;
-
     appRef.current.renderer.resize(width, height);
   }, [width, height]);
 
-  const refs: PixiAppRefs = {
-    app: appRef.current,
-    worldContainer: worldContainerRef.current,
-    tilesLayer: tilesLayerRef.current,
-    skeletonLayer: skeletonLayerRef.current,
-    placesLayer: placesLayerRef.current,
-    agentsLayer: agentsLayerRef.current,
-    renderer: appRef.current?.renderer || null,
-  };
-
   return {
     canvasRef,
-    refs,
+    refs: {
+      worldContainer: worldContainerRef.current,
+      tilesLayer: tilesLayerRef.current,
+      placesLayer: placesLayerRef.current,
+      agentsLayer: agentsLayerRef.current,
+      renderer: appRef.current?.renderer || null,
+    },
     isInitialized,
     fps,
   };

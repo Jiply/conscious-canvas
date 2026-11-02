@@ -2,12 +2,13 @@ import { TILE_VISUALS } from '@/lib/mapTypes';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { getTileColorString } from '@/lib/tileRenderer';
-import type { Place, MapSettings } from '@/lib/mapTypes';
+import type { MapSettings } from '@/lib/mapTypes';
+import type { Doc } from '@/convex/_generated/dataModel';
 
 interface MapOverlaysProps {
   isLoading: boolean;
   mapSettings: MapSettings | undefined;
-  places: Place[] | undefined;
+  places: Doc<'places'>[] | undefined;
   camera: { x: number; y: number; scale: number };
   initialCameraPos: { x: number; y: number; scale: number };
   showStats: boolean;
