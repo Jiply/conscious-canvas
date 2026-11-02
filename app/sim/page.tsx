@@ -301,11 +301,9 @@ export default function SimPage() {
           <main className="flex-1 overflow-hidden bg-muted/20 p-6 flex gap-6">
             <div className="flex-1 rounded-lg border border-dashed border-border overflow-hidden">
               <PixiMap
-                observerCount={1}
                 onWorldReady={setIsWorldReady}
                 onAgentClick={handleAgentClick}
                 centerOnLocation={centerOnPlace}
-                isWorldRunning
                 onCenterComplete={() => setCenterOnPlace(null)}
               />
             </div>
