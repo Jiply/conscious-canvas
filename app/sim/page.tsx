@@ -86,9 +86,9 @@ export default function SimPage() {
   };
 
   return (
-    <SidebarProvider defaultOpen={true}>
+    <SidebarProvider>
       <div className="flex h-screen w-full">
-        <Sidebar side="left" variant="sidebar" collapsible="offcanvas">
+        <Sidebar>
           <SidebarHeader>
             <h2 className="text-lg font-semibold whitespace-nowrap">Conscious Campus</h2>
             <div className="space-y-2">
