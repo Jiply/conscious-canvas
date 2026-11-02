@@ -1059,17 +1059,13 @@ function addConnectingPaths(
   }
 
   // Add micro-paths within buildings for more detailed navigation
-  addMicroPaths(tiles, gridWidth, gridHeight);
+  addMicroPaths(tiles, gridWidth);
 }
 
 /**
  * Add micro-paths within buildings for detailed navigation
  */
-function addMicroPaths(
-  tiles: any[],
-  gridWidth: number,
-  gridHeight: number
-): void {
+function addMicroPaths(tiles: any[], gridWidth: number): void {
   // Library internal paths
   // Main corridor through library
   for (let x = 125; x < 180; x++) {

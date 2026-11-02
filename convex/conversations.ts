@@ -20,7 +20,6 @@ export const processConversationTurn = internalAction({
     messageContent: v.string(),
   }),
   handler: async (ctx, args) => {
-    const startTime = Date.now();
 
     // 1. Gather context
     const agent = await ctx.runQuery(api.agents.getAgent, {
@@ -104,8 +103,6 @@ export const processConversationTurn = internalAction({
         `💬 ${agent.name} → ${otherAgent.name}: "${response.message}" (fallback)`
       );
     }
-
-    const latency = Date.now() - startTime;
 
     // 3. Add message to conversation
     await ctx.runMutation(api.conversationsMutations.addMessage, {
@@ -203,7 +200,7 @@ function buildConversationPrompt(
   // Format recent observations with salience
   const recentObservations = observations
     .slice(0, 5)
-    .map((obs, idx) => {
+    .map((obs) => {
       const salience = obs.salience > 0.7 ? "⭐ " : "";
       return `${salience}${obs.summary}`;
     })

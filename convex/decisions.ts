@@ -113,7 +113,7 @@ export const completeDecision = mutation({
 export const completeAllIncompleteDecisions = mutation({
   args: {},
   returns: v.number(),
-  handler: async (ctx, args) => {
+  handler: async (ctx) => {
     const allDecisions = await ctx.db.query("decisions").collect();
 
     let count = 0;
@@ -127,48 +127,6 @@ export const completeAllIncompleteDecisions = mutation({
     }
 
     return count;
-  },
-});
-
-/**
- * Get or create the current decision for an agent
- * Returns the most recent in-progress decision, or null if none
- */
-export const getCurrentDecision = query({
-  args: { agentId: v.id("agents") },
-  returns: v.union(
-    v.object({
-      _id: v.id("decisions"),
-      _creationTime: v.number(),
-      agentId: v.id("agents"),
-      action: v.union(
-        v.literal("MoveTo"),
-        v.literal("EngageConversation"),
-        v.literal("Study"),
-        v.literal("Eat"),
-        v.literal("Idle"),
-        v.literal("Sleep")
-      ),
-      targetPlaceId: v.optional(v.id("places")),
-      targetAgentId: v.optional(v.id("agents")),
-      utterance: v.optional(v.string()),
-      innerThought: v.optional(v.string()),
-      completedAt: v.optional(v.number()),
-      llmLatencyMs: v.optional(v.number()),
-    }),
-    v.null()
-  ),
-  handler: async (ctx, args) => {
-    // Get most recent decision with completedAt = undefined
-    const decisions = await ctx.db
-      .query("decisions")
-      .withIndex("by_status", (q) => q.eq("agentId", args.agentId))
-      .order("desc")
-      .collect();
-
-    // Find first in-progress decision
-    const inProgress = decisions.find((d) => d.completedAt === undefined);
-    return inProgress ?? null;
   },
 });
 
@@ -208,40 +166,5 @@ export const getDecisionHistory = query({
       .withIndex("by_agent", (q) => q.eq("agentId", args.agentId))
       .order("desc")
       .take(limit);
-  },
-});
-
-/**
- * Get all active conversations (decisions where action is EngageConversation and not completed)
- */
-export const getActiveConversations = query({
-  args: {},
-  returns: v.array(
-    v.object({
-      _id: v.id("decisions"),
-      _creationTime: v.number(),
-      agentId: v.id("agents"),
-      action: v.union(
-        v.literal("MoveTo"),
-        v.literal("EngageConversation"),
-        v.literal("Study"),
-        v.literal("Eat"),
-        v.literal("Idle"),
-        v.literal("Sleep")
-      ),
-      targetPlaceId: v.optional(v.id("places")),
-      targetAgentId: v.optional(v.id("agents")),
-      utterance: v.optional(v.string()),
-      innerThought: v.optional(v.string()),
-      completedAt: v.optional(v.number()),
-      llmLatencyMs: v.optional(v.number()),
-    })
-  ),
-  handler: async (ctx) => {
-    const allDecisions = await ctx.db.query("decisions").collect();
-
-    return allDecisions.filter(
-      (d) => d.action === "EngageConversation" && d.completedAt === undefined
-    );
   },
 });

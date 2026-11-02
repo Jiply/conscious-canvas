@@ -129,26 +129,6 @@ export const heartbeat = mutation({
 });
 
 /**
- * Get current observer count
- */
-export const getObserverCount = query({
-  args: {},
-  returns: v.number(),
-  handler: async (ctx) => {
-    const now = Date.now();
-    const cutoff = now - 15000; // 15 seconds timeout
-
-    const activeObservers = await ctx.db
-      .query("observer")
-      .withIndex("by_heartbeat")
-      .filter((q) => q.gte(q.field("lastHeartbeatAt"), cutoff))
-      .collect();
-
-    return activeObservers.length;
-  },
-});
-
-/**
  * Get world running state
  */
 export const getWorldState = query({

@@ -346,7 +346,7 @@ async function performActionAtPlace(
     console.log(`🍽️  ${agent.name}: ${decisionAction} at ${place.name}`);
 
     // Create and immediately complete the action decision (Eat/Sleep/Study)
-    const actionDecisionId = await ctx.db.insert("decisions", {
+    await ctx.db.insert("decisions", {
       agentId: agent._id,
       action: decisionAction,
       targetPlaceId: placeId,
@@ -386,7 +386,7 @@ async function makeAgentDecision(
     });
   } catch (error) {
     // Fallback to simple Idle decision if LLM fails
-    const idleDecisionId = await ctx.db.insert("decisions", {
+    await ctx.db.insert("decisions", {
       agentId: agent._id,
       action: "Idle",
       innerThought: "Taking a moment to think...",
@@ -525,15 +525,6 @@ async function checkLineOfSight(
   return true; // Clear line of sight
 }
 
-function getAgentsInFOV(
-  agent: Doc<"agents">,
-  allAgents: Doc<"agents">[]
-): Array<{ agent: Doc<"agents">; distance: number }> {
-  // This is now deprecated - using getAgentsInVision instead
-  // Keeping for backwards compatibility temporarily
-  return [];
-}
-
 /**
  * Process a conversation turn for an agent
  * Schedules the LLM action to generate next message
@@ -551,15 +542,6 @@ async function processConversationTurnForAgent(ctx: any, agent: Doc<"agents">) {
       conversationId: agent.currentConversationId,
     }
   );
-}
-
-/**
- * Normalize angle to [-PI, PI]
- */
-function normalizeAngle(angle: number): number {
-  while (angle > Math.PI) angle -= 2 * Math.PI;
-  while (angle < -Math.PI) angle += 2 * Math.PI;
-  return angle;
 }
 
 /**
@@ -599,24 +581,3 @@ async function pruneOldObservations(
 }
 
 // ========== QUERIES ==========
-
-/**
- * Get current heartbeat state (for UI display)
- */
-export const getHeartbeatState = mutation({
-  args: {},
-  returns: v.union(
-    v.object({
-      _id: v.id("heartbeat_state"),
-      _creationTime: v.number(),
-      isRunning: v.boolean(),
-      lastStartedAt: v.number(),
-      lastCompletedAt: v.number(),
-      currentLeaderId: v.string(),
-    }),
-    v.null()
-  ),
-  handler: async (ctx) => {
-    return await ctx.db.query("heartbeat_state").first();
-  },
-});
