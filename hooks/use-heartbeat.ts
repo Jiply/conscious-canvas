@@ -21,6 +21,7 @@ export function useHeartbeat() {
     lastTickAt: number;
     observerCount: number;
   } | null>(null);
+  // Still persists the observer session id the unreachable observer API used to send.
   getStoredId('observer_session_id');
   const leaderIdRef = useRef(getStoredId('heartbeat_leader_id'));
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
