@@ -1,7 +1,13 @@
 import { v } from "convex/values";
 import { mapSettingsFields, mapTileFields, placeFields } from "./schema";
 import { internal } from "./_generated/api";
-import { query, mutation } from "./_generated/server";
+import { type MutationCtx, query, mutation } from "./_generated/server";
+
+async function deleteAll(ctx: MutationCtx, table: "map_tiles" | "places" | "map_settings") {
+  const docs = await ctx.db.query(table).collect();
+  for (const doc of docs) await ctx.db.delete(doc._id);
+  return docs.length;
+}
 
 export const getMapSettings = query({
   args: {},
@@ -169,16 +175,8 @@ export const initMap = mutation({
     if (args.force && existingSettings) {
       console.log("🗑️  Clearing existing map data...");
 
-      const tiles = await ctx.db.query("map_tiles").collect();
-      for (const tile of tiles) {
-        await ctx.db.delete(tile._id);
-      }
-
-      const places = await ctx.db.query("places").collect();
-      for (const place of places) {
-        await ctx.db.delete(place._id);
-      }
-
+      await deleteAll(ctx, "map_tiles");
+      await deleteAll(ctx, "places");
       await ctx.db.delete(existingSettings._id);
 
       console.log("✓ Existing data cleared");
@@ -212,22 +210,16 @@ export const clearAllTiles = mutation({
     console.log(`🗑️  Clearing map tiles (batch size: ${batchSize})...`);
 
     const tiles = await ctx.db.query("map_tiles").take(batchSize);
-    let deletedCount = 0;
+    for (const tile of tiles) await ctx.db.delete(tile._id);
 
-    for (const tile of tiles) {
-      await ctx.db.delete(tile._id);
-      deletedCount++;
-    }
-
-    const remaining = await ctx.db.query("map_tiles").first();
-    const hasMore = remaining !== null;
+    const hasMore = (await ctx.db.query("map_tiles").first()) !== null;
 
     console.log(
-      `✅ Deleted ${deletedCount} tiles${hasMore ? " (more remaining)" : ""}`
+      `✅ Deleted ${tiles.length} tiles${hasMore ? " (more remaining)" : ""}`
     );
     return {
       success: true,
-      tilesDeleted: deletedCount,
+      tilesDeleted: tiles.length,
       hasMore,
     };
   },
@@ -241,14 +233,7 @@ export const clearAllPlaces = mutation({
   }),
   handler: async (ctx) => {
     console.log("🗑️  Clearing all places...");
-    const places = await ctx.db.query("places").collect();
-    let deletedCount = 0;
-
-    for (const place of places) {
-      await ctx.db.delete(place._id);
-      deletedCount++;
-    }
-
+    const deletedCount = await deleteAll(ctx, "places");
     console.log(`✅ Deleted ${deletedCount} places`);
     return {
       success: true,
@@ -265,14 +250,7 @@ export const clearMapSettings = mutation({
   }),
   handler: async (ctx) => {
     console.log("🗑️  Clearing map settings...");
-    const settings = await ctx.db.query("map_settings").collect();
-    let deletedCount = 0;
-
-    for (const setting of settings) {
-      await ctx.db.delete(setting._id);
-      deletedCount++;
-    }
-
+    const deletedCount = await deleteAll(ctx, "map_settings");
     console.log(`✅ Deleted ${deletedCount} map settings`);
     return {
       success: true,
@@ -292,26 +270,9 @@ export const clearAllMapData = mutation({
   handler: async (ctx) => {
     console.log("🗑️  Clearing all map data...");
 
-    const tiles = await ctx.db.query("map_tiles").collect();
-    let tilesDeleted = 0;
-    for (const tile of tiles) {
-      await ctx.db.delete(tile._id);
-      tilesDeleted++;
-    }
-
-    const places = await ctx.db.query("places").collect();
-    let placesDeleted = 0;
-    for (const place of places) {
-      await ctx.db.delete(place._id);
-      placesDeleted++;
-    }
-
-    const settings = await ctx.db.query("map_settings").collect();
-    let settingsDeleted = 0;
-    for (const setting of settings) {
-      await ctx.db.delete(setting._id);
-      settingsDeleted++;
-    }
+    const tilesDeleted = await deleteAll(ctx, "map_tiles");
+    const placesDeleted = await deleteAll(ctx, "places");
+    const settingsDeleted = await deleteAll(ctx, "map_settings");
 
     console.log(
       `✅ Cleared: ${tilesDeleted} tiles, ${placesDeleted} places, ${settingsDeleted} settings`

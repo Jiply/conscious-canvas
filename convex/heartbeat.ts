@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation } from "./_generated/server";
+import { type MutationCtx, mutation } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { api, internal } from "./_generated/api";
 
@@ -86,7 +86,7 @@ export const tick = mutation({
 });
 
 async function processAgentTick(
-  ctx: any,
+  ctx: MutationCtx,
   agent: Doc<"agents">,
   allAgents: Doc<"agents">[]
 ) {
@@ -118,10 +118,10 @@ async function processAgentTick(
 
   const allOpinions = await ctx.db
     .query("opinions")
-    .withIndex("by_agent", (q: any) => q.eq("agentId", agent._id))
+    .withIndex("by_agent", (q) => q.eq("agentId", agent._id))
     .collect();
 
-  const visibleOpinions = allOpinions.filter((op: any) =>
+  const visibleOpinions = allOpinions.filter((op) =>
     visibleAgentIds.includes(op.targetAgentId)
   );
 
@@ -149,7 +149,7 @@ async function processAgentTick(
   }
 }
 
-async function updateAgentNeeds(ctx: any, agent: Doc<"agents">) {
+async function updateAgentNeeds(ctx: MutationCtx, agent: Doc<"agents">) {
   const TICK_INTERVAL = 5;
   const TIME_COMPRESSION = 2;
   const SIMULATED_SECONDS = TICK_INTERVAL * TIME_COMPRESSION;
@@ -188,7 +188,7 @@ async function updateAgentNeeds(ctx: any, agent: Doc<"agents">) {
   });
 }
 
-async function executePathMovement(ctx: any, agent: Doc<"agents">) {
+async function executePathMovement(ctx: MutationCtx, agent: Doc<"agents">) {
   if (!agent.path || agent.path.length === 0) return;
 
   const nextStep = agent.path.length > 1 ? agent.path[1] : agent.path[0];
@@ -206,7 +206,7 @@ async function executePathMovement(ctx: any, agent: Doc<"agents">) {
 
     const activeDecision = await ctx.db
       .query("decisions")
-      .withIndex("by_agent", (q: any) => q.eq("agentId", agent._id))
+      .withIndex("by_agent", (q) => q.eq("agentId", agent._id))
       .order("desc")
       .first();
 
@@ -237,9 +237,9 @@ function isAgentInPlace(
 }
 
 async function performActionAtPlace(
-  ctx: any,
+  ctx: MutationCtx,
   agent: Doc<"agents">,
-  placeId: string
+  placeId: Id<"places">
 ) {
   const place = await ctx.db.get(placeId);
   if (!place) return;
@@ -247,25 +247,21 @@ async function performActionAtPlace(
   if (!isAgentInPlace(agent.pos, place.bounds)) return;
 
   const placeKind = place.kind.toLowerCase();
-  let actionPerformed = false;
   let decisionAction: "Eat" | "Sleep" | "Study" | null = null;
   const newNeeds = { ...agent.needs };
 
   if (placeKind === "cafe" && agent.needs.hunger > 0.1) {
     newNeeds.hunger = Math.max(0, agent.needs.hunger - 0.4);
     decisionAction = "Eat";
-    actionPerformed = true;
   } else if (placeKind === "dorm" && agent.needs.sleepiness > 0.1) {
     newNeeds.sleepiness = Math.max(0, agent.needs.sleepiness - 0.5);
     decisionAction = "Sleep";
-    actionPerformed = true;
   } else if (placeKind === "library" && agent.needs.studyPressure > 0.1) {
     newNeeds.studyPressure = Math.max(0, agent.needs.studyPressure - 0.3);
     decisionAction = "Study";
-    actionPerformed = true;
   }
 
-  if (actionPerformed && decisionAction) {
+  if (decisionAction) {
     await ctx.db.patch(agent._id, {
       needs: newNeeds,
     });
@@ -283,15 +279,15 @@ async function performActionAtPlace(
 }
 
 async function makeAgentDecision(
-  ctx: any,
+  ctx: MutationCtx,
   agent: Doc<"agents">,
   nearbyAgents: Array<{ agent: Doc<"agents">; distance: number }>,
   _visibleAgents: Array<{ agent: Doc<"agents">; distance: number }>,
-  visibleOpinions: any[]
+  visibleOpinions: Doc<"opinions">[]
 ) {
   const activeDecision = await ctx.db
     .query("decisions")
-    .withIndex("by_agent", (q: any) => q.eq("agentId", agent._id))
+    .withIndex("by_agent", (q) => q.eq("agentId", agent._id))
     .order("desc")
     .first();
 
@@ -312,7 +308,7 @@ async function makeAgentDecision(
 }
 
 async function getAgentsInVision(
-  ctx: any,
+  ctx: MutationCtx,
   agent: Doc<"agents">,
   allAgents: Doc<"agents">[]
 ): Promise<Array<{ agent: Doc<"agents">; distance: number }>> {
@@ -355,7 +351,7 @@ async function getAgentsInVision(
 }
 
 async function checkLineOfSight(
-  ctx: any,
+  ctx: MutationCtx,
   from: { x: number; y: number },
   to: { x: number; y: number },
   allAgents: Doc<"agents">[],
@@ -379,7 +375,7 @@ async function checkLineOfSight(
     if ((x !== x0 || y !== y0) && (x !== x1 || y !== y1)) {
       const tile = await ctx.db
         .query("map_tiles")
-        .withIndex("by_coordinates", (q: any) => q.eq("x", x).eq("y", y))
+        .withIndex("by_coordinates", (q) => q.eq("x", x).eq("y", y))
         .first();
 
       if (tile && !tile.isWalkable) return false;
@@ -410,7 +406,7 @@ async function checkLineOfSight(
   return true;
 }
 
-async function processConversationTurnForAgent(ctx: any, agent: Doc<"agents">) {
+async function processConversationTurnForAgent(ctx: MutationCtx, agent: Doc<"agents">) {
   if (!agent.currentConversationId) return;
 
   await ctx.scheduler.runAfter(
@@ -436,17 +432,17 @@ function calculateSalience(
 }
 
 async function pruneOldObservations(
-  ctx: any,
+  ctx: MutationCtx,
   agentId: Id<"agents">,
   keepCount: number
 ) {
   const observations = await ctx.db
     .query("observations")
-    .withIndex("by_agent", (q: any) => q.eq("agentId", agentId))
+    .withIndex("by_agent", (q) => q.eq("agentId", agentId))
     .order("desc")
     .collect();
 
   const toDelete = observations.slice(keepCount);
-  await Promise.all(toDelete.map((obs: any) => ctx.db.delete(obs._id)));
+  await Promise.all(toDelete.map((obs) => ctx.db.delete(obs._id)));
 }
 

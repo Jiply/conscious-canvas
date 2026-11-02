@@ -1,29 +1,8 @@
-import { v } from "convex/values";
+import { type Infer, v } from "convex/values";
+import { mapTileFields } from "./schema";
 import { internalMutation } from "./_generated/server";
 
-type TileType =
-  | "floor"
-  | "wall"
-  | "door"
-  | "grass"
-  | "water"
-  | "path"
-  | "void"
-  | "tall_tree"
-  | "short_tree"
-  | "bush"
-  | "flower_bed"
-  | "concrete"
-  | "brick_path"
-  | "cafe_stall"
-  | "study_desk"
-  | "bookshelf"
-  | "lounge_chair"
-  | "laundry_machine"
-  | "lecture_seat"
-  | "library_desk"
-  | "dorm_bed"
-  | "kitchen_counter";
+type TileType = Infer<typeof mapTileFields.tileType>;
 
 interface Entrance {
   x: number;
@@ -267,225 +246,17 @@ const INTERNAL_AREAS: PlaceDefinition[] = [
 ];
 
 const DORM_ROOMS: PlaceDefinition[] = [
-  {
-    kind: "dorm_room",
-    name: "Room 101",
-    description: "Single student bedroom with desk, bed, and storage",
-    bounds: { x: 15, y: 95, width: 6, height: 4 },
-    entrances: [{ x: 18, y: 99, facing: "south" }],
-    isIndoor: true,
-    realWorldInspiration: "UTown Student Room",
-  },
-  {
-    kind: "dorm_room",
-    name: "Room 102",
-    description: "Single student bedroom with desk, bed, and storage",
-    bounds: { x: 22, y: 95, width: 6, height: 4 },
-    entrances: [{ x: 25, y: 99, facing: "south" }],
-    isIndoor: true,
-    realWorldInspiration: "UTown Student Room",
-  },
-  {
-    kind: "dorm_room",
-    name: "Room 103",
-    description: "Single student bedroom with desk, bed, and storage",
-    bounds: { x: 29, y: 95, width: 6, height: 4 },
-    entrances: [{ x: 32, y: 99, facing: "south" }],
-    isIndoor: true,
-    realWorldInspiration: "UTown Student Room",
-  },
-  {
-    kind: "dorm_room",
-    name: "Room 104",
-    description: "Single student bedroom with desk, bed, and storage",
-    bounds: { x: 36, y: 95, width: 6, height: 4 },
-    entrances: [{ x: 39, y: 99, facing: "south" }],
-    isIndoor: true,
-    realWorldInspiration: "UTown Student Room",
-  },
-  {
-    kind: "dorm_room",
-    name: "Room 105",
-    description: "Single student bedroom with desk, bed, and storage",
-    bounds: { x: 43, y: 95, width: 6, height: 4 },
-    entrances: [{ x: 46, y: 99, facing: "south" }],
-    isIndoor: true,
-    realWorldInspiration: "UTown Student Room",
-  },
-  {
-    kind: "dorm_room",
-    name: "Room 106",
-    description: "Single student bedroom with desk, bed, and storage",
-    bounds: { x: 50, y: 95, width: 6, height: 4 },
-    entrances: [{ x: 53, y: 99, facing: "south" }],
-    isIndoor: true,
-    realWorldInspiration: "UTown Student Room",
-  },
-  {
-    kind: "dorm_room",
-    name: "Room 107",
-    description: "Single student bedroom with desk, bed, and storage",
-    bounds: { x: 57, y: 95, width: 6, height: 4 },
-    entrances: [{ x: 60, y: 99, facing: "south" }],
-    isIndoor: true,
-    realWorldInspiration: "UTown Student Room",
-  },
-  {
-    kind: "dorm_room",
-    name: "Room 108",
-    description: "Single student bedroom with desk, bed, and storage",
-    bounds: { x: 64, y: 95, width: 6, height: 4 },
-    entrances: [{ x: 67, y: 99, facing: "south" }],
-    isIndoor: true,
-    realWorldInspiration: "UTown Student Room",
-  },
-
-  {
-    kind: "dorm_room",
-    name: "Room 201",
-    description: "Single student bedroom with desk, bed, and storage",
-    bounds: { x: 15, y: 100, width: 6, height: 4 },
-    entrances: [{ x: 18, y: 100, facing: "north" }],
-    isIndoor: true,
-    realWorldInspiration: "UTown Student Room",
-  },
-  {
-    kind: "dorm_room",
-    name: "Room 202",
-    description: "Single student bedroom with desk, bed, and storage",
-    bounds: { x: 22, y: 100, width: 6, height: 4 },
-    entrances: [{ x: 25, y: 100, facing: "north" }],
-    isIndoor: true,
-    realWorldInspiration: "UTown Student Room",
-  },
-  {
-    kind: "dorm_room",
-    name: "Room 203",
-    description: "Single student bedroom with desk, bed, and storage",
-    bounds: { x: 29, y: 100, width: 6, height: 4 },
-    entrances: [{ x: 32, y: 100, facing: "north" }],
-    isIndoor: true,
-    realWorldInspiration: "UTown Student Room",
-  },
-  {
-    kind: "dorm_room",
-    name: "Room 204",
-    description: "Single student bedroom with desk, bed, and storage",
-    bounds: { x: 36, y: 100, width: 6, height: 4 },
-    entrances: [{ x: 39, y: 100, facing: "north" }],
-    isIndoor: true,
-    realWorldInspiration: "UTown Student Room",
-  },
-  {
-    kind: "dorm_room",
-    name: "Room 205",
-    description: "Single student bedroom with desk, bed, and storage",
-    bounds: { x: 43, y: 100, width: 6, height: 4 },
-    entrances: [{ x: 46, y: 100, facing: "north" }],
-    isIndoor: true,
-    realWorldInspiration: "UTown Student Room",
-  },
-  {
-    kind: "dorm_room",
-    name: "Room 206",
-    description: "Single student bedroom with desk, bed, and storage",
-    bounds: { x: 50, y: 100, width: 6, height: 4 },
-    entrances: [{ x: 53, y: 100, facing: "north" }],
-    isIndoor: true,
-    realWorldInspiration: "UTown Student Room",
-  },
-  {
-    kind: "dorm_room",
-    name: "Room 207",
-    description: "Single student bedroom with desk, bed, and storage",
-    bounds: { x: 57, y: 100, width: 6, height: 4 },
-    entrances: [{ x: 60, y: 100, facing: "north" }],
-    isIndoor: true,
-    realWorldInspiration: "UTown Student Room",
-  },
-  {
-    kind: "dorm_room",
-    name: "Room 208",
-    description: "Single student bedroom with desk, bed, and storage",
-    bounds: { x: 64, y: 100, width: 6, height: 4 },
-    entrances: [{ x: 67, y: 100, facing: "north" }],
-    isIndoor: true,
-    realWorldInspiration: "UTown Student Room",
-  },
-
-  {
-    kind: "dorm_room",
-    name: "Room 301",
-    description: "Single student bedroom with desk, bed, and storage",
-    bounds: { x: 15, y: 105, width: 6, height: 4 },
-    entrances: [{ x: 18, y: 109, facing: "south" }],
-    isIndoor: true,
-    realWorldInspiration: "UTown Student Room",
-  },
-  {
-    kind: "dorm_room",
-    name: "Room 302",
-    description: "Single student bedroom with desk, bed, and storage",
-    bounds: { x: 22, y: 105, width: 6, height: 4 },
-    entrances: [{ x: 25, y: 109, facing: "south" }],
-    isIndoor: true,
-    realWorldInspiration: "UTown Student Room",
-  },
-  {
-    kind: "dorm_room",
-    name: "Room 303",
-    description: "Single student bedroom with desk, bed, and storage",
-    bounds: { x: 29, y: 105, width: 6, height: 4 },
-    entrances: [{ x: 32, y: 109, facing: "south" }],
-    isIndoor: true,
-    realWorldInspiration: "UTown Student Room",
-  },
-  {
-    kind: "dorm_room",
-    name: "Room 304",
-    description: "Single student bedroom with desk, bed, and storage",
-    bounds: { x: 36, y: 105, width: 6, height: 4 },
-    entrances: [{ x: 39, y: 109, facing: "south" }],
-    isIndoor: true,
-    realWorldInspiration: "UTown Student Room",
-  },
-  {
-    kind: "dorm_room",
-    name: "Room 305",
-    description: "Single student bedroom with desk, bed, and storage",
-    bounds: { x: 43, y: 105, width: 6, height: 4 },
-    entrances: [{ x: 46, y: 109, facing: "south" }],
-    isIndoor: true,
-    realWorldInspiration: "UTown Student Room",
-  },
-  {
-    kind: "dorm_room",
-    name: "Room 306",
-    description: "Single student bedroom with desk, bed, and storage",
-    bounds: { x: 50, y: 105, width: 6, height: 4 },
-    entrances: [{ x: 53, y: 109, facing: "south" }],
-    isIndoor: true,
-    realWorldInspiration: "UTown Student Room",
-  },
-  {
-    kind: "dorm_room",
-    name: "Room 307",
-    description: "Single student bedroom with desk, bed, and storage",
-    bounds: { x: 57, y: 105, width: 6, height: 4 },
-    entrances: [{ x: 60, y: 109, facing: "south" }],
-    isIndoor: true,
-    realWorldInspiration: "UTown Student Room",
-  },
-  {
-    kind: "dorm_room",
-    name: "Room 308",
-    description: "Single student bedroom with desk, bed, and storage",
-    bounds: { x: 64, y: 105, width: 6, height: 4 },
-    entrances: [{ x: 67, y: 109, facing: "south" }],
-    isIndoor: true,
-    realWorldInspiration: "UTown Student Room",
-  },
-
+  ...[1, 2, 3].flatMap((floor) =>
+    [0, 1, 2, 3, 4, 5, 6, 7].map((i) => ({
+      kind: "dorm_room",
+      name: `Room ${floor}0${i + 1}`,
+      description: "Single student bedroom with desk, bed, and storage",
+      bounds: { x: 15 + 7 * i, y: 90 + 5 * floor, width: 6, height: 4 },
+      entrances: [{ x: 18 + 7 * i, y: [99, 100, 109][floor - 1], facing: floor === 2 ? "north" : "south" }],
+      isIndoor: true,
+      realWorldInspiration: "UTown Student Room",
+    }))
+  ),
   {
     kind: "common_room",
     name: "Common Lounge",
@@ -582,216 +353,94 @@ export const initializeMap = internalMutation({
     const placeIdMap = new Map<string, string>();
 
     if (tileOffset === 0) {
-      console.log("🏢 Creating main landmarks...");
-
-      for (const placeDef of UTOWN_PLACES) {
-        const placeId = await ctx.db.insert("places", {
-          kind: placeDef.kind,
-          name: placeDef.name,
-          description: placeDef.description,
-          bounds: placeDef.bounds,
-          entrances: placeDef.entrances,
-          capacity: placeDef.isIndoor
-            ? placeDef.bounds.width * placeDef.bounds.height
-            : undefined,
-          isIndoor: placeDef.isIndoor,
-          metadata: {
-            realWorldInspiration: placeDef.realWorldInspiration,
-          },
-        });
-        placeIdMap.set(`${placeDef.kind}_${placeDef.name}`, placeId);
-        console.log(`  ✓ Created ${placeDef.name} (${placeDef.kind})`);
-      }
-
-      console.log("🚪 Creating dorm rooms...");
-      for (const roomDef of DORM_ROOMS) {
-        const roomId = await ctx.db.insert("places", {
-          kind: roomDef.kind,
-          name: roomDef.name,
-          description: roomDef.description,
-          bounds: roomDef.bounds,
-          entrances: roomDef.entrances,
-          capacity: 2,
-          isIndoor: roomDef.isIndoor,
-          metadata: {
-            realWorldInspiration: roomDef.realWorldInspiration,
-          },
-        });
-        placeIdMap.set(`${roomDef.kind}_${roomDef.name}`, roomId);
-        console.log(`  ✓ Created ${roomDef.name} (${roomDef.kind})`);
-      }
-
-      console.log("🏢 Creating internal building areas...");
-      for (const areaDef of INTERNAL_AREAS) {
-        const areaId = await ctx.db.insert("places", {
-          kind: areaDef.kind,
-          name: areaDef.name,
-          description: areaDef.description,
-          bounds: areaDef.bounds,
-          entrances: areaDef.entrances,
-          capacity: areaDef.bounds.width * areaDef.bounds.height,
-          isIndoor: areaDef.isIndoor,
-          metadata: {
-            realWorldInspiration: areaDef.realWorldInspiration,
-          },
-        });
-        placeIdMap.set(`${areaDef.kind}_${areaDef.name}`, areaId);
-        console.log(`  ✓ Created ${areaDef.name} (${areaDef.kind})`);
+      const groups: [string, PlaceDefinition[], (d: PlaceDefinition) => number | undefined][] = [
+        ["🏢 Creating main landmarks...", UTOWN_PLACES, (d) => (d.isIndoor ? d.bounds.width * d.bounds.height : undefined)],
+        ["🚪 Creating dorm rooms...", DORM_ROOMS, () => 2],
+        ["🏢 Creating internal building areas...", INTERNAL_AREAS, (d) => d.bounds.width * d.bounds.height],
+      ];
+      for (const [label, defs, capacity] of groups) {
+        console.log(label);
+        for (const def of defs) {
+          const placeId = await ctx.db.insert("places", {
+            kind: def.kind,
+            name: def.name,
+            description: def.description,
+            bounds: def.bounds,
+            entrances: def.entrances,
+            capacity: capacity(def),
+            isIndoor: def.isIndoor,
+            metadata: {
+              realWorldInspiration: def.realWorldInspiration,
+            },
+          });
+          placeIdMap.set(`${def.kind}_${def.name}`, placeId);
+          console.log(`  ✓ Created ${def.name} (${def.kind})`);
+        }
       }
     }
 
-    console.log("🎨 Generating main landmark tiles...");
-
-    for (const placeDef of UTOWN_PLACES) {
-      const placeId = placeIdMap.get(`${placeDef.kind}_${placeDef.name}`);
-      const { bounds, isIndoor, entrances, kind } = placeDef;
-
-      const entranceSet = new Set(entrances.map((e) => `${e.x},${e.y}`));
+    const stamp = (
+      def: PlaceDefinition,
+      walled: boolean,
+      placeId: string | undefined,
+      interior: (x: number, y: number) => TileType,
+      variant: (x: number, y: number) => number
+    ) => {
+      const { bounds } = def;
+      const entranceSet = new Set(def.entrances.map((e) => `${e.x},${e.y}`));
 
       for (let y = bounds.y; y < bounds.y + bounds.height; y++) {
         for (let x = bounds.x; x < bounds.x + bounds.width; x++) {
-          const tileIndex = y * gridWidth + x;
           const isEntrance = entranceSet.has(`${x},${y}`);
-
-          let tileType: TileType;
-          let isWalkable: boolean;
-
-          if (isIndoor) {
-            const isPerimeter =
-              x === bounds.x ||
-              x === bounds.x + bounds.width - 1 ||
-              y === bounds.y ||
-              y === bounds.y + bounds.height - 1;
-
-            if (isPerimeter) {
-              tileType = isEntrance ? "door" : "wall";
-              isWalkable = isEntrance;
-            } else {
-              if (kind === "dorm") {
-                tileType = "floor";
-                isWalkable = true;
-              } else {
-                tileType = "floor";
-                isWalkable = true;
-              }
-            }
-          } else {
-            tileType = "grass";
-            isWalkable = true;
-          }
-
-          tiles[tileIndex] = {
+          const isPerimeter =
+            walled &&
+            (x === bounds.x || x === bounds.x + bounds.width - 1 || y === bounds.y || y === bounds.y + bounds.height - 1);
+          const tile: any = {
             x,
             y,
-            tileType,
-            isWalkable,
-            visualVariant: (x * 13 + y * 17) % 3,
+            tileType: isPerimeter ? (isEntrance ? "door" : "wall") : interior(x, y),
+            isWalkable: isPerimeter ? isEntrance : true,
+            visualVariant: variant(x, y),
           };
-
-          if (isIndoor && placeId && kind !== "dorm") (tiles[tileIndex] as any).placeId = placeId;
+          if (placeId) tile.placeId = placeId;
+          tiles[y * gridWidth + x] = tile;
         }
       }
+    };
+    const placeIdOf = (def: PlaceDefinition) => placeIdMap.get(`${def.kind}_${def.name}`);
+
+    console.log("🎨 Generating main landmark tiles...");
+    for (const def of UTOWN_PLACES) {
+      stamp(
+        def,
+        def.isIndoor,
+        def.isIndoor && def.kind !== "dorm" ? placeIdOf(def) : undefined,
+        () => (def.isIndoor ? "floor" : "grass"),
+        (x, y) => (x * 13 + y * 17) % 3
+      );
     }
 
     console.log("🚪 Generating dorm room tiles...");
-
-    for (const roomDef of DORM_ROOMS) {
-      const roomId = placeIdMap.get(`${roomDef.kind}_${roomDef.name}`);
-      const { bounds, entrances } = roomDef;
-
-      const entranceSet = new Set(entrances.map((e) => `${e.x},${e.y}`));
-
-      for (let y = bounds.y; y < bounds.y + bounds.height; y++) {
-        for (let x = bounds.x; x < bounds.x + bounds.width; x++) {
-          const tileIndex = y * gridWidth + x;
-          const isEntrance = entranceSet.has(`${x},${y}`);
-
-          const isPerimeter =
-            x === bounds.x ||
-            x === bounds.x + bounds.width - 1 ||
-            y === bounds.y ||
-            y === bounds.y + bounds.height - 1;
-
-          let tileType: TileType;
-          let isWalkable: boolean;
-
-          if (isPerimeter) {
-            tileType = isEntrance ? "door" : "wall";
-            isWalkable = isEntrance;
-          } else {
-            const roomVariant = (x + y) % 4;
-            if (roomVariant === 0) tileType = "dorm_bed";
-            else if (roomVariant === 1) tileType = "floor";
-            else if (roomVariant === 2) tileType = "study_desk";
-            else tileType = "floor";
-            isWalkable = true;
-          }
-
-          tiles[tileIndex] = {
-            x,
-            y,
-            tileType,
-            isWalkable,
-            visualVariant: (x * 7 + y * 11) % 2,
-          };
-
-          if (roomId) (tiles[tileIndex] as any).placeId = roomId;
-        }
-      }
+    for (const def of DORM_ROOMS) {
+      stamp(def, true, placeIdOf(def), (x, y) => (["dorm_bed", "floor", "study_desk", "floor"] as const)[(x + y) % 4], (x, y) => (x * 7 + y * 11) % 2);
     }
 
     console.log("🏢 Generating internal area tiles...");
-
-    for (const areaDef of INTERNAL_AREAS) {
-      const areaId = placeIdMap.get(`${areaDef.kind}_${areaDef.name}`);
-      const { bounds, entrances, kind } = areaDef;
-
-      const entranceSet = new Set(entrances.map((e) => `${e.x},${e.y}`));
-
-      for (let y = bounds.y; y < bounds.y + bounds.height; y++) {
-        for (let x = bounds.x; x < bounds.x + bounds.width; x++) {
-          const tileIndex = y * gridWidth + x;
-          const isEntrance = entranceSet.has(`${x},${y}`);
-
-          const isPerimeter =
-            x === bounds.x ||
-            x === bounds.x + bounds.width - 1 ||
-            y === bounds.y ||
-            y === bounds.y + bounds.height - 1;
-
-          let tileType: TileType;
-          let isWalkable: boolean;
-
-          if (isPerimeter) {
-            tileType = isEntrance ? "door" : "wall";
-            isWalkable = isEntrance;
-          } else {
-            if (kind === "cafe_stall") {
-              tileType = "cafe_stall";
-            } else if (kind === "library_section") {
-              const variant = (x + y) % 3;
-              if (variant === 0) tileType = "library_desk";
-              else if (variant === 1) tileType = "bookshelf";
-              else tileType = "floor";
-            } else if (kind === "lecture_section") {
-              tileType = "lecture_seat";
-            } else {
-              tileType = "floor";
-            }
-            isWalkable = true;
-          }
-
-          tiles[tileIndex] = {
-            x,
-            y,
-            tileType,
-            isWalkable,
-            visualVariant: (x * 13 + y * 17) % 3,
-          };
-
-          if (areaId) (tiles[tileIndex] as any).placeId = areaId;
-        }
-      }
+    for (const def of INTERNAL_AREAS) {
+      stamp(
+        def,
+        true,
+        placeIdOf(def),
+        (x, y) =>
+          def.kind === "cafe_stall"
+            ? "cafe_stall"
+            : def.kind === "library_section"
+              ? (["library_desk", "bookshelf", "floor"] as const)[(x + y) % 3]
+              : def.kind === "lecture_section"
+                ? "lecture_seat"
+                : "floor",
+        (x, y) => (x * 13 + y * 17) % 3
+      );
     }
 
     console.log("🛤️  Adding connecting paths...");
@@ -854,304 +503,88 @@ export const initializeMap = internalMutation({
   },
 });
 
-function addConnectingPaths(
+function convertTiles(
   tiles: any[],
   gridWidth: number,
-  gridHeight: number
+  gridHeight: number,
+  [x, y, width, height]: number[],
+  to: TileType,
+  isWalkable: boolean,
+  variant?: (x: number, y: number) => number,
+  from: TileType[] = ["grass"]
 ): void {
-  const pathWidth = 3;
-
-  const mainPathY = Math.floor(gridHeight * 0.6);
-  for (let x = 0; x < gridWidth; x++) {
-    for (let dy = 0; dy < pathWidth; dy++) {
-      const y = mainPathY + dy;
-      if (y < gridHeight) {
-        const idx = y * gridWidth + x;
-        if (tiles[idx] && tiles[idx].tileType === "grass") {
-          tiles[idx].tileType = "path";
-          tiles[idx].isWalkable = true;
-        }
-      }
+  for (let ty = y; ty < Math.min(y + height, gridHeight); ty++) {
+    for (let tx = x; tx < Math.min(x + width, gridWidth); tx++) {
+      const tile = tiles[ty * gridWidth + tx];
+      if (!tile || !from.includes(tile.tileType)) continue;
+      tile.tileType = to;
+      tile.isWalkable = isWalkable;
+      if (variant) tile.visualVariant = variant(tx, ty);
     }
   }
+}
 
-  for (let y = Math.floor(gridHeight * 0.7); y < gridHeight; y++) {
-    for (let dx = 0; dx < pathWidth; dx++) {
-      const x = Math.floor(gridWidth * 0.6) + dx;
-      if (x < gridWidth) {
-        const idx = y * gridWidth + x;
-        if (tiles[idx] && tiles[idx].tileType === "grass") {
-          tiles[idx].tileType = "path";
-          tiles[idx].isWalkable = true;
-        }
-      }
-    }
-  }
+function addConnectingPaths(tiles: any[], gridWidth: number, gridHeight: number): void {
+  const w = (f: number) => Math.floor(gridWidth * f);
+  const h = (f: number) => Math.floor(gridHeight * f);
+  const path = (rect: number[], from?: TileType[], to: TileType = "path") =>
+    convertTiles(tiles, gridWidth, gridHeight, rect, to, true, undefined, from);
 
-  for (
-    let y = Math.floor(gridHeight * 0.5);
-    y < Math.floor(gridHeight * 0.7);
-    y++
-  ) {
-    for (let dx = 0; dx < pathWidth; dx++) {
-      const x = Math.floor(gridWidth * 0.7) + dx;
-      if (x < gridWidth) {
-        const idx = y * gridWidth + x;
-        if (tiles[idx] && tiles[idx].tileType === "grass") {
-          tiles[idx].tileType = "path";
-          tiles[idx].isWalkable = true;
-        }
-      }
-    }
-  }
-
-  for (
-    let y = Math.floor(gridHeight * 0.4);
-    y < Math.floor(gridHeight * 0.6);
-    y++
-  ) {
-    for (let dx = 0; dx < pathWidth; dx++) {
-      const x = Math.floor(gridWidth * 0.8) + dx;
-      if (x < gridWidth) {
-        const idx = y * gridWidth + x;
-        if (tiles[idx] && tiles[idx].tileType === "grass") {
-          tiles[idx].tileType = "path";
-          tiles[idx].isWalkable = true;
-        }
-      }
-    }
-  }
-
-  for (
-    let y = Math.floor(gridHeight * 0.5);
-    y < Math.floor(gridHeight * 0.6);
-    y++
-  ) {
-    for (let dx = 0; dx < pathWidth; dx++) {
-      const x = Math.floor(gridWidth * 0.3) + dx;
-      if (x < gridWidth) {
-        const idx = y * gridWidth + x;
-        if (tiles[idx] && tiles[idx].tileType === "grass") {
-          tiles[idx].tileType = "path";
-          tiles[idx].isWalkable = true;
-        }
-      }
-    }
-  }
+  path([0, h(0.6), gridWidth, 3]);
+  path([w(0.6), h(0.7), 3, gridHeight - h(0.7)]);
+  path([w(0.7), h(0.5), 3, h(0.7) - h(0.5)]);
+  path([w(0.8), h(0.4), 3, h(0.6) - h(0.4)]);
+  path([w(0.3), h(0.5), 3, h(0.6) - h(0.5)]);
 
   for (let i = 0; i < Math.min(gridWidth, gridHeight); i++) {
-    const x = Math.floor(gridWidth * 0.25) + i;
-    const y = Math.floor(gridHeight * 0.6) + i;
-    if (x < gridWidth && y < gridHeight) {
-      for (let dx = 0; dx < pathWidth; dx++) {
-        for (let dy = 0; dy < pathWidth; dy++) {
-          const pathX = x + dx;
-          const pathY = y + dy;
-          if (pathX < gridWidth && pathY < gridHeight) {
-            const idx = pathY * gridWidth + pathX;
-            if (tiles[idx] && tiles[idx].tileType === "grass") {
-              tiles[idx].tileType = "path";
-              tiles[idx].isWalkable = true;
-            }
-          }
-        }
-      }
-    }
+    const x = w(0.25) + i;
+    const y = h(0.6) + i;
+    if (x < gridWidth && y < gridHeight) path([x, y, 3, 3]);
   }
 
-  addMicroPaths(tiles, gridWidth);
+  for (const rect of [
+    [125, 35, 55, 5],
+    [140, 25, 5, 35],
+    [80, 55, 35, 5],
+    [95, 50, 5, 20],
+    [20, 42, 50, 3],
+    [35, 40, 5, 30],
+    [15, 100, 70, 5],
+    [35, 90, 5, 50],
+    [55, 90, 5, 50],
+  ])
+    path(rect, ["floor"]);
+
+  for (const rect of [
+    [90, 100, 60, 5],
+    [90, 120, 60, 5],
+    [110, 90, 5, 40],
+    [130, 90, 5, 40],
+  ])
+    path(rect, ["grass"], "brick_path");
 }
 
-function addMicroPaths(tiles: any[], gridWidth: number): void {
-  for (let x = 125; x < 180; x++) {
-    for (let y = 35; y < 40; y++) {
-      const idx = y * gridWidth + x;
-      if (tiles[idx].tileType === "floor") {
-        tiles[idx].tileType = "path";
-        tiles[idx].isWalkable = true;
-      }
-    }
-  }
+function addTerrainVariety(tiles: any[], gridWidth: number, gridHeight: number): void {
+  const w = (f: number) => Math.floor(gridWidth * f);
+  const h = (f: number) => Math.floor(gridHeight * f);
+  const convert = (rects: number[][], to: TileType, isWalkable: boolean, modulo: number) => {
+    for (const rect of rects)
+      convertTiles(tiles, gridWidth, gridHeight, rect, to, isWalkable, (x, y) => (x + y) % modulo);
+  };
 
-  for (let y = 25; y < 60; y++) {
-    for (let x = 140; x < 145; x++) {
-      const idx = y * gridWidth + x;
-      if (tiles[idx].tileType === "floor") {
-        tiles[idx].tileType = "path";
-        tiles[idx].isWalkable = true;
-      }
-    }
-  }
-
-  for (let x = 80; x < 115; x++) {
-    for (let y = 55; y < 60; y++) {
-      const idx = y * gridWidth + x;
-      if (tiles[idx].tileType === "floor") {
-        tiles[idx].tileType = "path";
-        tiles[idx].isWalkable = true;
-      }
-    }
-  }
-
-  for (let y = 50; y < 70; y++) {
-    for (let x = 95; x < 100; x++) {
-      const idx = y * gridWidth + x;
-      if (tiles[idx].tileType === "floor") {
-        tiles[idx].tileType = "path";
-        tiles[idx].isWalkable = true;
-      }
-    }
-  }
-
-  for (let x = 20; x < 70; x++) {
-    for (let y = 42; y < 45; y++) {
-      const idx = y * gridWidth + x;
-      if (tiles[idx].tileType === "floor") {
-        tiles[idx].tileType = "path";
-        tiles[idx].isWalkable = true;
-      }
-    }
-  }
-
-  for (let y = 40; y < 70; y++) {
-    for (let x = 35; x < 40; x++) {
-      const idx = y * gridWidth + x;
-      if (tiles[idx].tileType === "floor") {
-        tiles[idx].tileType = "path";
-        tiles[idx].isWalkable = true;
-      }
-    }
-  }
-
-  for (let x = 15; x < 85; x++) {
-    for (let y = 100; y < 105; y++) {
-      const idx = y * gridWidth + x;
-      if (tiles[idx].tileType === "floor") {
-        tiles[idx].tileType = "path";
-        tiles[idx].isWalkable = true;
-      }
-    }
-  }
-
-  for (let y = 90; y < 140; y++) {
-    for (let x = 35; x < 40; x++) {
-      const idx = y * gridWidth + x;
-      if (tiles[idx].tileType === "floor") {
-        tiles[idx].tileType = "path";
-        tiles[idx].isWalkable = true;
-      }
-    }
-  }
-
-  for (let y = 90; y < 140; y++) {
-    for (let x = 55; x < 60; x++) {
-      const idx = y * gridWidth + x;
-      if (tiles[idx].tileType === "floor") {
-        tiles[idx].tileType = "path";
-        tiles[idx].isWalkable = true;
-      }
-    }
-  }
-
-  for (let x = 90; x < 150; x++) {
-    for (let y = 100; y < 105; y++) {
-      const idx = y * gridWidth + x;
-      if (tiles[idx].tileType === "grass") {
-        tiles[idx].tileType = "brick_path";
-        tiles[idx].isWalkable = true;
-      }
-    }
-  }
-
-  for (let x = 90; x < 150; x++) {
-    for (let y = 120; y < 125; y++) {
-      const idx = y * gridWidth + x;
-      if (tiles[idx].tileType === "grass") {
-        tiles[idx].tileType = "brick_path";
-        tiles[idx].isWalkable = true;
-      }
-    }
-  }
-
-  for (let y = 90; y < 130; y++) {
-    for (let x = 110; x < 115; x++) {
-      const idx = y * gridWidth + x;
-      if (tiles[idx].tileType === "grass") {
-        tiles[idx].tileType = "brick_path";
-        tiles[idx].isWalkable = true;
-      }
-    }
-  }
-
-  for (let y = 90; y < 130; y++) {
-    for (let x = 130; x < 135; x++) {
-      const idx = y * gridWidth + x;
-      if (tiles[idx].tileType === "grass") {
-        tiles[idx].tileType = "brick_path";
-        tiles[idx].isWalkable = true;
-      }
-    }
-  }
-}
-
-function addTerrainVariety(
-  tiles: any[],
-  gridWidth: number,
-  gridHeight: number
-): void {
-  const tallTreeClusters = [
-    {
-      x: Math.floor(gridWidth * 0.06),
-      y: Math.floor(gridHeight * 0.2),
-      width: Math.floor(gridWidth * 0.1),
-      height: Math.floor(gridHeight * 0.12),
-    },
-    {
-      x: Math.floor(gridWidth * 0.85),
-      y: Math.floor(gridHeight * 0.2),
-      width: Math.floor(gridWidth * 0.1),
-      height: Math.floor(gridHeight * 0.12),
-    },
-    {
-      x: Math.floor(gridWidth * 0.06),
-      y: Math.floor(gridHeight * 0.8),
-      width: Math.floor(gridWidth * 0.1),
-      height: Math.floor(gridHeight * 0.12),
-    },
-    {
-      x: Math.floor(gridWidth * 0.85),
-      y: Math.floor(gridHeight * 0.8),
-      width: Math.floor(gridWidth * 0.1),
-      height: Math.floor(gridHeight * 0.12),
-    },
-    {
-      x: Math.floor(gridWidth * 0.3),
-      y: Math.floor(gridHeight * 0.1),
-      width: Math.floor(gridWidth * 0.08),
-      height: Math.floor(gridHeight * 0.08),
-    },
-    {
-      x: Math.floor(gridWidth * 0.6),
-      y: Math.floor(gridHeight * 0.1),
-      width: Math.floor(gridWidth * 0.08),
-      height: Math.floor(gridHeight * 0.08),
-    },
-  ];
-
-  for (const cluster of tallTreeClusters) {
-    for (let y = cluster.y; y < cluster.y + cluster.height; y++) {
-      for (let x = cluster.x; x < cluster.x + cluster.width; x++) {
-        if (x < gridWidth && y < gridHeight) {
-          const idx = y * gridWidth + x;
-          if (tiles[idx].tileType === "grass") {
-            tiles[idx].tileType = "tall_tree";
-            tiles[idx].isWalkable = false;
-            tiles[idx].visualVariant = (x + y) % 3;
-          }
-        }
-      }
-    }
-  }
+  convert(
+    [
+      [w(0.06), h(0.2), w(0.1), h(0.12)],
+      [w(0.85), h(0.2), w(0.1), h(0.12)],
+      [w(0.06), h(0.8), w(0.1), h(0.12)],
+      [w(0.85), h(0.8), w(0.1), h(0.12)],
+      [w(0.3), h(0.1), w(0.08), h(0.08)],
+      [w(0.6), h(0.1), w(0.08), h(0.08)],
+    ],
+    "tall_tree",
+    false,
+    3
+  );
 
   for (let y = 0; y < gridHeight; y += 8) {
     for (let x = 0; x < gridWidth; x += 12) {
@@ -1171,200 +604,54 @@ function addTerrainVariety(
     }
   }
 
-  const flowerBedAreas = [
-    {
-      x: Math.floor(gridWidth * 0.4),
-      y: Math.floor(gridHeight * 0.5),
-      width: Math.floor(gridWidth * 0.05),
-      height: Math.floor(gridHeight * 0.06),
-    },
-    {
-      x: Math.floor(gridWidth * 0.7),
-      y: Math.floor(gridHeight * 0.3),
-      width: Math.floor(gridWidth * 0.05),
-      height: Math.floor(gridHeight * 0.06),
-    },
-    {
-      x: Math.floor(gridWidth * 0.1),
-      y: Math.floor(gridHeight * 0.4),
-      width: Math.floor(gridWidth * 0.05),
-      height: Math.floor(gridHeight * 0.06),
-    },
-    {
-      x: Math.floor(gridWidth * 0.5),
-      y: Math.floor(gridHeight * 0.7),
-      width: Math.floor(gridWidth * 0.05),
-      height: Math.floor(gridHeight * 0.06),
-    },
-  ];
-
-  for (const bed of flowerBedAreas) {
-    for (let y = bed.y; y < bed.y + bed.height; y++) {
-      for (let x = bed.x; x < bed.x + bed.width; x++) {
-        if (x < gridWidth && y < gridHeight) {
-          const idx = y * gridWidth + x;
-          if (tiles[idx].tileType === "grass") {
-            tiles[idx].tileType = "flower_bed";
-            tiles[idx].isWalkable = true;
-            tiles[idx].visualVariant = (x + y) % 4;
-          }
-        }
-      }
-    }
-  }
-
-  const concreteAreas = [
-    {
-      x: Math.floor(gridWidth * 0.5),
-      y: Math.floor(gridHeight * 0.6),
-      width: Math.floor(gridWidth * 0.1),
-      height: Math.floor(gridHeight * 0.15),
-    },
-    {
-      x: Math.floor(gridWidth * 0.2),
-      y: Math.floor(gridHeight * 0.3),
-      width: Math.floor(gridWidth * 0.08),
-      height: Math.floor(gridHeight * 0.12),
-    },
-  ];
-
-  for (const area of concreteAreas) {
-    for (let y = area.y; y < area.y + area.height; y++) {
-      for (let x = area.x; x < area.x + area.width; x++) {
-        if (x < gridWidth && y < gridHeight) {
-          const idx = y * gridWidth + x;
-          if (tiles[idx].tileType === "grass") {
-            tiles[idx].tileType = "concrete";
-            tiles[idx].isWalkable = true;
-            tiles[idx].visualVariant = (x + y) % 2;
-          }
-        }
-      }
-    }
-  }
-
-  const brickPaths = [
-    {
-      x: Math.floor(gridWidth * 0.3),
-      y: Math.floor(gridHeight * 0.25),
-      width: Math.floor(gridWidth * 0.15),
-      height: 2,
-    },
-    {
-      x: Math.floor(gridWidth * 0.25),
-      y: Math.floor(gridHeight * 0.7),
-      width: 2,
-      height: Math.floor(gridHeight * 0.2),
-    },
-    {
-      x: Math.floor(gridWidth * 0.6),
-      y: Math.floor(gridHeight * 0.75),
-      width: Math.floor(gridWidth * 0.12),
-      height: 2,
-    },
-  ];
-
-  for (const path of brickPaths) {
-    for (let y = path.y; y < path.y + path.height; y++) {
-      for (let x = path.x; x < path.x + path.width; x++) {
-        if (x < gridWidth && y < gridHeight) {
-          const idx = y * gridWidth + x;
-          if (tiles[idx].tileType === "grass") {
-            tiles[idx].tileType = "brick_path";
-            tiles[idx].isWalkable = true;
-            tiles[idx].visualVariant = (x + y) % 3;
-          }
-        }
-      }
-    }
-  }
+  convert(
+    [
+      [w(0.4), h(0.5), w(0.05), h(0.06)],
+      [w(0.7), h(0.3), w(0.05), h(0.06)],
+      [w(0.1), h(0.4), w(0.05), h(0.06)],
+      [w(0.5), h(0.7), w(0.05), h(0.06)],
+    ],
+    "flower_bed",
+    true,
+    4
+  );
+  convert(
+    [
+      [w(0.5), h(0.6), w(0.1), h(0.15)],
+      [w(0.2), h(0.3), w(0.08), h(0.12)],
+    ],
+    "concrete",
+    true,
+    2
+  );
+  convert(
+    [
+      [w(0.3), h(0.25), w(0.15), 2],
+      [w(0.25), h(0.7), 2, h(0.2)],
+      [w(0.6), h(0.75), w(0.12), 2],
+    ],
+    "brick_path",
+    true,
+    3
+  );
 }
 
-function addWaterFeatures(
-  tiles: any[],
-  gridWidth: number,
-  gridHeight: number
-): void {
-  const pondX = Math.floor(gridWidth * 0.85);
-  const pondY = Math.floor(gridHeight * 0.15);
-  const pondWidth = Math.floor(gridWidth * 0.1);
-  const pondHeight = Math.floor(gridHeight * 0.12);
+function addWaterFeatures(tiles: any[], gridWidth: number, gridHeight: number): void {
+  const w = (f: number) => Math.floor(gridWidth * f);
+  const h = (f: number) => Math.floor(gridHeight * f);
+  const variant = (x: number, y: number) => (x + y) % 2;
 
-  for (let y = pondY; y < pondY + pondHeight; y++) {
-    for (let x = pondX; x < pondX + pondWidth; x++) {
-      if (x < gridWidth && y < gridHeight) {
-        const idx = y * gridWidth + x;
-        if (tiles[idx] && tiles[idx].tileType === "grass") {
-          tiles[idx].tileType = "water";
-          tiles[idx].isWalkable = false;
-          tiles[idx].visualVariant = (x + y) % 2;
-        }
-      }
-    }
-  }
-
-  const fountainX = Math.floor(gridWidth * 0.5);
-  const fountainY = Math.floor(gridHeight * 0.6);
-  if (fountainX < gridWidth && fountainY < gridHeight) {
-    const idx = fountainY * gridWidth + fountainX;
-    if (
-      tiles[idx] &&
-      (tiles[idx].tileType === "grass" || tiles[idx].tileType === "path")
-    ) {
-      tiles[idx].tileType = "water";
-      tiles[idx].isWalkable = false;
-    }
-  }
-
-  const quadPondX = Math.floor(gridWidth * 0.6);
-  const quadPondY = Math.floor(gridHeight * 0.75);
-  const quadPondWidth = Math.floor(gridWidth * 0.05);
-  const quadPondHeight = Math.floor(gridHeight * 0.06);
-
-  for (let y = quadPondY; y < quadPondY + quadPondHeight; y++) {
-    for (let x = quadPondX; x < quadPondX + quadPondWidth; x++) {
-      if (x < gridWidth && y < gridHeight) {
-        const idx = y * gridWidth + x;
-        if (tiles[idx] && tiles[idx].tileType === "grass") {
-          tiles[idx].tileType = "water";
-          tiles[idx].isWalkable = false;
-          tiles[idx].visualVariant = (x + y) % 2;
-        }
-      }
-    }
-  }
+  convertTiles(tiles, gridWidth, gridHeight, [w(0.85), h(0.15), w(0.1), h(0.12)], "water", false, variant);
+  convertTiles(tiles, gridWidth, gridHeight, [w(0.5), h(0.6), 1, 1], "water", false, undefined, ["grass", "path"]);
+  convertTiles(tiles, gridWidth, gridHeight, [w(0.6), h(0.75), w(0.05), h(0.06)], "water", false, variant);
 }
 
-function addBoundaryVoid(
-  tiles: any[],
-  gridWidth: number,
-  gridHeight: number
-): void {
-  for (let x = 0; x < gridWidth; x++) {
-    const topIdx = 0 * gridWidth + x;
-    if (tiles[topIdx].tileType === "grass") {
-      tiles[topIdx].tileType = "void";
-      tiles[topIdx].isWalkable = false;
-    }
-
-    const bottomIdx = (gridHeight - 1) * gridWidth + x;
-    if (tiles[bottomIdx].tileType === "grass") {
-      tiles[bottomIdx].tileType = "void";
-      tiles[bottomIdx].isWalkable = false;
-    }
-  }
-
-  for (let y = 0; y < gridHeight; y++) {
-    const leftIdx = y * gridWidth + 0;
-    if (tiles[leftIdx].tileType === "grass") {
-      tiles[leftIdx].tileType = "void";
-      tiles[leftIdx].isWalkable = false;
-    }
-
-    const rightIdx = y * gridWidth + (gridWidth - 1);
-    if (tiles[rightIdx].tileType === "grass") {
-      tiles[rightIdx].tileType = "void";
-      tiles[rightIdx].isWalkable = false;
-    }
-  }
+function addBoundaryVoid(tiles: any[], gridWidth: number, gridHeight: number): void {
+  for (const rect of [
+    [0, 0, gridWidth, 1],
+    [0, gridHeight - 1, gridWidth, 1],
+    [0, 0, 1, gridHeight],
+    [gridWidth - 1, 0, 1, gridHeight],
+  ])
+    convertTiles(tiles, gridWidth, gridHeight, rect, "void", false);
 }
