@@ -1,15 +1,15 @@
-"use client";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { useCamera } from "@/hooks/use-camera";
-import { usePixiApp } from "@/hooks/use-pixi-app";
-import { useEffect, useRef, useState } from "react";
-import { useTileCache } from "@/hooks/use-tile-cache";
-import { MapOverlays } from "@/components/MapOverlays";
-import type { Id } from "@/convex/_generated/dataModel";
-import { usePlaceRenderer } from "@/hooks/use-place-renderer";
-import { useAgentRenderer } from "@/hooks/use-agent-renderer";
-import { useTileRendererCached } from "@/hooks/use-tile-renderer-cached";
+'use client';
+import { useQuery } from 'convex/react';
+import { api } from '@/convex/_generated/api';
+import { useCamera } from '@/hooks/use-camera';
+import { usePixiApp } from '@/hooks/use-pixi-app';
+import { useEffect, useRef, useState } from 'react';
+import { useTileCache } from '@/hooks/use-tile-cache';
+import { MapOverlays } from '@/components/MapOverlays';
+import type { Id } from '@/convex/_generated/dataModel';
+import { usePlaceRenderer } from '@/hooks/use-place-renderer';
+import { useAgentRenderer } from '@/hooks/use-agent-renderer';
+import { useTileRendererCached } from '@/hooks/use-tile-renderer-cached';
 
 interface PixiMapProps {
   className?: string;
@@ -18,7 +18,7 @@ interface PixiMapProps {
   onCenterComplete?: () => void;
   isWorldRunning?: boolean;
   observerCount?: number;
-  onAgentClick?: (agentId: Id<"agents">) => void;
+  onAgentClick?: (agentId: Id<'agents'>) => void;
 }
 
 export function PixiMap({
@@ -48,11 +48,11 @@ export function PixiMap({
 
     const resizeObserver = new ResizeObserver(updateDimensions);
     resizeObserver.observe(containerRef.current);
-    window.addEventListener("resize", updateDimensions);
+    window.addEventListener('resize', updateDimensions);
 
     return () => {
       resizeObserver.disconnect();
-      window.removeEventListener("resize", updateDimensions);
+      window.removeEventListener('resize', updateDimensions);
     };
   }, []);
 
@@ -61,12 +61,7 @@ export function PixiMap({
     height: dimensions.height,
   });
 
-  const {
-    tiles: tileCache,
-    isLoading: tilesLoading,
-    progress: tilesProgress,
-    totalTiles,
-  } = useTileCache();
+  const { tiles: tileCache, isLoading: tilesLoading, progress: tilesProgress, totalTiles } = useTileCache();
 
   const mapSettings = useQuery(api.map.getMapSettings) ?? undefined;
   const places = useQuery(api.map.getPlaces);
@@ -94,7 +89,7 @@ export function PixiMap({
     if (!mapSettings || !places || isCameraReady || dimensions.width === 0) return;
 
     const tileSize = mapSettings.tileSize;
-    const centralGreen = places.find((p) => p.kind === "quad");
+    const centralGreen = places.find(p => p.kind === 'quad');
     if (!centralGreen) return;
 
     const initialPos = {
@@ -105,15 +100,7 @@ export function PixiMap({
     setCamera(initialPos);
     setInitialCameraPos(initialPos);
     setIsCameraReady(true);
-  }, [
-    mapSettings,
-    places,
-    dimensions.width,
-    dimensions.height,
-    isCameraReady,
-    setCamera,
-    setInitialCameraPos,
-  ]);
+  }, [mapSettings, places, dimensions.width, dimensions.height, isCameraReady, setCamera, setInitialCameraPos]);
 
   useTileRendererCached({
     tilesLayer: refs.tilesLayer,
@@ -161,11 +148,11 @@ export function PixiMap({
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === "s" || e.key === "S") setShowStats((prev) => !prev);
+      if (e.key === 's' || e.key === 'S') setShowStats(prev => !prev);
     };
 
-    window.addEventListener("keypress", handleKeyPress);
-    return () => window.removeEventListener("keypress", handleKeyPress);
+    window.addEventListener('keypress', handleKeyPress);
+    return () => window.removeEventListener('keypress', handleKeyPress);
   }, []);
 
   const isLoading = !mapSettings || !isCameraReady || tilesLoading;
@@ -175,11 +162,7 @@ export function PixiMap({
   }, [isLoading, isInitialized, onWorldReady]);
 
   return (
-    <div
-      ref={containerRef}
-      className={`relative ${className || ""}`}
-      style={{ width: "100%", height: "100%" }}
-    >
+    <div ref={containerRef} className={`relative ${className || ''}`} style={{ width: '100%', height: '100%' }}>
       <div
         ref={canvasRef}
         onMouseDown={handleMouseDown}
@@ -187,11 +170,11 @@ export function PixiMap({
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
         style={{
-          width: "100%",
-          height: "100%",
-          cursor: isDraggingRef.current ? "grabbing" : "grab",
-          touchAction: "none",
-          visibility: isLoading ? "hidden" : "visible",
+          width: '100%',
+          height: '100%',
+          cursor: isDraggingRef.current ? 'grabbing' : 'grab',
+          touchAction: 'none',
+          visibility: isLoading ? 'hidden' : 'visible',
         }}
         className="rounded-lg overflow-hidden"
       />

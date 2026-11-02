@@ -1,8 +1,8 @@
 import { TILE_VISUALS } from '@/lib/mapTypes';
 import { Button } from '@/components/ui/button';
+import type { MapSettings } from '@/lib/mapTypes';
 import { Progress } from '@/components/ui/progress';
 import { getTileColorString } from '@/lib/tileRenderer';
-import type { MapSettings } from '@/lib/mapTypes';
 import type { Doc } from '@/convex/_generated/dataModel';
 
 interface MapOverlaysProps {

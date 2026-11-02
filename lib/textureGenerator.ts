@@ -1,15 +1,10 @@
-import type { TileType } from "@/lib/mapTypes";
-import { renderTile } from "@/lib/tileRenderer";
-import { Texture, Graphics, Renderer, RenderTexture } from "pixi.js";
+import type { TileType } from '@/lib/mapTypes';
+import { renderTile } from '@/lib/tileRenderer';
+import { Texture, Graphics, Renderer, RenderTexture } from 'pixi.js';
 
 const textureCache = new Map<string, Texture>();
 
-export function getTileTexture(
-  renderer: Renderer,
-  tileType: TileType,
-  tileSize: number,
-  variant: number = 0
-): Texture {
+export function getTileTexture(renderer: Renderer, tileType: TileType, tileSize: number, variant: number = 0): Texture {
   const cacheKey = `${tileType}_${variant}`;
 
   const cached = textureCache.get(cacheKey);
@@ -34,20 +29,8 @@ export function getTileTexture(
   return renderTexture;
 }
 
-export function preGenerateAllTileTextures(
-  renderer: Renderer,
-  tileSize: number,
-  maxVariants: number = 3
-): void {
-  const tileTypes: TileType[] = [
-    "floor",
-    "wall",
-    "door",
-    "grass",
-    "water",
-    "path",
-    "void",
-  ];
+export function preGenerateAllTileTextures(renderer: Renderer, tileSize: number, maxVariants: number = 3): void {
+  const tileTypes: TileType[] = ['floor', 'wall', 'door', 'grass', 'water', 'path', 'void'];
 
   for (const tileType of tileTypes) {
     for (let variant = 0; variant < maxVariants; variant++) {

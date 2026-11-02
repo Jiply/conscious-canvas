@@ -1,6 +1,6 @@
-import { v } from "convex/values";
-import type { Id } from "./_generated/dataModel";
-import { type MutationCtx, mutation } from "./_generated/server";
+import { v } from 'convex/values';
+import type { Id } from './_generated/dataModel';
+import { type MutationCtx, mutation } from './_generated/server';
 
 const MAP_CENTER_X = 100;
 const MAP_CENTER_Y = 75;
@@ -16,17 +16,17 @@ function getRandomCenterPosition() {
 }
 
 async function clearSimulationData(ctx: MutationCtx) {
-  for (const table of ["agents", "observations", "opinions", "decisions"] as const) {
+  for (const table of ['agents', 'observations', 'opinions', 'decisions'] as const) {
     for (const doc of await ctx.db.query(table).collect()) await ctx.db.delete(doc._id);
   }
 }
 
 const AGENT_PROFILE_TEMPLATES = [
   {
-    name: "Maya Chen",
-    role: "student" as const,
+    name: 'Maya Chen',
+    role: 'student' as const,
     personality:
-      "Energetic computer science major who loves building apps and hackathons. Always has headphones on and codes late into the night.",
+      'Energetic computer science major who loves building apps and hackathons. Always has headphones on and codes late into the night.',
     emotions: { valence: 0.7, arousal: 0.8 },
     needs: {
       sleepiness: 0.05,
@@ -35,15 +35,15 @@ const AGENT_PROFILE_TEMPLATES = [
       socialDrive: 0.1,
     },
     goals: [
-      { name: "win hackathon", weight: 0.9 },
-      { name: "land internship", weight: 0.8 },
+      { name: 'win hackathon', weight: 0.9 },
+      { name: 'land internship', weight: 0.8 },
     ],
   },
   {
-    name: "Prof. James Wilson",
-    role: "prof" as const,
+    name: 'Prof. James Wilson',
+    role: 'prof' as const,
     personality:
-      "Enthusiastic philosophy professor who loves engaging students in Socratic dialogue. Drinks too much coffee.",
+      'Enthusiastic philosophy professor who loves engaging students in Socratic dialogue. Drinks too much coffee.',
     emotions: { valence: 0.6, arousal: 0.5 },
     needs: {
       sleepiness: 0.05,
@@ -52,15 +52,15 @@ const AGENT_PROFILE_TEMPLATES = [
       socialDrive: 0.1,
     },
     goals: [
-      { name: "inspire students", weight: 0.9 },
-      { name: "finish book", weight: 0.6 },
+      { name: 'inspire students', weight: 0.9 },
+      { name: 'finish book', weight: 0.6 },
     ],
   },
   {
-    name: "Zara Ahmed",
-    role: "student" as const,
+    name: 'Zara Ahmed',
+    role: 'student' as const,
     personality:
-      "Pre-med student juggling organic chemistry and volunteering. Stressed but incredibly organized with color-coded planners.",
+      'Pre-med student juggling organic chemistry and volunteering. Stressed but incredibly organized with color-coded planners.',
     emotions: { valence: 0.3, arousal: 0.8 },
     needs: {
       sleepiness: 0.1,
@@ -69,13 +69,13 @@ const AGENT_PROFILE_TEMPLATES = [
       socialDrive: 0.05,
     },
     goals: [
-      { name: "ace MCAT", weight: 1.0 },
-      { name: "maintain GPA", weight: 0.9 },
+      { name: 'ace MCAT', weight: 1.0 },
+      { name: 'maintain GPA', weight: 0.9 },
     ],
   },
   {
     name: `Liam O'Brien`,
-    role: "student" as const,
+    role: 'student' as const,
     personality: `Laid-back art major who's always sketching in his notebook. Philosophical and observant.`,
     emotions: { valence: 0.7, arousal: 0.3 },
     needs: {
@@ -85,13 +85,13 @@ const AGENT_PROFILE_TEMPLATES = [
       socialDrive: 0.15,
     },
     goals: [
-      { name: "finish portfolio", weight: 0.7 },
-      { name: "make friends", weight: 0.9 },
+      { name: 'finish portfolio', weight: 0.7 },
+      { name: 'make friends', weight: 0.9 },
     ],
   },
   {
-    name: "Sofia Martinez",
-    role: "barista" as const,
+    name: 'Sofia Martinez',
+    role: 'barista' as const,
     personality: `Friendly barista and part-time psychology student. Knows everyone's coffee order and life story.`,
     emotions: { valence: 0.8, arousal: 0.6 },
     needs: {
@@ -101,15 +101,14 @@ const AGENT_PROFILE_TEMPLATES = [
       socialDrive: 0.15,
     },
     goals: [
-      { name: "connect with customers", weight: 0.9 },
-      { name: "study psychology", weight: 0.6 },
+      { name: 'connect with customers', weight: 0.9 },
+      { name: 'study psychology', weight: 0.6 },
     ],
   },
   {
-    name: "Raj Patel",
-    role: "student" as const,
-    personality:
-      "Economics major and debate team captain. Competitive, analytical, always ready for a good argument.",
+    name: 'Raj Patel',
+    role: 'student' as const,
+    personality: 'Economics major and debate team captain. Competitive, analytical, always ready for a good argument.',
     emotions: { valence: 0.5, arousal: 0.7 },
     needs: {
       sleepiness: 0.05,
@@ -118,13 +117,13 @@ const AGENT_PROFILE_TEMPLATES = [
       socialDrive: 0.1,
     },
     goals: [
-      { name: "win debate tournament", weight: 0.9 },
-      { name: "network", weight: 0.7 },
+      { name: 'win debate tournament', weight: 0.9 },
+      { name: 'network', weight: 0.7 },
     ],
   },
   {
-    name: "Emma Kim",
-    role: "student" as const,
+    name: 'Emma Kim',
+    role: 'student' as const,
     personality: `Biology major who's passionate about environmental conservation. Quiet but determined.`,
     emotions: { valence: 0.4, arousal: 0.5 },
     needs: {
@@ -134,15 +133,15 @@ const AGENT_PROFILE_TEMPLATES = [
       socialDrive: 0.05,
     },
     goals: [
-      { name: "research project", weight: 0.8 },
-      { name: "join conservation club", weight: 0.7 },
+      { name: 'research project', weight: 0.8 },
+      { name: 'join conservation club', weight: 0.7 },
     ],
   },
   {
-    name: "Marcus Johnson",
-    role: "student" as const,
+    name: 'Marcus Johnson',
+    role: 'student' as const,
     personality:
-      "Engineering student and varsity athlete. Balancing practice, classes, and social life with impressive discipline.",
+      'Engineering student and varsity athlete. Balancing practice, classes, and social life with impressive discipline.',
     emotions: { valence: 0.6, arousal: 0.7 },
     needs: {
       sleepiness: 0.05,
@@ -151,8 +150,8 @@ const AGENT_PROFILE_TEMPLATES = [
       socialDrive: 0.1,
     },
     goals: [
-      { name: "maintain athletic performance", weight: 0.8 },
-      { name: "pass thermodynamics", weight: 0.7 },
+      { name: 'maintain athletic performance', weight: 0.8 },
+      { name: 'pass thermodynamics', weight: 0.7 },
     ],
   },
 ];
@@ -163,29 +162,27 @@ export const seedAgents = mutation({
     success: v.boolean(),
     agentCount: v.number(),
   }),
-  handler: async (ctx) => {
-    console.log("🌱 Starting agent seeding...");
+  handler: async ctx => {
+    console.log('🌱 Starting agent seeding...');
 
     await clearSimulationData(ctx);
 
-    console.log("✅ Cleared existing data");
+    console.log('✅ Cleared existing data');
 
-    const agentIds: Id<"agents">[] = [];
+    const agentIds: Id<'agents'>[] = [];
 
     for (const template of AGENT_PROFILE_TEMPLATES) {
       const pos = getRandomCenterPosition();
-      const agentId = await ctx.db.insert("agents", {
+      const agentId = await ctx.db.insert('agents', {
         ...template,
         pos,
         headingRad: Math.random() * Math.PI * 2,
-        state: "Idle",
+        state: 'Idle',
         nextDecisionAt: Date.now() + Math.random() * 5000,
       });
 
       agentIds.push(agentId);
-      console.log(
-        `✅ Created ${template.name} at (${pos.x}, ${pos.y}) near map center`
-      );
+      console.log(`✅ Created ${template.name} at (${pos.x}, ${pos.y}) near map center`);
     }
 
     if (agentIds.length >= 3) {
@@ -199,7 +196,7 @@ export const seedAgents = mutation({
 
         const sentiment = (Math.random() - 0.3) * 1.5;
 
-        await ctx.db.insert("opinions", {
+        await ctx.db.insert('opinions', {
           agentId: agentIds[agent1Idx],
           targetAgentId: agentIds[agent2Idx],
           sentiment: Math.max(-1, Math.min(1, sentiment)),
@@ -208,7 +205,7 @@ export const seedAgents = mutation({
         });
       }
 
-      console.log("✅ Seeded initial opinions");
+      console.log('✅ Seeded initial opinions');
     }
 
     console.log(`🎉 Successfully seeded ${agentIds.length} agents!`);
@@ -223,7 +220,7 @@ export const seedAgents = mutation({
 export const clearAllData = mutation({
   args: {},
   returns: v.null(),
-  handler: async (ctx) => {
+  handler: async ctx => {
     await clearSimulationData(ctx);
 
     return null;
