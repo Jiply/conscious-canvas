@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
-import { type MutationCtx, mutation } from './_generated/server';
-import type { Doc, Id } from './_generated/dataModel';
 import { api, internal } from './_generated/api';
+import type { Id, Doc } from './_generated/dataModel';
+import { type MutationCtx, mutation } from './_generated/server';
 
 const VISION_WIDTH = 7;
 const VISION_DEPTH = 20;
@@ -9,12 +9,7 @@ const STALE_LOCK_TIMEOUT = 30000;
 
 export const tick = mutation({
   args: { leaderId: v.string() },
-  returns: v.object({
-    success: v.boolean(),
-    processedAgents: v.number(),
-    latencyMs: v.number(),
-    isLeader: v.boolean(),
-  }),
+  returns: v.object({ success: v.boolean(), processedAgents: v.number(), latencyMs: v.number(), isLeader: v.boolean() }),
   handler: async (ctx, args) => {
     const startTime = Date.now();
 
@@ -31,27 +26,14 @@ export const tick = mutation({
       if (!state) throw new Error('Failed to create heartbeat state');
     }
 
-    if (state.currentLeaderId !== args.leaderId) {
-      return {
-        success: false,
-        processedAgents: 0,
-        latencyMs: 0,
-        isLeader: false,
-      };
-    }
+    if (state.currentLeaderId !== args.leaderId) return { latencyMs: 0, success: false, isLeader: false, processedAgents: 0 };
 
     if (state.isRunning) {
-      if (Date.now() - state.lastStartedAt > STALE_LOCK_TIMEOUT) {
-        await ctx.db.patch(state._id, { isRunning: false });
-      } else {
-        throw new Error('Heartbeat already running');
-      }
+      if (Date.now() - state.lastStartedAt > STALE_LOCK_TIMEOUT) await ctx.db.patch(state._id, { isRunning: false });
+      else throw new Error('Heartbeat already running');
     }
 
-    await ctx.db.patch(state._id, {
-      isRunning: true,
-      lastStartedAt: Date.now(),
-    });
+    await ctx.db.patch(state._id, { isRunning: true, lastStartedAt: Date.now() });
 
     try {
       const agents = await ctx.db.query('agents').collect();
@@ -62,17 +44,9 @@ export const tick = mutation({
       const freshAgents = await ctx.db.query('agents').collect();
       await Promise.all(freshAgents.map(agent => updateAgentNeeds(ctx, agent)));
 
-      await ctx.db.patch(state._id, {
-        isRunning: false,
-        lastCompletedAt: Date.now(),
-      });
+      await ctx.db.patch(state._id, { isRunning: false, lastCompletedAt: Date.now() });
 
-      return {
-        success: true,
-        processedAgents: agents.length,
-        latencyMs: Date.now() - startTime,
-        isLeader: true,
-      };
+      return { success: true, processedAgents: agents.length, latencyMs: Date.now() - startTime, isLeader: true };
     } catch (error) {
       await ctx.db.patch(state._id, { isRunning: false });
       throw error;
@@ -96,9 +70,7 @@ async function processAgentTick(ctx: MutationCtx, agent: Doc<'agents'>, allAgent
   if (observations.length > 0) {
     await Promise.all(observations.map(obs => ctx.db.insert('observations', obs)));
 
-    for (const obs of observations) {
-      console.log(`👁️  ${agent.name}: ${obs.summary}`);
-    }
+    for (const obs of observations) console.log(`👁️  ${agent.name}: ${obs.summary}`);
   }
 
   await pruneOldObservations(ctx, agent._id, 50);
@@ -123,9 +95,7 @@ async function processAgentTick(ctx: MutationCtx, agent: Doc<'agents'>, allAgent
   }
 
   const now = Date.now();
-  if (now >= agent.nextDecisionAt) {
-    await makeAgentDecision(ctx, agent);
-  }
+  if (now >= agent.nextDecisionAt) await makeAgentDecision(ctx, agent);
 }
 
 async function updateAgentNeeds(ctx: MutationCtx, agent: Doc<'agents'>) {
@@ -150,9 +120,7 @@ async function updateAgentNeeds(ctx: MutationCtx, agent: Doc<'agents'>) {
     `🔄 ${agent.name} needs: hunger ${agent.needs.hunger.toFixed(3)} → ${newNeeds.hunger.toFixed(3)}, sleep ${agent.needs.sleepiness.toFixed(3)} → ${newNeeds.sleepiness.toFixed(3)}`
   );
 
-  await ctx.db.patch(agent._id, {
-    needs: newNeeds,
-  });
+  await ctx.db.patch(agent._id, { needs: newNeeds });
 }
 
 async function executePathMovement(ctx: MutationCtx, agent: Doc<'agents'>) {
@@ -160,16 +128,10 @@ async function executePathMovement(ctx: MutationCtx, agent: Doc<'agents'>) {
 
   const nextStep = agent.path.length > 1 ? agent.path[1] : agent.path[0];
 
-  await ctx.db.patch(agent._id, {
-    pos: { x: nextStep.x, y: nextStep.y },
-    path: agent.path.slice(1),
-  });
+  await ctx.db.patch(agent._id, { pos: { x: nextStep.x, y: nextStep.y }, path: agent.path.slice(1) });
 
   if (agent.path.length <= 1) {
-    await ctx.db.patch(agent._id, {
-      path: undefined,
-      state: 'Idle',
-    });
+    await ctx.db.patch(agent._id, { state: 'Idle', path: undefined });
 
     const activeDecision = await ctx.db
       .query('decisions')
@@ -178,9 +140,7 @@ async function executePathMovement(ctx: MutationCtx, agent: Doc<'agents'>) {
       .first();
 
     if (activeDecision && !activeDecision.completedAt && activeDecision.action === 'MoveTo') {
-      await ctx.db.patch(activeDecision._id, {
-        completedAt: Date.now(),
-      });
+      await ctx.db.patch(activeDecision._id, { completedAt: Date.now() });
 
       if (activeDecision.targetPlaceId) await performActionAtPlace(ctx, agent, activeDecision.targetPlaceId);
     }
@@ -221,9 +181,7 @@ async function performActionAtPlace(ctx: MutationCtx, agent: Doc<'agents'>, plac
   }
 
   if (decisionAction) {
-    await ctx.db.patch(agent._id, {
-      needs: newNeeds,
-    });
+    await ctx.db.patch(agent._id, { needs: newNeeds });
 
     console.log(`🍽️  ${agent.name}: ${decisionAction} at ${place.name}`);
 
@@ -247,9 +205,7 @@ async function makeAgentDecision(ctx: MutationCtx, agent: Doc<'agents'>) {
   if (activeDecision && !activeDecision.completedAt) return;
 
   try {
-    await ctx.scheduler.runAfter(0, api.llm.makeAgentDecision, {
-      agentId: agent._id,
-    });
+    await ctx.scheduler.runAfter(0, api.llm.makeAgentDecision, { agentId: agent._id });
   } catch (error) {
     await ctx.db.insert('decisions', {
       agentId: agent._id,
@@ -264,8 +220,8 @@ async function getAgentsInVision(
   ctx: MutationCtx,
   agent: Doc<'agents'>,
   allAgents: Doc<'agents'>[]
-): Promise<Array<{ agent: Doc<'agents'>; distance: number }>> {
-  const visible: Array<{ agent: Doc<'agents'>; distance: number }> = [];
+): Promise<Array<{ distance: number; agent: Doc<'agents'> }>> {
+  const visible: Array<{ distance: number; agent: Doc<'agents'> }> = [];
 
   const headingX = Math.cos(agent.headingRad);
   const headingY = Math.sin(agent.headingRad);
@@ -291,7 +247,7 @@ async function getAgentsInVision(
 
     if (!hasLineOfSight) continue;
 
-    visible.push({ agent: other, distance });
+    visible.push({ distance, agent: other });
   }
 
   return visible;

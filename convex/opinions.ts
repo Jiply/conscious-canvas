@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 import { opinionFields } from './schema';
-import { mutation, query } from './_generated/server';
+import { query, mutation } from './_generated/server';
 
 export const upsertOpinion = mutation({
   args: {
@@ -18,11 +18,7 @@ export const upsertOpinion = mutation({
       .unique();
 
     if (existing) {
-      await ctx.db.patch(existing._id, {
-        sentiment: args.sentiment,
-        summary: args.summary,
-        traits: args.traits,
-      });
+      await ctx.db.patch(existing._id, { sentiment: args.sentiment, summary: args.summary, traits: args.traits });
       return existing._id;
     } else {
       const opinionId = await ctx.db.insert('opinions', {
@@ -40,10 +36,9 @@ export const upsertOpinion = mutation({
 export const getAgentOpinions = query({
   args: { agentId: v.id('agents') },
   returns: v.array(v.object({ _id: v.id('opinions'), _creationTime: v.number(), ...opinionFields })),
-  handler: async (ctx, args) => {
-    return await ctx.db
+  handler: async (ctx, args) =>
+    await ctx.db
       .query('opinions')
       .withIndex('by_agent', q => q.eq('agentId', args.agentId))
-      .collect();
-  },
+      .collect(),
 });

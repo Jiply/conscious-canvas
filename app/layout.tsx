@@ -1,15 +1,12 @@
-import "@/app/globals.css";
-import type { Metadata } from "next";
-import type { ReactNode } from "react";
-import { Geist, Geist_Mono } from "next/font/google";
-import { ConvexClientProvider } from "@/app/ConvexClientProvider";
+import '@/app/globals.css';
+import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
+import { Geist, Geist_Mono } from 'next/font/google';
+import { ConvexClientProvider } from '@/app/ConvexClientProvider';
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
+const geistSans = Geist({ subsets: ['latin'], variable: '--font-geist-sans' });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' });
 
 export const metadata: Metadata = {
   title: `Conscious Campus`,
@@ -19,9 +16,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className="overscroll-none">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ConvexClientProvider>{children}</ConvexClientProvider>
       </body>
     </html>

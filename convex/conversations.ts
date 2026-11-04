@@ -5,23 +5,13 @@ import { api } from './_generated/api';
 import { internalAction } from './_generated/server';
 
 export const processConversationTurn = internalAction({
-  args: {
-    agentId: v.id('agents'),
-    conversationId: v.id('conversations'),
-  },
-  returns: v.object({
-    continueConversation: v.boolean(),
-    messageContent: v.string(),
-  }),
+  args: { agentId: v.id('agents'), conversationId: v.id('conversations') },
+  returns: v.object({ continueConversation: v.boolean(), messageContent: v.string() }),
   handler: async (ctx, args) => {
-    const agent = await ctx.runQuery(api.agents.getAgent, {
-      agentId: args.agentId,
-    });
+    const agent = await ctx.runQuery(api.agents.getAgent, { agentId: args.agentId });
     if (!agent) throw new Error('Agent not found');
 
-    const conversation = await ctx.runQuery(api.conversationsMutations.getAgentActiveConversation, {
-      agentId: args.agentId,
-    });
+    const conversation = await ctx.runQuery(api.conversationsMutations.getAgentActiveConversation, { agentId: args.agentId });
     if (!conversation) throw new Error('No active conversation');
 
     const messages = await ctx.runQuery(api.conversationsMutations.getConversationMessages, {
@@ -31,32 +21,20 @@ export const processConversationTurn = internalAction({
     const otherParticipantId = conversation.participantIds.find(id => id !== args.agentId);
     if (!otherParticipantId) throw new Error('No other participant found');
 
-    const otherAgent = await ctx.runQuery(api.agents.getAgent, {
-      agentId: otherParticipantId,
-    });
+    const otherAgent = await ctx.runQuery(api.agents.getAgent, { agentId: otherParticipantId });
     if (!otherAgent) throw new Error('Other agent not found');
 
-    const opinions = await ctx.runQuery(api.opinions.getAgentOpinions, {
-      agentId: args.agentId,
-    });
+    const opinions = await ctx.runQuery(api.opinions.getAgentOpinions, { agentId: args.agentId });
     const opinionOfOther = opinions.find(op => op.targetAgentId === otherParticipantId);
 
-    const observations = await ctx.runQuery(api.observations.getRecentObservations, {
-      agentId: args.agentId,
-      limit: 5,
-    });
+    const observations = await ctx.runQuery(api.observations.getRecentObservations, { agentId: args.agentId, limit: 5 });
 
-    const decisions = await ctx.runQuery(api.decisions.getDecisionHistory, {
-      agentId: args.agentId,
-      limit: 3,
-    });
+    const decisions = await ctx.runQuery(api.decisions.getDecisionHistory, { agentId: args.agentId, limit: 3 });
 
     let response;
     try {
       response = await generateConversationMessage(agent, otherAgent, opinionOfOther, messages, observations, decisions);
-      if ((response as any).thoughts) {
-        console.log(`💭 ${agent.name} (thinking): ${(response as any).thoughts}`);
-      }
+      if ((response as any).thoughts) console.log(`💭 ${agent.name} (thinking): ${(response as any).thoughts}`);
       console.log(`💬 ${agent.name} → ${otherAgent.name}: "${response.message}"`);
     } catch (error) {
       response = fallbackConversationResponse(agent);
@@ -71,24 +49,17 @@ export const processConversationTurn = internalAction({
       reasonForLeaving: response.reasonForLeaving,
     });
 
-    if (response.emotionDelta) {
+    if (response.emotionDelta)
       await ctx.runMutation(api.agents.updateAgentEmotions, {
         agentId: args.agentId,
         valence: Math.max(-1, Math.min(1, agent.emotions.valence + response.emotionDelta.valence)),
         arousal: Math.max(0, Math.min(1, agent.emotions.arousal + response.emotionDelta.arousal)),
       });
-    }
 
-    if (!response.continueConversation) {
-      await ctx.runMutation(api.conversationsMutations.completeConversation, {
-        conversationId: args.conversationId,
-      });
-    }
+    if (!response.continueConversation)
+      await ctx.runMutation(api.conversationsMutations.completeConversation, { conversationId: args.conversationId });
 
-    return {
-      continueConversation: response.continueConversation,
-      messageContent: response.message,
-    };
+    return { continueConversation: response.continueConversation, messageContent: response.message };
   },
 });
 
@@ -168,20 +139,17 @@ function buildConversationPrompt(
   let relationshipContext = '';
   if (opinion) {
     const sentiment = opinion.sentiment;
-    if (sentiment > 0.6) {
+    if (sentiment > 0.6)
       relationshipContext = `You genuinely like ${otherAgent.name} (sentiment: ${sentiment.toFixed(2)}). ${opinion.summary}`;
-    } else if (sentiment > 0.2) {
+    else if (sentiment > 0.2)
       relationshipContext = `You feel neutral-positive toward ${otherAgent.name} (sentiment: ${sentiment.toFixed(2)}). ${opinion.summary}`;
-    } else if (sentiment > -0.2) {
+    else if (sentiment > -0.2)
       relationshipContext = `You're unsure about ${otherAgent.name} (sentiment: ${sentiment.toFixed(2)}). ${opinion.summary}`;
-    } else if (sentiment > -0.6) {
+    else if (sentiment > -0.6)
       relationshipContext = `You're not fond of ${otherAgent.name} (sentiment: ${sentiment.toFixed(2)}). ${opinion.summary}`;
-    } else {
-      relationshipContext = `You dislike ${otherAgent.name} (sentiment: ${sentiment.toFixed(2)}). ${opinion.summary}`;
-    }
-  } else {
+    else relationshipContext = `You dislike ${otherAgent.name} (sentiment: ${sentiment.toFixed(2)}). ${opinion.summary}`;
+  } else
     relationshipContext = `You have no strong opinion of ${otherAgent.name} yet. This is a chance to form an impression.`;
-  }
 
   const urgentNeeds = [];
   if (agent.needs.hunger > 0.8) urgentNeeds.push("HUNGRY - You're starving and need food soon");
@@ -286,8 +254,8 @@ async function generateConversationMessage(
   decisions: any[]
 ): Promise<{
   message: string;
-  continueConversation: boolean;
   reasonForLeaving?: string;
+  continueConversation: boolean;
   emotionDelta?: { valence: number; arousal: number };
 }> {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -299,14 +267,14 @@ async function generateConversationMessage(
   const userPrompt = buildConversationPrompt(agent, otherAgent, opinion, messages, observations, decisions);
 
   const completion = await openai.chat.completions.create({
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt },
-    ],
     max_tokens: 200,
     temperature: 1.0,
     model: 'gpt-3.5-turbo',
     response_format: { type: 'json_object' },
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
   });
 
   const content = completion.choices[0].message.content;
@@ -324,42 +292,35 @@ async function generateConversationMessage(
 
 function fallbackConversationResponse(agent: any): {
   message: string;
-  continueConversation: boolean;
   reasonForLeaving?: string;
+  continueConversation: boolean;
   emotionDelta: { valence: number; arousal: number };
 } {
   const { needs } = agent;
 
-  if (needs.hunger > 0.8) {
+  if (needs.hunger > 0.8)
     return {
-      message: 'Sorry, I really need to grab some food. Talk later!',
       continueConversation: false,
       reasonForLeaving: 'Urgent hunger',
-      emotionDelta: { valence: -0.1, arousal: 0.1 },
+      emotionDelta: { arousal: 0.1, valence: -0.1 },
+      message: 'Sorry, I really need to grab some food. Talk later!',
     };
-  }
 
-  if (needs.sleepiness > 0.8) {
+  if (needs.sleepiness > 0.8)
     return {
-      message: "I'm really tired, I should go rest. Catch you later!",
       continueConversation: false,
       reasonForLeaving: 'Urgent sleepiness',
       emotionDelta: { valence: -0.1, arousal: -0.1 },
+      message: "I'm really tired, I should go rest. Catch you later!",
     };
-  }
 
-  if (needs.studyPressure > 0.8) {
+  if (needs.studyPressure > 0.8)
     return {
-      message: 'I need to hit the books. See you around!',
       continueConversation: false,
       reasonForLeaving: 'Urgent study pressure',
-      emotionDelta: { valence: -0.05, arousal: 0.05 },
+      emotionDelta: { arousal: 0.05, valence: -0.05 },
+      message: 'I need to hit the books. See you around!',
     };
-  }
 
-  return {
-    message: 'Yeah, I hear you.',
-    continueConversation: true,
-    emotionDelta: { valence: 0, arousal: 0 },
-  };
+  return { continueConversation: true, message: 'Yeah, I hear you.', emotionDelta: { valence: 0, arousal: 0 } };
 }

@@ -5,28 +5,19 @@ import { api } from './_generated/api';
 import { action } from './_generated/server';
 
 export const makeAgentDecision = action({
-  args: {
-    agentId: v.id('agents'),
-  },
+  args: { agentId: v.id('agents') },
   returns: v.object({
     action: v.union(v.literal('MoveTo'), v.literal('EngageConversation'), v.literal('Idle')),
     targetPlaceId: v.optional(v.id('places')),
     targetAgentId: v.optional(v.id('agents')),
     utterance: v.optional(v.string()),
     innerThought: v.optional(v.string()),
-    emotionDelta: v.optional(
-      v.object({
-        valence: v.number(),
-        arousal: v.number(),
-      })
-    ),
+    emotionDelta: v.optional(v.object({ valence: v.number(), arousal: v.number() })),
   }),
   handler: async (ctx, args) => {
     const startTime = Date.now();
 
-    const agent = await ctx.runQuery(api.agents.getAgent, {
-      agentId: args.agentId,
-    });
+    const agent = await ctx.runQuery(api.agents.getAgent, { agentId: args.agentId });
     if (!agent) throw new Error('Agent not found');
 
     const recentObservations = await ctx.runQuery(api.observations.getRecentObservations, {
@@ -34,14 +25,9 @@ export const makeAgentDecision = action({
       limit: 10,
     });
 
-    const recentDecisions = await ctx.runQuery(api.decisions.getDecisionHistory, {
-      agentId: args.agentId,
-      limit: 5,
-    });
+    const recentDecisions = await ctx.runQuery(api.decisions.getDecisionHistory, { agentId: args.agentId, limit: 5 });
 
-    const agentOpinions = await ctx.runQuery(api.opinions.getAgentOpinions, {
-      agentId: args.agentId,
-    });
+    const agentOpinions = await ctx.runQuery(api.opinions.getAgentOpinions, { agentId: args.agentId });
 
     const allPlaces = await ctx.runQuery(api.map.getPlaces, {});
 
@@ -66,11 +52,7 @@ export const makeAgentDecision = action({
 
         const opinion = agentOpinions.find(op => op.targetAgentId === other._id);
 
-        return {
-          agent: other,
-          distance,
-          opinion,
-        };
+        return { opinion, distance, agent: other };
       })
       .sort((a, b) => a.distance - b.distance);
 
@@ -107,31 +89,26 @@ export const makeAgentDecision = action({
         ] as const
       ).find(([need]) => agent.needs[need] >= 0.95);
       const place = urgent && allPlaces.find(p => p.kind.toLowerCase() === urgent[1]);
-      if (urgent && place) {
+      if (urgent && place)
         decision = {
           action: 'MoveTo' as const,
           targetPlaceId: place._id,
           innerThought: urgent[2],
           emotionDelta: { valence: urgent[3], arousal: urgent[4] },
         };
-      }
     }
 
     if (!decision) {
       try {
         decision = await callOpenAIForDecision(systemPrompt, userPrompt);
         console.log(`🤖 ${agent.name}: "${decision.innerThought}" → ${decision.action}`);
-        if (decision.utterance) {
-          console.log(`💭 ${agent.name}: "${decision.utterance}"`);
-        }
+        if (decision.utterance) console.log(`💭 ${agent.name}: "${decision.utterance}"`);
       } catch (error) {
         decision = heuristicFallback();
       }
     } else {
       console.log(`🤖 ${agent.name}: "${decision.innerThought}" → ${decision.action}`);
-      if (decision.utterance) {
-        console.log(`💭 ${agent.name}: "${decision.utterance}"`);
-      }
+      if (decision.utterance) console.log(`💭 ${agent.name}: "${decision.utterance}"`);
     }
 
     const latency = Date.now() - startTime;
@@ -146,17 +123,11 @@ export const makeAgentDecision = action({
       llmLatencyMs: latency,
     });
 
-    if (decision.action === 'Idle') {
-      await ctx.runMutation(api.decisions.completeDecision, {
-        decisionId,
-      });
-    }
+    if (decision.action === 'Idle') await ctx.runMutation(api.decisions.completeDecision, { decisionId });
 
     if (decision.action === 'EngageConversation' && decision.targetAgentId) {
       try {
-        const targetAgent = await ctx.runQuery(api.agents.getAgent, {
-          agentId: decision.targetAgentId,
-        });
+        const targetAgent = await ctx.runQuery(api.agents.getAgent, { agentId: decision.targetAgentId });
 
         if (targetAgent && !targetAgent.currentConversationId) {
           await ctx.runMutation(api.conversationsMutations.createConversation, {
@@ -164,14 +135,8 @@ export const makeAgentDecision = action({
             targetId: decision.targetAgentId,
           });
 
-          await ctx.runMutation(api.decisions.completeDecision, {
-            decisionId,
-          });
-        } else {
-          await ctx.runMutation(api.decisions.completeDecision, {
-            decisionId,
-          });
-        }
+          await ctx.runMutation(api.decisions.completeDecision, { decisionId });
+        } else await ctx.runMutation(api.decisions.completeDecision, { decisionId });
       } catch (error) {}
     }
 
@@ -189,24 +154,17 @@ export const makeAgentDecision = action({
             goalY: entrance.y,
           });
 
-          if (path) {
-            await ctx.runMutation(api.agents.setAgentPath, {
-              agentId: args.agentId,
-              path,
-              state: 'Transit',
-            });
-          }
+          if (path) await ctx.runMutation(api.agents.setAgentPath, { agentId: args.agentId, path, state: 'Transit' });
         }
       } catch (error) {}
     }
 
-    if (decision.emotionDelta) {
+    if (decision.emotionDelta)
       await ctx.runMutation(api.agents.updateAgentEmotions, {
         agentId: args.agentId,
         valence: agent.emotions.valence + decision.emotionDelta.valence,
         arousal: agent.emotions.arousal + decision.emotionDelta.arousal,
       });
-    }
 
     const nextDecisionDelay = 5000 + Math.random() * 10000;
     await ctx.runMutation(api.agents.setNextDecisionTime, {
@@ -246,16 +204,14 @@ function buildDecisionPrompt(
   decisions: any[],
   opinions: any[],
   places: any[],
-  nearbyAgents: Array<{ agent: any; distance: number; opinion?: any }>
+  nearbyAgents: Array<{ agent: any; opinion?: any; distance: number }>
 ): string {
   const observationsSummary = observations
     .map((obs, idx) => {
       let line = `${idx + 1}. ${obs.summary ?? 'observed something'}`;
       if (obs.targetId) {
         const opinion = opinions.find(op => op.targetAgentId === obs.targetId);
-        if (opinion) {
-          line += ` [Opinion: ${opinion.summary} (sentiment: ${opinion.sentiment.toFixed(2)})]`;
-        }
+        if (opinion) line += ` [Opinion: ${opinion.summary} (sentiment: ${opinion.sentiment.toFixed(2)})]`;
       }
       return line;
     })
@@ -371,29 +327,27 @@ async function callOpenAIForDecision(
   systemPrompt: string,
   userPrompt: string
 ): Promise<{
-  action: 'MoveTo' | 'EngageConversation' | 'Idle';
-  targetPlaceId?: string;
-  targetAgentId?: string;
   utterance?: string;
   innerThought?: string;
+  targetPlaceId?: string;
+  targetAgentId?: string;
+  action: 'MoveTo' | 'EngageConversation' | 'Idle';
   emotionDelta?: { valence: number; arousal: number };
 }> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY environment variable is not set');
 
-  const openai = new OpenAI({
-    apiKey: apiKey,
-  });
+  const openai = new OpenAI({ apiKey: apiKey });
 
   const completion = await openai.chat.completions.create({
+    max_tokens: 300,
+    temperature: 1.0,
+    model: 'gpt-3.5-turbo',
+    response_format: { type: 'json_object' },
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
     ],
-    model: 'gpt-3.5-turbo',
-    temperature: 1.0,
-    max_tokens: 300,
-    response_format: { type: 'json_object' },
   });
 
   const content = completion.choices[0].message.content;
@@ -411,19 +365,16 @@ async function callOpenAIForDecision(
   };
 }
 
-function calculateEmotionDelta(action: string): {
-  valence: number;
-  arousal: number;
-} {
+function calculateEmotionDelta(action: string): { valence: number; arousal: number } {
   switch (action) {
     case 'Eat':
       return { valence: 0.2, arousal: -0.1 };
     case 'Sleep':
       return { valence: 0.1, arousal: -0.3 };
     case 'Study':
-      return { valence: -0.05, arousal: 0.1 };
+      return { arousal: 0.1, valence: -0.05 };
     case 'EngageConversation':
-      return { valence: 0.15, arousal: 0.2 };
+      return { arousal: 0.2, valence: 0.15 };
     case 'MoveTo':
       return { valence: 0, arousal: 0.05 };
     case 'Idle':
@@ -434,16 +385,16 @@ function calculateEmotionDelta(action: string): {
 }
 
 function heuristicFallback(): {
-  action: 'MoveTo' | 'EngageConversation' | 'Idle';
+  utterance?: string;
   targetPlaceId?: any;
   targetAgentId?: any;
-  utterance?: string;
   innerThought?: string;
+  action: 'MoveTo' | 'EngageConversation' | 'Idle';
   emotionDelta?: { valence: number; arousal: number };
 } {
   return {
     action: 'Idle',
-    innerThought: 'Taking a moment to assess my situation.',
     emotionDelta: { valence: 0, arousal: -0.05 },
+    innerThought: 'Taking a moment to assess my situation.',
   };
 }

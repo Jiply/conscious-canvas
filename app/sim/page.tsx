@@ -1,21 +1,18 @@
 'use client';
-import {
-  Sidebar,
-  SidebarMenu,
-  SidebarRail,
-  SidebarInset,
-  SidebarGroup,
-  SidebarHeader,
-  SidebarFooter,
-  SidebarTrigger,
-  SidebarContent,
-  SidebarProvider,
-  SidebarMenuItem,
-  SidebarGroupLabel,
-  SidebarMenuButton,
-  SidebarGroupContent,
-} from '@/components/ui/sidebar';
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
+import { useQuery } from 'convex/react';
+import { useMemo, useState } from 'react';
+import { api } from '@/convex/_generated/api';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { PixiMap } from '@/components/PixiMap';
+import { Button } from '@/components/ui/button';
+import { getProfilePicture } from '@/lib/utils';
+import { EventFeed } from '@/components/EventFeed';
+import { useHeartbeat } from '@/hooks/use-heartbeat';
+import { Separator } from '@/components/ui/separator';
+import type { Id } from '@/convex/_generated/dataModel';
+import { ConversationSheet } from '@/components/ConversationSheet';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import {
   EyeIcon,
   UserIcon,
@@ -27,19 +24,22 @@ import {
   PlayCircleIcon,
   PauseCircleIcon,
 } from 'lucide-react';
-import { api } from '@/convex/_generated/api';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { PixiMap } from '@/components/PixiMap';
-import { Button } from '@/components/ui/button';
-import { EventFeed } from '@/components/EventFeed';
-import { useHeartbeat } from '@/hooks/use-heartbeat';
-import { useMemo, useState } from 'react';
-import { useQuery } from 'convex/react';
-import { Separator } from '@/components/ui/separator';
-import { getProfilePicture } from '@/lib/utils';
-import type { Id } from '@/convex/_generated/dataModel';
-import { ConversationSheet } from '@/components/ConversationSheet';
+import {
+  Sidebar,
+  SidebarMenu,
+  SidebarRail,
+  SidebarGroup,
+  SidebarInset,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarContent,
+  SidebarTrigger,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarGroupLabel,
+  SidebarMenuButton,
+  SidebarGroupContent,
+} from '@/components/ui/sidebar';
 
 export default function SimPage() {
   const [searchQuery, setSearchQuery] = useState(``);
@@ -51,10 +51,7 @@ export default function SimPage() {
   const places = useQuery(api.map.getPlaces) ?? [];
   const agents = useQuery(api.agents.listAgents) ?? [];
 
-  const [centerOnPlace, setCenterOnPlace] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
+  const [centerOnPlace, setCenterOnPlace] = useState<{ x: number; y: number } | null>(null);
 
   const filteredAgents = useMemo(() => {
     if (!searchQuery.trim()) return agents;
@@ -75,10 +72,7 @@ export default function SimPage() {
   );
 
   const handleCenterOnPlace = (place: (typeof places)[0]) =>
-    setCenterOnPlace({
-      x: place.bounds.x + place.bounds.width / 2,
-      y: place.bounds.y + place.bounds.height / 2,
-    });
+    setCenterOnPlace({ x: place.bounds.x + place.bounds.width / 2, y: place.bounds.y + place.bounds.height / 2 });
 
   const handleAgentClick = (agentId: Id<'agents'>) => {
     setChosenAgentId(agentId);

@@ -1,5 +1,5 @@
 import { v } from 'convex/values';
-import { defineSchema, defineTable } from 'convex/server';
+import { defineTable, defineSchema } from 'convex/server';
 
 export const mapSettingsFields = {
   gridWidth: v.number(),
@@ -41,12 +41,7 @@ export const mapTileFields = {
   isWalkable: v.boolean(),
   visualVariant: v.optional(v.number()),
   placeId: v.optional(v.id('places')),
-  metadata: v.optional(
-    v.object({
-      biome: v.optional(v.string()),
-      lightLevel: v.optional(v.number()),
-    })
-  ),
+  metadata: v.optional(v.object({ biome: v.optional(v.string()), lightLevel: v.optional(v.number()) })),
 };
 
 export const placeFields = {
@@ -54,30 +49,14 @@ export const placeFields = {
   name: v.string(),
   description: v.optional(v.string()),
 
-  bounds: v.object({
-    x: v.number(),
-    y: v.number(),
-    width: v.number(),
-    height: v.number(),
-  }),
+  bounds: v.object({ x: v.number(), y: v.number(), width: v.number(), height: v.number() }),
 
-  entrances: v.array(
-    v.object({
-      x: v.number(),
-      y: v.number(),
-      facing: v.optional(v.string()),
-    })
-  ),
+  entrances: v.array(v.object({ x: v.number(), y: v.number(), facing: v.optional(v.string()) })),
 
   capacity: v.optional(v.number()),
   isIndoor: v.boolean(),
 
-  metadata: v.optional(
-    v.object({
-      realWorldInspiration: v.optional(v.string()),
-      ambientSound: v.optional(v.string()),
-    })
-  ),
+  metadata: v.optional(v.object({ realWorldInspiration: v.optional(v.string()), ambientSound: v.optional(v.string()) })),
 };
 
 export const agentFields = {
@@ -95,23 +74,10 @@ export const agentFields = {
 
   currentConversationId: v.optional(v.id('conversations')),
 
-  emotions: v.object({
-    valence: v.number(),
-    arousal: v.number(),
-  }),
-  needs: v.object({
-    sleepiness: v.number(),
-    hunger: v.number(),
-    studyPressure: v.number(),
-    socialDrive: v.number(),
-  }),
+  emotions: v.object({ valence: v.number(), arousal: v.number() }),
+  needs: v.object({ sleepiness: v.number(), hunger: v.number(), studyPressure: v.number(), socialDrive: v.number() }),
 
-  goals: v.array(
-    v.object({
-      name: v.string(),
-      weight: v.number(),
-    })
-  ),
+  goals: v.array(v.object({ name: v.string(), weight: v.number() })),
 };
 
 export const opinionFields = {
@@ -161,12 +127,7 @@ export const messageFields = {
   conversationId: v.id('conversations'),
   agentId: v.id('agents'),
   content: v.string(),
-  emotionSnapshot: v.optional(
-    v.object({
-      valence: v.number(),
-      arousal: v.number(),
-    })
-  ),
+  emotionSnapshot: v.optional(v.object({ valence: v.number(), arousal: v.number() })),
   continueConversation: v.boolean(),
   reasonForLeaving: v.optional(v.string()),
 };
@@ -195,12 +156,7 @@ export default defineSchema({
   observer: defineTable({
     sessionId: v.string(),
     lastHeartbeatAt: v.number(),
-    metadata: v.optional(
-      v.object({
-        userAgent: v.optional(v.string()),
-        joinedAt: v.optional(v.number()),
-      })
-    ),
+    metadata: v.optional(v.object({ userAgent: v.optional(v.string()), joinedAt: v.optional(v.number()) })),
   })
     .index('by_session', ['sessionId'])
     .index('by_heartbeat', ['lastHeartbeatAt']),
@@ -253,12 +209,7 @@ export default defineSchema({
     agentIds: v.optional(v.array(v.id('agents'))),
     description: v.string(),
     location: v.optional(v.object({ x: v.number(), y: v.number() })),
-    metadata: v.optional(
-      v.object({
-        placeId: v.optional(v.id('places')),
-        severity: v.optional(v.string()),
-      })
-    ),
+    metadata: v.optional(v.object({ placeId: v.optional(v.id('places')), severity: v.optional(v.string()) })),
   })
     .index('by_timestamp', ['timestamp'])
     .index('by_type', ['type']),

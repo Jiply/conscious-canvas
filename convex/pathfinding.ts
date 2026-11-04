@@ -11,12 +11,7 @@ interface PathNode {
 }
 
 export const findPath = query({
-  args: {
-    startX: v.number(),
-    startY: v.number(),
-    goalX: v.number(),
-    goalY: v.number(),
-  },
+  args: { startX: v.number(), startY: v.number(), goalX: v.number(), goalY: v.number() },
   returns: v.union(v.array(v.object({ x: v.number(), y: v.number() })), v.null()),
   handler: async (ctx, args) => {
     const startNode: PathNode = {
@@ -68,16 +63,7 @@ export const findPath = query({
             existingNode.f = f;
             existingNode.parent = current;
           }
-        } else {
-          openList.push({
-            x: neighbor.x,
-            y: neighbor.y,
-            g,
-            h,
-            f,
-            parent: current,
-          });
-        }
+        } else openList.push({ x: neighbor.x, y: neighbor.y, g, h, f, parent: current });
       }
     }
 
@@ -91,7 +77,7 @@ async function getWalkableNeighbors(ctx: QueryCtx, x: number, y: number): Promis
   const directions = [
     { dx: 0, dy: -1 },
     { dx: 0, dy: 1 },
-    { dx: -1, dy: 0 },
+    { dy: 0, dx: -1 },
     { dx: 1, dy: 0 },
   ];
 

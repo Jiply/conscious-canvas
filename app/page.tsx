@@ -1,2 +1,2 @@
-import { redirect } from "next/navigation";
-export default () => redirect("/sim");
+import { redirect } from 'next/navigation';
+export default () => redirect('/sim');

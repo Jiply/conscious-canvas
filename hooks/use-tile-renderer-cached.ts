@@ -1,8 +1,8 @@
-import { useEffect, useRef } from 'react';
 import { Sprite } from 'pixi.js';
-import type { Container, Renderer } from 'pixi.js';
-import { getTileTexture, preGenerateAllTileTextures } from '@/lib/textureGenerator';
+import { useRef, useEffect } from 'react';
+import type { Renderer, Container } from 'pixi.js';
 import type { Tile, MapSettings } from '@/lib/mapTypes';
+import { getTileTexture, preGenerateAllTileTextures } from '@/lib/textureGenerator';
 
 export function useTileRendererCached({
   tilesLayer,
@@ -13,13 +13,13 @@ export function useTileRendererCached({
   camera,
   dimensions,
 }: {
-  tilesLayer: Container | null;
-  tiles: Map<string, Tile>;
-  mapSettings: MapSettings | undefined;
   isLoading: boolean;
+  tiles: Map<string, Tile>;
   renderer: Renderer | null;
-  camera: { x: number; y: number; scale: number };
+  tilesLayer: Container | null;
+  mapSettings: MapSettings | undefined;
   dimensions: { width: number; height: number };
+  camera: { x: number; y: number; scale: number };
 }) {
   const renderedSprites = useRef<Map<string, Sprite>>(new Map());
   const hasPreRendered = useRef(false);
@@ -79,13 +79,14 @@ export function useTileRendererCached({
     }
   }, [camera, dimensions, mapSettings]);
 
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       for (const sprite of renderedSprites.current.values()) {
         if (!sprite.destroyed) sprite.destroy();
       }
       renderedSprites.current.clear();
       hasPreRendered.current = false;
-    };
-  }, []);
+    },
+    []
+  );
 }

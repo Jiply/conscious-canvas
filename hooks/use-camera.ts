@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
 import type { MapSettings } from '@/lib/mapTypes';
+import { useRef, useState, useEffect, useCallback } from 'react';
 
 interface CameraState {
   x: number;
@@ -12,8 +12,8 @@ export function useCamera({
   mapSettings,
   canvasRef,
 }: {
-  dimensions: { width: number; height: number };
   mapSettings: MapSettings | undefined;
+  dimensions: { width: number; height: number };
   canvasRef: React.RefObject<HTMLDivElement | null>;
 }) {
   const [camera, setCamera] = useState<CameraState>({ x: 0, y: 0, scale: 1 });
@@ -67,7 +67,7 @@ export function useCamera({
         const mouseY = e.clientY - rect.top;
         const worldX = (mouseX - prev.x) / prev.scale;
         const worldY = (mouseY - prev.y) / prev.scale;
-        return constrainCamera({ x: mouseX - worldX * newScale, y: mouseY - worldY * newScale, scale: newScale });
+        return constrainCamera({ scale: newScale, x: mouseX - worldX * newScale, y: mouseY - worldY * newScale });
       });
     };
 
@@ -101,14 +101,14 @@ export function useCamera({
 
   return {
     camera,
-    debouncedCamera,
-    initialCameraPos,
     setCamera,
-    setInitialCameraPos,
+    resetCamera,
     isDraggingRef,
+    handleMouseUp,
+    debouncedCamera,
     handleMouseDown,
     handleMouseMove,
-    handleMouseUp,
-    resetCamera,
+    initialCameraPos,
+    setInitialCameraPos,
   };
 }

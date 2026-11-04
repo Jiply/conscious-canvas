@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
 import { useQuery } from 'convex/react';
-import { api } from '@/convex/_generated/api';
 import type { Tile } from '@/lib/mapTypes';
+import { api } from '@/convex/_generated/api';
+import { useRef, useState, useEffect } from 'react';
 
 // Parallel 4000-tile batches stay under Convex read limits
 export function useTileCache() {
@@ -55,5 +55,5 @@ export function useTileCache() {
     }
   }, [totalBatches, batchesLoaded.size, totalTiles]);
 
-  return { tiles, isLoading, progress, totalTiles };
+  return { tiles, progress, isLoading, totalTiles };
 }

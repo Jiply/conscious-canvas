@@ -3,7 +3,7 @@ import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { useCamera } from '@/hooks/use-camera';
 import { usePixiApp } from '@/hooks/use-pixi-app';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useTileCache } from '@/hooks/use-tile-cache';
 import { MapOverlays } from '@/components/MapOverlays';
 import type { Id } from '@/convex/_generated/dataModel';
@@ -46,10 +46,7 @@ export function PixiMap({ className, onWorldReady, centerOnLocation, onCenterCom
     };
   }, []);
 
-  const { canvasRef, refs, isInitialized, fps } = usePixiApp({
-    width: dimensions.width,
-    height: dimensions.height,
-  });
+  const { canvasRef, refs, isInitialized, fps } = usePixiApp({ width: dimensions.width, height: dimensions.height });
 
   const { tiles: tileCache, isLoading: tilesLoading, progress: tilesProgress, totalTiles } = useTileCache();
 
@@ -67,11 +64,7 @@ export function PixiMap({ className, onWorldReady, centerOnLocation, onCenterCom
     handleMouseMove,
     handleMouseUp,
     resetCamera,
-  } = useCamera({
-    dimensions,
-    mapSettings,
-    canvasRef,
-  });
+  } = useCamera({ canvasRef, dimensions, mapSettings });
 
   const agents = useQuery(api.agents.listAgents);
 
@@ -102,20 +95,9 @@ export function PixiMap({ className, onWorldReady, centerOnLocation, onCenterCom
     dimensions,
   });
 
-  usePlaceRenderer({
-    placesLayer: refs.placesLayer,
-    places,
-    mapSettings,
-    isCameraReady,
-  });
+  usePlaceRenderer({ placesLayer: refs.placesLayer, places, mapSettings, isCameraReady });
 
-  useAgentRenderer({
-    agentsLayer: refs.agentsLayer,
-    agents,
-    mapSettings,
-    isCameraReady,
-    onAgentClick,
-  });
+  useAgentRenderer({ agentsLayer: refs.agentsLayer, agents, mapSettings, isCameraReady, onAgentClick });
 
   useEffect(() => {
     if (!refs.worldContainer || !isCameraReady || refs.worldContainer.destroyed) return;

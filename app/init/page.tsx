@@ -1,11 +1,11 @@
 'use client';
-import { Card, CardTitle, CardHeader, CardContent, CardDescription } from '@/components/ui/card';
-import { HomeIcon, MapPinIcon, Loader2Icon, Building2Icon, AlertCircleIcon, CheckCircle2Icon } from 'lucide-react';
 import { Fragment, useState } from 'react';
 import { api } from '@/convex/_generated/api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useMutation, useQuery } from 'convex/react';
+import { useQuery, useMutation } from 'convex/react';
+import { Card, CardTitle, CardHeader, CardContent, CardDescription } from '@/components/ui/card';
+import { HomeIcon, MapPinIcon, Loader2Icon, Building2Icon, AlertCircleIcon, CheckCircle2Icon } from 'lucide-react';
 
 export default function InitPage() {
   const [result, setResult] = useState<any>(null);
@@ -23,10 +23,7 @@ export default function InitPage() {
       const res = await initMap({ seed: `utown_${Date.now()}`, force });
       setResult(res);
     } catch (error: any) {
-      setResult({
-        success: false,
-        message: error.message || 'Failed to initialize map',
-      });
+      setResult({ success: false, message: error.message || 'Failed to initialize map' });
     } finally {
       setIsInitializing(false);
     }

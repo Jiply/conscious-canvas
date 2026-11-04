@@ -2,10 +2,10 @@
 import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Badge } from '@/components/ui/badge';
+import { getProfilePicture } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import type { Id } from '@/convex/_generated/dataModel';
-import { getProfilePicture } from '@/lib/utils';
 import { Sheet, SheetTitle, SheetHeader, SheetContent, SheetDescription } from '@/components/ui/sheet';
 
 export function ConversationSheet({
@@ -13,8 +13,8 @@ export function ConversationSheet({
   open,
   onOpenChange,
 }: {
-  agentId: Id<'agents'> | null;
   open: boolean;
+  agentId: Id<'agents'> | null;
   onOpenChange: (open: boolean) => void;
 }) {
   const agent = useQuery(api.agents.getAgent, agentId ? { agentId } : 'skip');
@@ -28,7 +28,7 @@ export function ConversationSheet({
   const decisions = useQuery(api.decisions.getDecisionHistory, agentId ? { agentId, limit: 20 } : 'skip');
   const utterances = decisions?.filter(d => d.utterance) || [];
 
-  if (!agent) {
+  if (!agent)
     return (
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent side="right" className="w-[500px] sm:w-[600px] p-8">
@@ -39,7 +39,6 @@ export function ConversationSheet({
         </SheetContent>
       </Sheet>
     );
-  }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -178,10 +177,7 @@ export function ConversationSheet({
                           {decision.action}
                         </Badge>
                         <span className="text-xs text-muted-foreground">
-                          {new Date(decision._creationTime).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
+                          {new Date(decision._creationTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
                       <p className="text-sm">{decision.utterance}</p>

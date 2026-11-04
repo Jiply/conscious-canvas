@@ -1,5 +1,5 @@
-import { type Infer, v } from 'convex/values';
 import { mapTileFields } from './schema';
+import { type Infer, v } from 'convex/values';
 import { internalMutation } from './_generated/server';
 
 type TileType = Infer<typeof mapTileFields.tileType>;
@@ -22,222 +22,222 @@ interface PlaceDefinition {
 
 const UTOWN_PLACES: PlaceDefinition[] = [
   {
+    isIndoor: true,
     kind: 'library',
     name: 'Education Resource Centre',
-    description: 'Modern 3-story learning hub with study spaces, computer labs, and collaboration areas',
-    bounds: { x: 120, y: 20, width: 60, height: 40 },
-    entrances: [
-      { x: 150, y: 60, facing: 'south' },
-      { x: 120, y: 40, facing: 'west' },
-      { x: 180, y: 40, facing: 'east' },
-    ],
-    isIndoor: true,
     realWorldInspiration: 'NUS UTown ERC Library',
+    bounds: { y: 20, x: 120, width: 60, height: 40 },
+    description: 'Modern 3-story learning hub with study spaces, computer labs, and collaboration areas',
+    entrances: [
+      { y: 60, x: 150, facing: 'south' },
+      { y: 40, x: 120, facing: 'west' },
+      { y: 40, x: 180, facing: 'east' },
+    ],
   },
   {
+    isIndoor: true,
     kind: 'lecture',
     name: 'Lecture Theatre Complex',
-    description: 'Large lecture halls with seating for 200+ students each',
     bounds: { x: 20, y: 40, width: 50, height: 30 },
+    realWorldInspiration: 'NUS UTown Lecture Halls',
+    description: 'Large lecture halls with seating for 200+ students each',
     entrances: [
       { x: 45, y: 70, facing: 'south' },
       { x: 20, y: 55, facing: 'west' },
       { x: 70, y: 55, facing: 'east' },
     ],
-    isIndoor: true,
-    realWorldInspiration: 'NUS UTown Lecture Halls',
   },
   {
     kind: 'cafe',
+    isIndoor: true,
     name: 'Town Plaza Café',
-    description: 'Central dining hall with multiple food stations and seating areas',
+    realWorldInspiration: 'NUS UTown Town Plaza',
     bounds: { x: 80, y: 50, width: 30, height: 20 },
+    description: 'Central dining hall with multiple food stations and seating areas',
     entrances: [
       { x: 80, y: 60, facing: 'west' },
-      { x: 110, y: 60, facing: 'east' },
+      { y: 60, x: 110, facing: 'east' },
       { x: 95, y: 50, facing: 'north' },
     ],
-    isIndoor: true,
-    realWorldInspiration: 'NUS UTown Town Plaza',
   },
   {
     kind: 'quad',
+    isIndoor: false,
     name: 'Central Green',
-    description: 'Large open grass field for recreation, outdoor gatherings, and events',
     bounds: { x: 90, y: 90, width: 60, height: 40 },
+    realWorldInspiration: 'NUS UTown Central Green',
+    description: 'Large open grass field for recreation, outdoor gatherings, and events',
     entrances: [
       { x: 90, y: 110, facing: 'west' },
       { x: 150, y: 110, facing: 'east' },
-      { x: 120, y: 90, facing: 'north' },
+      { y: 90, x: 120, facing: 'north' },
       { x: 120, y: 130, facing: 'south' },
     ],
-    isIndoor: false,
-    realWorldInspiration: 'NUS UTown Central Green',
   },
   {
     kind: 'dorm',
+    isIndoor: true,
     name: 'Student Residence',
-    description: 'Multi-story residential building with student rooms and common areas',
     bounds: { x: 10, y: 90, width: 80, height: 50 },
+    realWorldInspiration: 'NUS UTown Residential Halls',
+    description: 'Multi-story residential building with student rooms and common areas',
     entrances: [
       { x: 50, y: 140, facing: 'south' },
       { x: 10, y: 115, facing: 'west' },
       { x: 90, y: 115, facing: 'east' },
     ],
-    isIndoor: true,
-    realWorldInspiration: 'NUS UTown Residential Halls',
   },
 ];
 
 const INTERNAL_AREAS: PlaceDefinition[] = [
   {
-    kind: 'library_section',
-    name: 'Computer Lab',
-    description: 'Modern computer lab with workstations and group study areas',
-    bounds: { x: 130, y: 25, width: 20, height: 15 },
-    entrances: [
-      { x: 140, y: 40, facing: 'south' },
-      { x: 130, y: 32, facing: 'west' },
-    ],
     isIndoor: true,
+    name: 'Computer Lab',
+    kind: 'library_section',
     realWorldInspiration: 'Library Computer Lab',
+    bounds: { y: 25, x: 130, width: 20, height: 15 },
+    description: 'Modern computer lab with workstations and group study areas',
+    entrances: [
+      { y: 40, x: 140, facing: 'south' },
+      { y: 32, x: 130, facing: 'west' },
+    ],
   },
   {
+    isIndoor: true,
     kind: 'library_section',
     name: 'Quiet Study Area',
-    description: 'Silent study zone with individual desks and reading lamps',
-    bounds: { x: 150, y: 25, width: 20, height: 15 },
-    entrances: [
-      { x: 160, y: 40, facing: 'south' },
-      { x: 170, y: 32, facing: 'east' },
-    ],
-    isIndoor: true,
     realWorldInspiration: 'Library Quiet Zone',
+    bounds: { y: 25, x: 150, width: 20, height: 15 },
+    description: 'Silent study zone with individual desks and reading lamps',
+    entrances: [
+      { y: 40, x: 160, facing: 'south' },
+      { y: 32, x: 170, facing: 'east' },
+    ],
   },
   {
+    isIndoor: true,
     kind: 'library_section',
     name: 'Group Study Rooms',
-    description: 'Bookable study rooms for collaborative work',
-    bounds: { x: 170, y: 25, width: 10, height: 15 },
-    entrances: [{ x: 175, y: 40, facing: 'south' }],
-    isIndoor: true,
     realWorldInspiration: 'Library Study Rooms',
+    entrances: [{ y: 40, x: 175, facing: 'south' }],
+    bounds: { y: 25, x: 170, width: 10, height: 15 },
+    description: 'Bookable study rooms for collaborative work',
   },
 
   {
+    isIndoor: true,
     kind: 'cafe_stall',
     name: 'Coffee Corner',
-    description: 'Specialty coffee bar with espresso machines and pastries',
+    realWorldInspiration: 'Café Coffee Bar',
     bounds: { x: 85, y: 52, width: 8, height: 6 },
+    description: 'Specialty coffee bar with espresso machines and pastries',
     entrances: [
       { x: 89, y: 58, facing: 'south' },
       { x: 85, y: 55, facing: 'west' },
     ],
-    isIndoor: true,
-    realWorldInspiration: 'Café Coffee Bar',
   },
   {
+    isIndoor: true,
     kind: 'cafe_stall',
     name: 'Asian Cuisine',
-    description: 'Asian food station with rice bowls, noodles, and stir-fries',
+    realWorldInspiration: 'Café Asian Station',
     bounds: { x: 95, y: 52, width: 8, height: 6 },
+    description: 'Asian food station with rice bowls, noodles, and stir-fries',
     entrances: [
       { x: 99, y: 58, facing: 'south' },
       { x: 95, y: 55, facing: 'west' },
     ],
-    isIndoor: true,
-    realWorldInspiration: 'Café Asian Station',
   },
   {
+    isIndoor: true,
     kind: 'cafe_stall',
     name: 'Western Grill',
-    description: 'Grill station with burgers, sandwiches, and hot meals',
-    bounds: { x: 105, y: 52, width: 8, height: 6 },
-    entrances: [
-      { x: 109, y: 58, facing: 'south' },
-      { x: 105, y: 55, facing: 'west' },
-    ],
-    isIndoor: true,
     realWorldInspiration: 'Café Grill Station',
+    bounds: { y: 52, x: 105, width: 8, height: 6 },
+    description: 'Grill station with burgers, sandwiches, and hot meals',
+    entrances: [
+      { y: 58, x: 109, facing: 'south' },
+      { y: 55, x: 105, facing: 'west' },
+    ],
   },
   {
-    kind: 'cafe_stall',
+    isIndoor: true,
     name: 'Salad Bar',
-    description: 'Fresh salad station with healthy options and dressings',
+    kind: 'cafe_stall',
+    realWorldInspiration: 'Café Salad Bar',
     bounds: { x: 85, y: 60, width: 8, height: 6 },
+    description: 'Fresh salad station with healthy options and dressings',
     entrances: [
       { x: 89, y: 60, facing: 'north' },
       { x: 85, y: 63, facing: 'west' },
     ],
-    isIndoor: true,
-    realWorldInspiration: 'Café Salad Bar',
   },
   {
+    isIndoor: true,
     kind: 'cafe_stall',
     name: 'Dessert Counter',
-    description: 'Sweet treats, ice cream, and baked goods',
+    realWorldInspiration: 'Café Dessert Station',
     bounds: { x: 95, y: 60, width: 8, height: 6 },
+    description: 'Sweet treats, ice cream, and baked goods',
     entrances: [
       { x: 99, y: 60, facing: 'north' },
       { x: 95, y: 63, facing: 'west' },
     ],
-    isIndoor: true,
-    realWorldInspiration: 'Café Dessert Station',
   },
   {
+    isIndoor: true,
     kind: 'cafe_stall',
     name: 'Beverage Station',
-    description: 'Self-serve drinks, juices, and water fountain',
-    bounds: { x: 105, y: 60, width: 8, height: 6 },
-    entrances: [
-      { x: 109, y: 60, facing: 'north' },
-      { x: 105, y: 63, facing: 'west' },
-    ],
-    isIndoor: true,
     realWorldInspiration: 'Café Beverage Station',
+    bounds: { y: 60, x: 105, width: 8, height: 6 },
+    description: 'Self-serve drinks, juices, and water fountain',
+    entrances: [
+      { y: 60, x: 109, facing: 'north' },
+      { y: 63, x: 105, facing: 'west' },
+    ],
   },
 
   {
+    isIndoor: true,
     kind: 'lecture_section',
     name: 'Main Lecture Hall A',
-    description: 'Large lecture hall with tiered seating for 150+ students',
+    realWorldInspiration: 'Lecture Hall A',
     bounds: { x: 25, y: 45, width: 20, height: 15 },
+    description: 'Large lecture hall with tiered seating for 150+ students',
     entrances: [
       { x: 35, y: 60, facing: 'south' },
       { x: 25, y: 52, facing: 'west' },
     ],
-    isIndoor: true,
-    realWorldInspiration: 'Lecture Hall A',
   },
   {
+    isIndoor: true,
     kind: 'lecture_section',
     name: 'Main Lecture Hall B',
-    description: 'Large lecture hall with tiered seating for 150+ students',
+    realWorldInspiration: 'Lecture Hall B',
     bounds: { x: 45, y: 45, width: 20, height: 15 },
+    description: 'Large lecture hall with tiered seating for 150+ students',
     entrances: [
       { x: 55, y: 60, facing: 'south' },
       { x: 45, y: 52, facing: 'west' },
     ],
-    isIndoor: true,
-    realWorldInspiration: 'Lecture Hall B',
   },
   {
-    kind: 'lecture_section',
+    isIndoor: true,
     name: 'Seminar Room',
-    description: 'Smaller seminar room for discussion-based classes',
-    bounds: { x: 25, y: 50, width: 15, height: 10 },
-    entrances: [{ x: 32, y: 60, facing: 'south' }],
-    isIndoor: true,
+    kind: 'lecture_section',
     realWorldInspiration: 'Seminar Room',
+    entrances: [{ x: 32, y: 60, facing: 'south' }],
+    bounds: { x: 25, y: 50, width: 15, height: 10 },
+    description: 'Smaller seminar room for discussion-based classes',
   },
   {
-    kind: 'lecture_section',
-    name: 'Tutorial Room',
-    description: 'Small tutorial room for group work and presentations',
-    bounds: { x: 40, y: 50, width: 15, height: 10 },
-    entrances: [{ x: 47, y: 60, facing: 'south' }],
     isIndoor: true,
+    name: 'Tutorial Room',
+    kind: 'lecture_section',
     realWorldInspiration: 'Tutorial Room',
+    entrances: [{ x: 47, y: 60, facing: 'south' }],
+    bounds: { x: 40, y: 50, width: 15, height: 10 },
+    description: 'Small tutorial room for group work and presentations',
   },
 ];
 
@@ -247,56 +247,50 @@ const DORM_ROOMS: PlaceDefinition[] = [
       kind: 'dorm_room',
       name: `Room ${floor}0${i + 1}`,
       description: 'Single student bedroom with desk, bed, and storage',
-      bounds: { x: 15 + 7 * i, y: 90 + 5 * floor, width: 6, height: 4 },
+      bounds: { width: 6, height: 4, x: 15 + 7 * i, y: 90 + 5 * floor },
       entrances: [{ x: 18 + 7 * i, y: [99, 100, 109][floor - 1], facing: floor === 2 ? 'north' : 'south' }],
       isIndoor: true,
       realWorldInspiration: 'UTown Student Room',
     }))
   ),
   {
+    isIndoor: true,
     kind: 'common_room',
     name: 'Common Lounge',
-    description: 'Large shared living space with sofas, TV, and social areas',
+    realWorldInspiration: 'UTown Common Lounge',
     bounds: { x: 15, y: 110, width: 20, height: 8 },
+    description: 'Large shared living space with sofas, TV, and social areas',
     entrances: [
       { x: 15, y: 114, facing: 'west' },
       { x: 35, y: 114, facing: 'east' },
     ],
-    isIndoor: true,
-    realWorldInspiration: 'UTown Common Lounge',
   },
   {
+    isIndoor: true,
     kind: 'study_room',
     name: 'Study Lounge',
-    description: 'Quiet study area with desks, whiteboards, and group study spaces',
+    realWorldInspiration: 'UTown Study Room',
     bounds: { x: 40, y: 110, width: 20, height: 8 },
+    description: 'Quiet study area with desks, whiteboards, and group study spaces',
     entrances: [
       { x: 40, y: 114, facing: 'west' },
       { x: 60, y: 114, facing: 'east' },
     ],
-    isIndoor: true,
-    realWorldInspiration: 'UTown Study Room',
   },
   {
+    isIndoor: true,
     kind: 'laundry_room',
     name: 'Laundry Room',
-    description: 'Shared laundry facilities with washers and dryers',
+    realWorldInspiration: 'UTown Laundry Room',
     bounds: { x: 65, y: 110, width: 10, height: 8 },
     entrances: [{ x: 70, y: 110, facing: 'north' }],
-    isIndoor: true,
-    realWorldInspiration: 'UTown Laundry Room',
+    description: 'Shared laundry facilities with washers and dryers',
   },
 ];
 
 export const initializeMap = internalMutation({
-  args: {
-    seed: v.optional(v.string()),
-    tileOffset: v.optional(v.number()),
-  },
-  returns: v.object({
-    tilesCreated: v.number(),
-    placesCreated: v.number(),
-  }),
+  args: { seed: v.optional(v.string()), tileOffset: v.optional(v.number()) },
+  returns: v.object({ tilesCreated: v.number(), placesCreated: v.number() }),
   handler: async (ctx, args) => {
     const gridWidth = 200;
     const gridHeight = 150;
@@ -306,7 +300,7 @@ export const initializeMap = internalMutation({
     console.log(`🗺️  Initializing map with seed: ${seed}${tileOffset > 0 ? ` (tile offset: ${tileOffset})` : ''}`);
     console.log(`📊 Total landmarks to generate: ${UTOWN_PLACES.length + DORM_ROOMS.length + INTERNAL_AREAS.length}`);
 
-    if (tileOffset === 0) {
+    if (tileOffset === 0)
       await ctx.db.insert('map_settings', {
         gridWidth,
         gridHeight,
@@ -316,27 +310,13 @@ export const initializeMap = internalMutation({
         lastRegeneratedAt: Date.now(),
         seed,
       });
-    }
 
     console.log(`📍 Generating base grid (${gridWidth}×${gridHeight} = ${gridWidth * gridHeight} tiles)...`);
-    const tiles: Array<{
-      x: number;
-      y: number;
-      tileType: TileType;
-      isWalkable: boolean;
-      visualVariant?: number;
-    }> = [];
+    const tiles: Array<{ x: number; y: number; tileType: TileType; isWalkable: boolean; visualVariant?: number }> = [];
 
     for (let y = 0; y < gridHeight; y++) {
-      for (let x = 0; x < gridWidth; x++) {
-        tiles.push({
-          x,
-          y,
-          tileType: 'grass',
-          isWalkable: true,
-          visualVariant: ((x + y) * 7) % 4,
-        });
-      }
+      for (let x = 0; x < gridWidth; x++)
+        tiles.push({ x, y, isWalkable: true, tileType: 'grass', visualVariant: ((x + y) * 7) % 4 });
     }
 
     const placeIdMap = new Map<string, string>();
@@ -358,9 +338,7 @@ export const initializeMap = internalMutation({
             entrances: def.entrances,
             capacity: capacity(def),
             isIndoor: def.isIndoor,
-            metadata: {
-              realWorldInspiration: def.realWorldInspiration,
-            },
+            metadata: { realWorldInspiration: def.realWorldInspiration },
           });
           placeIdMap.set(`${def.kind}_${def.name}`, placeId);
           console.log(`  ✓ Created ${def.name} (${def.kind})`);
@@ -399,7 +377,7 @@ export const initializeMap = internalMutation({
     const placeIdOf = (def: PlaceDefinition) => placeIdMap.get(`${def.kind}_${def.name}`);
 
     console.log('🎨 Generating main landmark tiles...');
-    for (const def of UTOWN_PLACES) {
+    for (const def of UTOWN_PLACES)
       stamp(
         def,
         def.isIndoor,
@@ -407,10 +385,9 @@ export const initializeMap = internalMutation({
         () => (def.isIndoor ? 'floor' : 'grass'),
         (x, y) => (x * 13 + y * 17) % 3
       );
-    }
 
     console.log('🚪 Generating dorm room tiles...');
-    for (const def of DORM_ROOMS) {
+    for (const def of DORM_ROOMS)
       stamp(
         def,
         true,
@@ -418,10 +395,9 @@ export const initializeMap = internalMutation({
         (x, y) => (['dorm_bed', 'floor', 'study_desk', 'floor'] as const)[(x + y) % 4],
         (x, y) => (x * 7 + y * 11) % 2
       );
-    }
 
     console.log('🏢 Generating internal area tiles...');
-    for (const def of INTERNAL_AREAS) {
+    for (const def of INTERNAL_AREAS)
       stamp(
         def,
         true,
@@ -436,7 +412,6 @@ export const initializeMap = internalMutation({
                 : 'floor',
         (x, y) => (x * 13 + y * 17) % 3
       );
-    }
 
     console.log('🛤️  Adding connecting paths...');
     addConnectingPaths(tiles, gridWidth, gridHeight);
@@ -466,24 +441,18 @@ export const initializeMap = internalMutation({
       const batch = validTiles.slice(i, Math.min(i + batchSize, endIdx));
       await Promise.all(batch.map(tile => ctx.db.insert('map_tiles', tile as any)));
       tilesCreated += batch.length;
-      if (tilesCreated % 1000 === 0 || i + batchSize >= endIdx) {
+      if (tilesCreated % 1000 === 0 || i + batchSize >= endIdx)
         console.log(`  ✓ Inserted ${startIdx + tilesCreated}/${validTiles.length} tiles`);
-      }
     }
 
     if (endIdx < validTiles.length) {
       console.log(`  ⚠️  More tiles remaining: ${validTiles.length - endIdx}`);
       console.log(`  → Run: npx convex run --prod seedMap:initializeMap '{"tileOffset": ${endIdx}}'`);
-    } else {
-      console.log(`  ✅ All tiles inserted!`);
-    }
+    } else console.log(`  ✅ All tiles inserted!`);
 
     console.log('✅ Map initialization complete!');
 
-    return {
-      tilesCreated,
-      placesCreated: UTOWN_PLACES.length + DORM_ROOMS.length + INTERNAL_AREAS.length,
-    };
+    return { tilesCreated, placesCreated: UTOWN_PLACES.length + DORM_ROOMS.length + INTERNAL_AREAS.length };
   },
 });
 
