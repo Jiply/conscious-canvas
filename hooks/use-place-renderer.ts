@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import type { MapSettings } from '@/lib/mapTypes';
 import type { Doc } from '@/convex/_generated/dataModel';
+import { Text, Graphics, Container, TextStyle } from 'pixi.js';
 
 export function usePlaceRenderer({
   placesLayer,
@@ -9,10 +9,10 @@ export function usePlaceRenderer({
   mapSettings,
   isCameraReady,
 }: {
+  isCameraReady: boolean;
   placesLayer: Container | null;
   places: Doc<'places'>[] | undefined;
   mapSettings: MapSettings | undefined;
-  isCameraReady: boolean;
 }) {
   useEffect(() => {
     if (!placesLayer || !places || !mapSettings || !isCameraReady) return;
@@ -33,7 +33,7 @@ export function usePlaceRenderer({
 
         const outline = new Graphics();
         outline.rect(bounds.x * tileSize, bounds.y * tileSize, bounds.width * tileSize, bounds.height * tileSize);
-        outline.stroke({ width: 2, color: 0xffffff, alpha: 0.6 });
+        outline.stroke({ width: 2, alpha: 0.6, color: 0xffffff });
         placeContainer.addChild(outline);
 
         const label = new Text({
@@ -43,7 +43,7 @@ export function usePlaceRenderer({
             fontSize: 14,
             fontWeight: 'bold',
             fill: 0xffffff,
-            stroke: { color: 0x000000, width: 3 },
+            stroke: { width: 3, color: 0x000000 },
             dropShadow: { alpha: 0.8, angle: Math.PI / 6, blur: 2, color: 0x000000, distance: 2 },
           }),
         });
@@ -56,10 +56,10 @@ export function usePlaceRenderer({
           const infoLabel = new Text({
             text: `Capacity: ${place.capacity}`,
             style: new TextStyle({
-              fontFamily: 'Arial, sans-serif',
               fontSize: 10,
               fill: 0xcccccc,
-              stroke: { color: 0x000000, width: 2 },
+              fontFamily: 'Arial, sans-serif',
+              stroke: { width: 2, color: 0x000000 },
             }),
           });
           infoLabel.anchor.set(0.5);

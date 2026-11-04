@@ -9,15 +9,15 @@
  */
 
 import {
-  actionGeneric,
-  httpActionGeneric,
   queryGeneric,
+  actionGeneric,
   mutationGeneric,
+  componentsGeneric,
+  httpActionGeneric,
+  internalQueryGeneric,
   internalActionGeneric,
   internalMutationGeneric,
-  internalQueryGeneric,
-  componentsGeneric,
-} from "convex/server";
+} from 'convex/server';
 
 /**
  * Define a query in this Convex app's public API.

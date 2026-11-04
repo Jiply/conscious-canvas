@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 import { decisionFields } from './schema';
-import { mutation, query } from './_generated/server';
+import { query, mutation } from './_generated/server';
 
 export const addDecision = mutation({
   args: {
@@ -52,9 +52,7 @@ export const addDecision = mutation({
           break;
       }
 
-      if (args.innerThought) {
-        description += ` - "${args.innerThought}"`;
-      }
+      if (args.innerThought) description += ` - "${args.innerThought}"`;
 
       await ctx.db.insert('events', {
         timestamp: Date.now(),
@@ -62,10 +60,7 @@ export const addDecision = mutation({
         agentIds: [args.agentId],
         description,
         location: agent.pos,
-        metadata: {
-          placeId: args.targetPlaceId,
-          severity: 'info',
-        },
+        metadata: { placeId: args.targetPlaceId, severity: 'info' },
       });
     }
 
@@ -74,14 +69,10 @@ export const addDecision = mutation({
 });
 
 export const completeDecision = mutation({
-  args: {
-    decisionId: v.id('decisions'),
-  },
+  args: { decisionId: v.id('decisions') },
   returns: v.null(),
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.decisionId, {
-      completedAt: Date.now(),
-    });
+    await ctx.db.patch(args.decisionId, { completedAt: Date.now() });
 
     return null;
   },
@@ -96,9 +87,7 @@ export const completeAllIncompleteDecisions = mutation({
     let count = 0;
     for (const decision of allDecisions) {
       if (decision.completedAt === undefined) {
-        await ctx.db.patch(decision._id, {
-          completedAt: Date.now(),
-        });
+        await ctx.db.patch(decision._id, { completedAt: Date.now() });
         count++;
       }
     }
@@ -108,10 +97,7 @@ export const completeAllIncompleteDecisions = mutation({
 });
 
 export const getDecisionHistory = query({
-  args: {
-    agentId: v.id('agents'),
-    limit: v.optional(v.number()),
-  },
+  args: { agentId: v.id('agents'), limit: v.optional(v.number()) },
   returns: v.array(v.object({ _id: v.id('decisions'), _creationTime: v.number(), ...decisionFields })),
   handler: async (ctx, args) => {
     const limit = args.limit ?? 10;

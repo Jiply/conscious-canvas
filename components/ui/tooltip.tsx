@@ -1,19 +1,10 @@
-"use client";
-import { cn } from "@/lib/utils";
-import type { ComponentProps } from "react";
-import * as TT from "@radix-ui/react-tooltip";
+'use client';
+import { cn } from '@/lib/utils';
+import type { ComponentProps } from 'react';
+import * as TT from '@radix-ui/react-tooltip';
 
-function TooltipProvider({
-  delayDuration = 0,
-  ...props
-}: ComponentProps<typeof TT.Provider>) {
-  return (
-    <TT.Provider
-      data-slot="tooltip-provider"
-      delayDuration={delayDuration}
-      {...props}
-    />
-  );
+function TooltipProvider({ delayDuration = 0, ...props }: ComponentProps<typeof TT.Provider>) {
+  return <TT.Provider data-slot="tooltip-provider" delayDuration={delayDuration} {...props} />;
 }
 
 function Tooltip({ ...props }: ComponentProps<typeof TT.Root>) {
@@ -28,12 +19,7 @@ function TooltipTrigger({ ...props }: ComponentProps<typeof TT.Trigger>) {
   return <TT.Trigger data-slot="tooltip-trigger" {...props} />;
 }
 
-function TooltipContent({
-  children,
-  className,
-  sideOffset = 0,
-  ...props
-}: ComponentProps<typeof TT.Content>) {
+function TooltipContent({ children, className, sideOffset = 0, ...props }: ComponentProps<typeof TT.Content>) {
   return (
     <TT.Portal>
       <TT.Content
@@ -52,4 +38,4 @@ function TooltipContent({
   );
 }
 
-export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider };
+export { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider };

@@ -4,15 +4,15 @@ import type { Id, Doc } from '@/convex/_generated/dataModel';
 import { Text, Assets, Sprite, Graphics, Container, TextStyle } from 'pixi.js';
 
 type AgentData = {
-  animationStartTime: number;
-  wobbleOffsetX: number;
-  wobbleOffsetY: number;
-  container: Container;
-  wobbleSpeed: number;
-  targetX: number;
-  targetY: number;
   startX: number;
   startY: number;
+  targetX: number;
+  targetY: number;
+  wobbleSpeed: number;
+  container: Container;
+  wobbleOffsetX: number;
+  wobbleOffsetY: number;
+  animationStartTime: number;
 };
 
 export function useAgentRenderer({
@@ -22,11 +22,11 @@ export function useAgentRenderer({
   onAgentClick,
   isCameraReady,
 }: {
+  isCameraReady: boolean;
   agentsLayer: Container | null;
   agents: Doc<`agents`>[] | undefined;
-  isCameraReady: boolean;
-  onAgentClick?: (agentId: Id<`agents`>) => void;
   mapSettings: { tileSize: number } | undefined;
+  onAgentClick?: (agentId: Id<`agents`>) => void;
 }) {
   const agentContainersRef = useRef<Map<string, AgentData>>(new Map());
 
@@ -49,8 +49,8 @@ export function useAgentRenderer({
 
         const visionRadius = new Graphics();
         visionRadius.circle(0, 0, 20 * tileSize);
-        visionRadius.fill({ color: 0x3b82f6, alpha: 0.08 });
-        visionRadius.stroke({ width: 2, color: 0x3b82f6, alpha: 0.25 });
+        visionRadius.fill({ alpha: 0.08, color: 0x3b82f6 });
+        visionRadius.stroke({ width: 2, alpha: 0.25, color: 0x3b82f6 });
         visionRadius.eventMode = 'none';
         agentContainer.addChild(visionRadius);
 
@@ -58,12 +58,11 @@ export function useAgentRenderer({
         profileContainer.eventMode = 'static';
         profileContainer.cursor = 'pointer';
 
-        if (onAgentClick) {
+        if (onAgentClick)
           profileContainer.on('pointerdown', event => {
             event.stopPropagation();
             onAgentClick(a._id as Id<'agents'>);
           });
-        }
 
         const profileSprite = new Sprite();
         profileSprite.anchor.set(0.5);
@@ -88,23 +87,21 @@ export function useAgentRenderer({
 
         const border = new Graphics();
         border.circle(0, 0, 16);
-        border.stroke({ width: 2, color: 0xffffff, alpha: 0.8 });
+        border.stroke({ width: 2, alpha: 0.8, color: 0xffffff });
         profileContainer.addChild(border);
 
-        profileContainer.hitArea = {
-          contains: (x: number, y: number) => Math.sqrt(x * x + y * y) <= 18,
-        };
+        profileContainer.hitArea = { contains: (x: number, y: number) => Math.sqrt(x * x + y * y) <= 18 };
 
         agentContainer.addChild(profileContainer);
 
         const label = new Text({
           text: a.name,
           style: new TextStyle({
-            fontFamily: 'Arial, sans-serif',
             fontSize: 11,
-            fontWeight: 'bold',
             fill: 0xffffff,
-            stroke: { color: 0x000000, width: 2.5 },
+            fontWeight: 'bold',
+            fontFamily: 'Arial, sans-serif',
+            stroke: { width: 2.5, color: 0x000000 },
           }),
         });
         label.anchor.set(0.5);

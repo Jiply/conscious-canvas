@@ -1,14 +1,9 @@
-"use client";
-import { cn } from "@/lib/utils";
-import type { ComponentProps } from "react";
-import * as SP from "@radix-ui/react-separator";
+'use client';
+import { cn } from '@/lib/utils';
+import type { ComponentProps } from 'react';
+import * as SP from '@radix-ui/react-separator';
 
-function Separator({
-  className,
-  decorative = true,
-  orientation = `horizontal`,
-  ...props
-}: ComponentProps<typeof SP.Root>) {
+function Separator({ className, decorative = true, orientation = `horizontal`, ...props }: ComponentProps<typeof SP.Root>) {
   return (
     <SP.Root
       data-slot="separator"

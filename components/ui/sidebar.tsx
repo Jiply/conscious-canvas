@@ -1,20 +1,20 @@
 'use client';
-import { Sheet, SheetTitle, SheetHeader, SheetContent, SheetDescription } from '@/components/ui/sheet';
+import { cn } from '@/lib/utils';
+import { PanelLeftIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { Sheet, SheetTitle, SheetHeader, SheetContent, SheetDescription } from '@/components/ui/sheet';
 import {
+  type CSSProperties,
+  type ComponentProps,
   useMemo,
   useState,
   useEffect,
   useContext,
   useCallback,
   createContext,
-  type CSSProperties,
-  type ComponentProps,
 } from 'react';
-import { cn } from '@/lib/utils';
-import { PanelLeftIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 const SIDEBAR_WIDTH = `18rem`;
 const SIDEBAR_WIDTH_ICON = `3rem`;
@@ -56,9 +56,10 @@ function SidebarProvider({ children, className, ...props }: ComponentProps<`div`
     [open]
   );
 
-  const toggleSidebar = useCallback(() => {
-    return isMobile ? setOpenMobile(open => !open) : setOpen(open => !open);
-  }, [isMobile, setOpen, setOpenMobile]);
+  const toggleSidebar = useCallback(
+    () => (isMobile ? setOpenMobile(open => !open) : setOpen(open => !open)),
+    [isMobile, setOpen, setOpenMobile]
+  );
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -75,15 +76,7 @@ function SidebarProvider({ children, className, ...props }: ComponentProps<`div`
   const state = open ? `expanded` : `collapsed`;
 
   const contextValue = useMemo<SidebarContextProps>(
-    () => ({
-      open,
-      state,
-      setOpen,
-      isMobile,
-      openMobile,
-      toggleSidebar,
-      setOpenMobile,
-    }),
+    () => ({ open, state, setOpen, isMobile, openMobile, toggleSidebar, setOpenMobile }),
     [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
   );
 
@@ -92,12 +85,7 @@ function SidebarProvider({ children, className, ...props }: ComponentProps<`div`
       <TooltipProvider delayDuration={0}>
         <div
           data-slot="sidebar-wrapper"
-          style={
-            {
-              '--sidebar-width': SIDEBAR_WIDTH,
-              '--sidebar-width-icon': SIDEBAR_WIDTH_ICON,
-            } as CSSProperties
-          }
+          style={{ '--sidebar-width': SIDEBAR_WIDTH, '--sidebar-width-icon': SIDEBAR_WIDTH_ICON } as CSSProperties}
           className={cn(`group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full`, className)}
           {...props}
         >
@@ -111,7 +99,7 @@ function SidebarProvider({ children, className, ...props }: ComponentProps<`div`
 function Sidebar({ children, className, ...props }: ComponentProps<`div`>) {
   const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
 
-  if (isMobile) {
+  if (isMobile)
     return (
       <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
         <SheetContent
@@ -130,7 +118,6 @@ function Sidebar({ children, className, ...props }: ComponentProps<`div`>) {
         </SheetContent>
       </Sheet>
     );
-  }
 
   return (
     <div
@@ -338,16 +325,16 @@ function SidebarMenuButton({ className, ...props }: ComponentProps<`button`>) {
 
 export {
   Sidebar,
-  SidebarRail,
   SidebarMenu,
-  SidebarInset,
+  SidebarRail,
   SidebarGroup,
-  SidebarHeader,
+  SidebarInset,
   SidebarFooter,
-  SidebarTrigger,
+  SidebarHeader,
   SidebarContent,
-  SidebarProvider,
+  SidebarTrigger,
   SidebarMenuItem,
+  SidebarProvider,
   SidebarGroupLabel,
   SidebarMenuButton,
   SidebarGroupContent,

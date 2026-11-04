@@ -23,27 +23,27 @@ export type TileType =
   | 'kitchen_counter';
 
 export const TILE_VISUALS: Record<TileType, { walkable: boolean }> = {
+  door: { walkable: true },
+  path: { walkable: true },
+  bush: { walkable: true },
   floor: { walkable: true },
   wall: { walkable: false },
-  door: { walkable: true },
   grass: { walkable: true },
-  water: { walkable: false },
-  path: { walkable: true },
   void: { walkable: false },
-  tall_tree: { walkable: false },
-  short_tree: { walkable: false },
-  bush: { walkable: true },
-  flower_bed: { walkable: true },
+  water: { walkable: false },
   concrete: { walkable: true },
+  dorm_bed: { walkable: false },
+  tall_tree: { walkable: false },
+  flower_bed: { walkable: true },
   brick_path: { walkable: true },
+  bookshelf: { walkable: false },
+  short_tree: { walkable: false },
   cafe_stall: { walkable: false },
   study_desk: { walkable: false },
-  bookshelf: { walkable: false },
   lounge_chair: { walkable: false },
-  laundry_machine: { walkable: false },
   lecture_seat: { walkable: false },
   library_desk: { walkable: false },
-  dorm_bed: { walkable: false },
+  laundry_machine: { walkable: false },
   kitchen_counter: { walkable: false },
 };
 
@@ -54,10 +54,7 @@ export interface Tile {
   isWalkable: boolean;
   visualVariant?: number;
   placeId?: string;
-  metadata?: {
-    biome?: string;
-    lightLevel?: number;
-  };
+  metadata?: { biome?: string; lightLevel?: number };
 }
 
 export interface MapSettings {

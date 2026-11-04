@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { Application, Container } from 'pixi.js';
+import { Container, Application } from 'pixi.js';
+import { useRef, useState, useEffect } from 'react';
 
 export function usePixiApp({ width, height }: { width: number; height: number }) {
   const canvasRef = useRef<HTMLDivElement>(null);

@@ -2,9 +2,7 @@ import { v } from 'convex/values';
 import { mutation } from './_generated/server';
 
 export const clearOldEvents = mutation({
-  args: {
-    olderThanMs: v.number(),
-  },
+  args: { olderThanMs: v.number() },
   returns: v.number(),
   handler: async (ctx, args) => {
     const cutoff = Date.now() - args.olderThanMs;
@@ -14,9 +12,7 @@ export const clearOldEvents = mutation({
       .filter(q => q.lt(q.field('timestamp'), cutoff))
       .collect();
 
-    for (const event of oldEvents) {
-      await ctx.db.delete(event._id);
-    }
+    for (const event of oldEvents) await ctx.db.delete(event._id);
 
     return oldEvents.length;
   },

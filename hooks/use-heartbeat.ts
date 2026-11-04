@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
 import { useConvex } from 'convex/react';
 import { api } from '@/convex/_generated/api';
+import { useRef, useState, useEffect } from 'react';
 
 function getStoredId(key: string) {
   if (typeof window === 'undefined') return crypto.randomUUID();
@@ -16,10 +16,10 @@ export function useHeartbeat() {
   const [isLeader, setIsLeader] = useState(false);
   const [observerCount, setObserverCount] = useState(0);
   const [stats, setStats] = useState<{
-    processedAgents: number;
     latencyMs: number;
     lastTickAt: number;
     observerCount: number;
+    processedAgents: number;
   } | null>(null);
   // Still persists the observer session id the unreachable observer API used to send.
   getStoredId('observer_session_id');
@@ -40,9 +40,7 @@ export function useHeartbeat() {
       if (!mountedRef.current) return;
 
       try {
-        const result = await convex.mutation(api.heartbeat.tick, {
-          leaderId: leaderIdRef.current,
-        });
+        const result = await convex.mutation(api.heartbeat.tick, { leaderId: leaderIdRef.current });
         if (!mountedRef.current) return;
 
         setIsLeader(result.isLeader);
@@ -54,9 +52,7 @@ export function useHeartbeat() {
             observerCount,
           });
           timeoutRef.current = setTimeout(heartbeat, 5000);
-        } else if (!result.isLeader) {
-          setIsLeader(false);
-        }
+        } else if (!result.isLeader) setIsLeader(false);
       } catch {
         if (!mountedRef.current) return;
         timeoutRef.current = setTimeout(heartbeat, 1000);
@@ -71,5 +67,5 @@ export function useHeartbeat() {
     };
   }, [convex, observerCount]);
 
-  return { isLeader, stats };
+  return { stats, isLeader };
 }

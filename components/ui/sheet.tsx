@@ -30,9 +30,7 @@ function SheetContent({
   children,
   side = `right`,
   ...props
-}: ComponentProps<typeof SH.Content> & {
-  side?: `top` | `right` | `bottom` | `left`;
-}) {
+}: ComponentProps<typeof SH.Content> & { side?: `top` | `right` | `bottom` | `left` }) {
   return (
     <SheetPortal>
       <SheetOverlay />

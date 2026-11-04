@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
-import { mapSettingsFields, mapTileFields, placeFields } from './schema';
 import { internal } from './_generated/api';
 import { type MutationCtx, query, mutation } from './_generated/server';
+import { placeFields, mapTileFields, mapSettingsFields } from './schema';
 
 async function deleteAll(ctx: MutationCtx, table: 'map_tiles' | 'places' | 'map_settings') {
   const docs = await ctx.db.query(table).collect();
@@ -16,18 +16,14 @@ export const getMapSettings = query({
     console.log('🔍 [CONVEX] getMapSettings query START');
     const settings = await ctx.db.query('map_settings').first();
     console.log(`✅ [CONVEX] getMapSettings query COMPLETE: ${settings ? '1 settings document' : 'No settings found'}`);
-    if (settings) {
+    if (settings)
       console.log(`   📐 Map dimensions: ${settings.gridWidth}x${settings.gridHeight} tiles (${settings.tileSize}px each)\n`);
-    }
     return settings;
   },
 });
 
 export const getTilesBatch = query({
-  args: {
-    batchIndex: v.number(),
-    batchSize: v.optional(v.number()),
-  },
+  args: { batchIndex: v.number(), batchSize: v.optional(v.number()) },
   returns: v.object({
     tiles: v.array(v.object({ _id: v.id('map_tiles'), _creationTime: v.number(), ...mapTileFields })),
     batchIndex: v.number(),
@@ -49,22 +45,12 @@ export const getTilesBatch = query({
 
     console.log(`✅ [CONVEX] getTilesBatch COMPLETE: ${tiles.length} tiles (batch ${args.batchIndex + 1}/${totalBatches})\n`);
 
-    return {
-      tiles,
-      batchIndex: args.batchIndex,
-      totalBatches,
-      hasMore,
-    };
+    return { tiles, batchIndex: args.batchIndex, totalBatches, hasMore };
   },
 });
 
 export const getTilesByRegion = query({
-  args: {
-    x: v.number(),
-    y: v.number(),
-    width: v.number(),
-    height: v.number(),
-  },
+  args: { x: v.number(), y: v.number(), width: v.number(), height: v.number() },
   returns: v.array(v.object({ _id: v.id('map_tiles'), _creationTime: v.number(), ...mapTileFields })),
   handler: async (ctx, args) => {
     const { x, y, width, height } = args;
@@ -118,10 +104,7 @@ export const getPlaces = query({
 });
 
 export const initMap = mutation({
-  args: {
-    seed: v.optional(v.string()),
-    force: v.optional(v.boolean()),
-  },
+  args: { seed: v.optional(v.string()), force: v.optional(v.boolean()) },
   returns: v.object({
     success: v.boolean(),
     message: v.string(),
@@ -131,20 +114,11 @@ export const initMap = mutation({
   handler: async (
     ctx,
     args
-  ): Promise<{
-    success: boolean;
-    message: string;
-    tilesCreated?: number;
-    placesCreated?: number;
-  }> => {
+  ): Promise<{ message: string; success: boolean; tilesCreated?: number; placesCreated?: number }> => {
     const existingSettings = await ctx.db.query('map_settings').first();
 
-    if (existingSettings && !args.force) {
-      return {
-        success: false,
-        message: 'Map already initialized. Use force=true to regenerate.',
-      };
-    }
+    if (existingSettings && !args.force)
+      return { success: false, message: 'Map already initialized. Use force=true to regenerate.' };
 
     if (args.force && existingSettings) {
       console.log('🗑️  Clearing existing map data...');
@@ -170,14 +144,8 @@ export const initMap = mutation({
 });
 
 export const clearAllTiles = mutation({
-  args: {
-    batchSize: v.optional(v.number()),
-  },
-  returns: v.object({
-    success: v.boolean(),
-    tilesDeleted: v.number(),
-    hasMore: v.boolean(),
-  }),
+  args: { batchSize: v.optional(v.number()) },
+  returns: v.object({ success: v.boolean(), tilesDeleted: v.number(), hasMore: v.boolean() }),
   handler: async (ctx, args) => {
     const batchSize = args.batchSize || 1000;
     console.log(`🗑️  Clearing map tiles (batch size: ${batchSize})...`);
@@ -188,45 +156,29 @@ export const clearAllTiles = mutation({
     const hasMore = (await ctx.db.query('map_tiles').first()) !== null;
 
     console.log(`✅ Deleted ${tiles.length} tiles${hasMore ? ' (more remaining)' : ''}`);
-    return {
-      success: true,
-      tilesDeleted: tiles.length,
-      hasMore,
-    };
+    return { success: true, tilesDeleted: tiles.length, hasMore };
   },
 });
 
 export const clearAllPlaces = mutation({
   args: {},
-  returns: v.object({
-    success: v.boolean(),
-    placesDeleted: v.number(),
-  }),
+  returns: v.object({ success: v.boolean(), placesDeleted: v.number() }),
   handler: async ctx => {
     console.log('🗑️  Clearing all places...');
     const deletedCount = await deleteAll(ctx, 'places');
     console.log(`✅ Deleted ${deletedCount} places`);
-    return {
-      success: true,
-      placesDeleted: deletedCount,
-    };
+    return { success: true, placesDeleted: deletedCount };
   },
 });
 
 export const clearMapSettings = mutation({
   args: {},
-  returns: v.object({
-    success: v.boolean(),
-    settingsDeleted: v.number(),
-  }),
+  returns: v.object({ success: v.boolean(), settingsDeleted: v.number() }),
   handler: async ctx => {
     console.log('🗑️  Clearing map settings...');
     const deletedCount = await deleteAll(ctx, 'map_settings');
     console.log(`✅ Deleted ${deletedCount} map settings`);
-    return {
-      success: true,
-      settingsDeleted: deletedCount,
-    };
+    return { success: true, settingsDeleted: deletedCount };
   },
 });
 
@@ -246,11 +198,6 @@ export const clearAllMapData = mutation({
     const settingsDeleted = await deleteAll(ctx, 'map_settings');
 
     console.log(`✅ Cleared: ${tilesDeleted} tiles, ${placesDeleted} places, ${settingsDeleted} settings`);
-    return {
-      success: true,
-      tilesDeleted,
-      placesDeleted,
-      settingsDeleted,
-    };
+    return { tilesDeleted, success: true, placesDeleted, settingsDeleted };
   },
 });

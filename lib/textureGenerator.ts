@@ -13,15 +13,9 @@ export function getTileTexture(renderer: Renderer, tileType: TileType, tileSize:
   const graphics = new Graphics();
   renderTile(graphics, 0, 0, tileSize, tileType, variant);
 
-  const renderTexture = RenderTexture.create({
-    width: tileSize,
-    height: tileSize,
-  });
+  const renderTexture = RenderTexture.create({ width: tileSize, height: tileSize });
 
-  renderer.render({
-    container: graphics,
-    target: renderTexture,
-  });
+  renderer.render({ container: graphics, target: renderTexture });
 
   textureCache.set(cacheKey, renderTexture);
   graphics.destroy();
@@ -33,8 +27,6 @@ export function preGenerateAllTileTextures(renderer: Renderer, tileSize: number,
   const tileTypes: TileType[] = ['floor', 'wall', 'door', 'grass', 'water', 'path', 'void'];
 
   for (const tileType of tileTypes) {
-    for (let variant = 0; variant < maxVariants; variant++) {
-      getTileTexture(renderer, tileType, tileSize, variant);
-    }
+    for (let variant = 0; variant < maxVariants; variant++) getTileTexture(renderer, tileType, tileSize, variant);
   }
 }

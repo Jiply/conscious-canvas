@@ -39,10 +39,7 @@ export function MapOverlays({
               <div
                 key={i}
                 className="bg-muted/60 rounded-sm animate-pulse"
-                style={{
-                  animationDuration: '1.5s',
-                  animationDelay: `${(i % 12) * 0.08}s`,
-                }}
+                style={{ animationDuration: '1.5s', animationDelay: `${(i % 12) * 0.08}s` }}
               />
             ))}
           </div>

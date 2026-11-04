@@ -1,11 +1,8 @@
 import { v } from 'convex/values';
-import { mutation, query } from './_generated/server';
+import { query, mutation } from './_generated/server';
 
 export const pruneObservations = mutation({
-  args: {
-    agentId: v.id('agents'),
-    keepCount: v.number(),
-  },
+  args: { agentId: v.id('agents'), keepCount: v.number() },
   returns: v.null(),
   handler: async (ctx, args) => {
     const observations = await ctx.db
@@ -15,19 +12,14 @@ export const pruneObservations = mutation({
       .collect();
 
     const toDelete = observations.slice(args.keepCount);
-    for (const obs of toDelete) {
-      await ctx.db.delete(obs._id);
-    }
+    for (const obs of toDelete) await ctx.db.delete(obs._id);
 
     return null;
   },
 });
 
 export const getRecentObservations = query({
-  args: {
-    agentId: v.id('agents'),
-    limit: v.optional(v.number()),
-  },
+  args: { agentId: v.id('agents'), limit: v.optional(v.number()) },
   returns: v.array(
     v.object({
       _id: v.id('observations'),
