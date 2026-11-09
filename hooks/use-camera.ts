@@ -56,7 +56,7 @@ export function useCamera({
     const canvas = canvasRef.current;
     if (!canvas || !mapSettings) return;
 
-    const handleWheel = (e: WheelEvent) => {
+    const zoomWithoutPageScroll = (e: WheelEvent) => {
       e.preventDefault();
       const zoomFactor = 1 - e.deltaY * 0.001;
 
@@ -71,9 +71,8 @@ export function useCamera({
       });
     };
 
-    // passive: false lets handleWheel preventDefault page scroll
-    canvas.addEventListener('wheel', handleWheel, { passive: false });
-    return () => canvas.removeEventListener('wheel', handleWheel);
+    canvas.addEventListener('wheel', zoomWithoutPageScroll, { passive: false });
+    return () => canvas.removeEventListener('wheel', zoomWithoutPageScroll);
   }, [mapSettings, canvasRef, constrainCamera, getMinScale]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {

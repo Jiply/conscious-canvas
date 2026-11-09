@@ -40,9 +40,8 @@ export const tick = mutation({
 
       await Promise.all(agents.map(agent => processAgentTick(ctx, agent, agents)));
 
-      // processAgentTick may have modified needs, so re-read agents
-      const freshAgents = await ctx.db.query('agents').collect();
-      await Promise.all(freshAgents.map(agent => updateAgentNeeds(ctx, agent)));
+      const agentsWithUpdatedTickNeeds = await ctx.db.query('agents').collect();
+      await Promise.all(agentsWithUpdatedTickNeeds.map(agent => updateAgentNeeds(ctx, agent)));
 
       await ctx.db.patch(state._id, { isRunning: false, lastCompletedAt: Date.now() });
 
@@ -75,11 +74,7 @@ async function processAgentTick(ctx: MutationCtx, agent: Doc<'agents'>, allAgent
 
   await pruneOldObservations(ctx, agent._id, 50);
 
-  // Unused, but keeps opinions in the tick mutation's read set.
-  await ctx.db
-    .query('opinions')
-    .withIndex('by_agent', q => q.eq('agentId', agent._id))
-    .collect();
+  await includeOpinionsInTickReadSet(ctx, agent._id);
 
   if (agent.currentConversationId) {
     await ctx.scheduler.runAfter(0, internal.conversations.processConversationTurn, {
@@ -96,6 +91,13 @@ async function processAgentTick(ctx: MutationCtx, agent: Doc<'agents'>, allAgent
 
   const now = Date.now();
   if (now >= agent.nextDecisionAt) await makeAgentDecision(ctx, agent);
+}
+
+async function includeOpinionsInTickReadSet(ctx: MutationCtx, agentId: Id<'agents'>) {
+  await ctx.db
+    .query('opinions')
+    .withIndex('by_agent', q => q.eq('agentId', agentId))
+    .collect();
 }
 
 async function updateAgentNeeds(ctx: MutationCtx, agent: Doc<'agents'>) {

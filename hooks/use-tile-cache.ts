@@ -3,7 +3,8 @@ import type { Tile } from '@/lib/mapTypes';
 import { api } from '@/convex/_generated/api';
 import { useRef, useState, useEffect } from 'react';
 
-// Parallel 4000-tile batches stay under Convex read limits
+const CONVEX_READ_SAFE_BATCH_SIZE = 4000;
+
 export function useTileCache() {
   const [tiles, setTiles] = useState<Map<string, Tile>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
@@ -13,11 +14,16 @@ export function useTileCache() {
   const [totalBatches, setTotalBatches] = useState(0);
   const hasInitialized = useRef(false);
 
-  const batch0 = useQuery(api.map.getTilesBatch, hasInitialized.current ? 'skip' : { batchIndex: 0, batchSize: 4000 });
+  const batch0 = useQuery(
+    api.map.getTilesBatch,
+    hasInitialized.current ? 'skip' : { batchIndex: 0, batchSize: CONVEX_READ_SAFE_BATCH_SIZE }
+  );
   const batches = [1, 2, 3, 4, 5, 6, 7].map(batchIndex =>
     useQuery(
       api.map.getTilesBatch,
-      totalBatches > batchIndex && !batchesLoaded.has(batchIndex) ? { batchIndex, batchSize: 4000 } : 'skip'
+      totalBatches > batchIndex && !batchesLoaded.has(batchIndex)
+        ? { batchIndex, batchSize: CONVEX_READ_SAFE_BATCH_SIZE }
+        : 'skip'
     )
   );
 

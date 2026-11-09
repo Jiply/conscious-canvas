@@ -56,7 +56,7 @@ export const getTilesByRegion = query({
     const { x, y, width, height } = args;
     const queryStart = Date.now();
 
-    const MAX_TILES = 8000;
+    const CONVEX_ARRAY_SAFE_TILE_LIMIT = 8000;
 
     console.log(
       `🔍 [CONVEX] getTilesByRegion query START: region=(${x},${y}) size=${width}x${height} (${width * height} tiles requested)`
@@ -69,10 +69,9 @@ export const getTilesByRegion = query({
     console.log(`   → Filtering tiles for region bounds...`);
     let tiles = allTiles.filter(tile => tile.x >= x && tile.x < x + width && tile.y >= y && tile.y < y + height);
 
-    // stays under Convex's array size limit
-    if (tiles.length > MAX_TILES) {
-      console.log(`   ⚠️  Result too large (${tiles.length} tiles), limiting to ${MAX_TILES}`);
-      tiles = tiles.slice(0, MAX_TILES);
+    if (tiles.length > CONVEX_ARRAY_SAFE_TILE_LIMIT) {
+      console.log(`   ⚠️  Result too large (${tiles.length} tiles), limiting to ${CONVEX_ARRAY_SAFE_TILE_LIMIT}`);
+      tiles = tiles.slice(0, CONVEX_ARRAY_SAFE_TILE_LIMIT);
     }
 
     console.log(`   ✓ Filter resulted in ${tiles.length} tiles within region`);
