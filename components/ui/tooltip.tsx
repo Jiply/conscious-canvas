@@ -1,28 +1,26 @@
 'use client';
 import { cn } from '@/lib/utils';
 import type { ComponentProps } from 'react';
-import * as TT from '@radix-ui/react-tooltip';
+import { Root, Arrow, Portal, Content, Trigger, Provider } from '@radix-ui/react-tooltip';
 
-function TooltipProvider({ delayDuration = 0, ...props }: ComponentProps<typeof TT.Provider>) {
-  return <TT.Provider data-slot="tooltip-provider" delayDuration={delayDuration} {...props} />;
+function TooltipProvider({ delayDuration = 0, ...props }: ComponentProps<typeof Provider>) {
+  return <Provider data-slot="tooltip-provider" delayDuration={delayDuration} {...props} />;
 }
 
-function Tooltip({ ...props }: ComponentProps<typeof TT.Root>) {
+function Tooltip({ ...props }: ComponentProps<typeof Root>) {
   return (
     <TooltipProvider>
-      <TT.Root data-slot="tooltip" {...props} />
+      <Root data-slot="tooltip" {...props} />
     </TooltipProvider>
   );
 }
 
-function TooltipTrigger({ ...props }: ComponentProps<typeof TT.Trigger>) {
-  return <TT.Trigger data-slot="tooltip-trigger" {...props} />;
-}
+const TooltipTrigger = ({ ...props }: ComponentProps<typeof Trigger>) => <Trigger data-slot="tooltip-trigger" {...props} />;
 
-function TooltipContent({ children, className, sideOffset = 0, ...props }: ComponentProps<typeof TT.Content>) {
+function TooltipContent({ children, className, sideOffset = 0, ...props }: ComponentProps<typeof Content>) {
   return (
-    <TT.Portal>
-      <TT.Content
+    <Portal>
+      <Content
         sideOffset={sideOffset}
         data-slot="tooltip-content"
         className={cn(
@@ -32,9 +30,9 @@ function TooltipContent({ children, className, sideOffset = 0, ...props }: Compo
         {...props}
       >
         {children}
-        <TT.Arrow className="bg-foreground fill-foreground z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px]" />
-      </TT.Content>
-    </TT.Portal>
+        <Arrow className="bg-foreground fill-foreground z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px]" />
+      </Content>
+    </Portal>
   );
 }
 

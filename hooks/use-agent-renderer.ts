@@ -113,15 +113,15 @@ export function useAgentRenderer({
         agentContainer.y = targetY;
 
         agentData = {
-          container: agentContainer,
           targetX,
           targetY,
           startX: targetX,
           startY: targetY,
+          container: agentContainer,
           animationStartTime: performance.now(),
+          wobbleSpeed: 0.8 + Math.random() * 0.4,
           wobbleOffsetX: Math.random() * Math.PI * 2,
           wobbleOffsetY: Math.random() * Math.PI * 2,
-          wobbleSpeed: 0.8 + Math.random() * 0.4,
         };
         agentContainers.set(a._id, agentData);
 

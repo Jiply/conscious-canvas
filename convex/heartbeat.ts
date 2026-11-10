@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
 import { api, internal } from './_generated/api';
 import type { Id, Doc } from './_generated/dataModel';
-import { type MutationCtx, mutation } from './_generated/server';
+import { mutation, type MutationCtx } from './_generated/server';
 
 const VISION_WIDTH = 7;
 const VISION_DEPTH = 20;
@@ -9,7 +9,7 @@ const STALE_LOCK_TIMEOUT = 30000;
 
 export const tick = mutation({
   args: { leaderId: v.string() },
-  returns: v.object({ success: v.boolean(), processedAgents: v.number(), latencyMs: v.number(), isLeader: v.boolean() }),
+  returns: v.object({ success: v.boolean(), latencyMs: v.number(), isLeader: v.boolean(), processedAgents: v.number() }),
   handler: async (ctx, args) => {
     const startTime = Date.now();
 
@@ -18,9 +18,9 @@ export const tick = mutation({
     if (!state) {
       const stateId = await ctx.db.insert('heartbeat_state', {
         isRunning: false,
-        currentLeaderId: args.leaderId,
         lastStartedAt: 0,
         lastCompletedAt: 0,
+        currentLeaderId: args.leaderId,
       });
       state = await ctx.db.get(stateId);
       if (!state) throw new Error('Failed to create heartbeat state');
@@ -45,7 +45,7 @@ export const tick = mutation({
 
       await ctx.db.patch(state._id, { isRunning: false, lastCompletedAt: Date.now() });
 
-      return { success: true, processedAgents: agents.length, latencyMs: Date.now() - startTime, isLeader: true };
+      return { success: true, isLeader: true, processedAgents: agents.length, latencyMs: Date.now() - startTime };
     } catch (error) {
       await ctx.db.patch(state._id, { isRunning: false });
       throw error;
@@ -58,12 +58,12 @@ async function processAgentTick(ctx: MutationCtx, agent: Doc<'agents'>, allAgent
 
   const observations = visibleAgents.map(visible => ({
     agentId: agent._id,
-    targetId: visible.agent._id,
-    targetType: 'agent' as const,
-    location: visible.agent.pos,
     distance: visible.distance,
-    summary: `Saw ${visible.agent.name} at distance ${visible.distance.toFixed(1)} tiles`,
+    targetId: visible.agent._id,
+    location: visible.agent.pos,
+    targetType: 'agent' as const,
     salience: calculateSalience(visible.distance, visible.agent),
+    summary: `Saw ${visible.agent.name} at distance ${visible.distance.toFixed(1)} tiles`,
   }));
 
   if (observations.length > 0) {
@@ -114,8 +114,8 @@ async function updateAgentNeeds(ctx: MutationCtx, agent: Doc<'agents'>) {
   const newNeeds = {
     hunger: Math.min(1, agent.needs.hunger + hungerGrowthRate * SIMULATED_SECONDS),
     sleepiness: Math.min(1, agent.needs.sleepiness + sleepinessGrowthRate * SIMULATED_SECONDS),
-    studyPressure: Math.min(1, agent.needs.studyPressure + studyPressureGrowthRate * SIMULATED_SECONDS),
     socialDrive: Math.min(1, agent.needs.socialDrive + socialDriveGrowthRate * SIMULATED_SECONDS),
+    studyPressure: Math.min(1, agent.needs.studyPressure + studyPressureGrowthRate * SIMULATED_SECONDS),
   };
 
   console.log(
@@ -130,7 +130,7 @@ async function executePathMovement(ctx: MutationCtx, agent: Doc<'agents'>) {
 
   const nextStep = agent.path.length > 1 ? agent.path[1] : agent.path[0];
 
-  await ctx.db.patch(agent._id, { pos: { x: nextStep.x, y: nextStep.y }, path: agent.path.slice(1) });
+  await ctx.db.patch(agent._id, { path: agent.path.slice(1), pos: { x: nextStep.x, y: nextStep.y } });
 
   if (agent.path.length <= 1) {
     await ctx.db.patch(agent._id, { state: 'Idle', path: undefined });
@@ -191,8 +191,8 @@ async function performActionAtPlace(ctx: MutationCtx, agent: Doc<'agents'>, plac
       agentId: agent._id,
       action: decisionAction,
       targetPlaceId: placeId,
-      innerThought: `Performing ${decisionAction} at ${place.name}`,
       completedAt: Date.now(),
+      innerThought: `Performing ${decisionAction} at ${place.name}`,
     });
   }
 }
@@ -210,10 +210,10 @@ async function makeAgentDecision(ctx: MutationCtx, agent: Doc<'agents'>) {
     await ctx.scheduler.runAfter(0, api.llm.makeAgentDecision, { agentId: agent._id });
   } catch (error) {
     await ctx.db.insert('decisions', {
-      agentId: agent._id,
       action: 'Idle',
-      innerThought: 'Taking a moment to think...',
+      agentId: agent._id,
       completedAt: Date.now(),
+      innerThought: 'Taking a moment to think...',
     });
   }
 }

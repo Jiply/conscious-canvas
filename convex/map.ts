@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 import { internal } from './_generated/api';
-import { type MutationCtx, query, mutation } from './_generated/server';
+import { query, mutation, type MutationCtx } from './_generated/server';
 import { placeFields, mapTileFields, mapSettingsFields } from './schema';
 
 async function deleteAll(ctx: MutationCtx, table: 'map_tiles' | 'places' | 'map_settings') {
@@ -26,9 +26,9 @@ export const getTilesBatch = query({
   args: { batchIndex: v.number(), batchSize: v.optional(v.number()) },
   returns: v.object({
     tiles: v.array(v.object({ _id: v.id('map_tiles'), _creationTime: v.number(), ...mapTileFields })),
+    hasMore: v.boolean(),
     batchIndex: v.number(),
     totalBatches: v.number(),
-    hasMore: v.boolean(),
   }),
   handler: async (ctx, args) => {
     const batchSize = args.batchSize || 4000;
@@ -45,7 +45,7 @@ export const getTilesBatch = query({
 
     console.log(`✅ [CONVEX] getTilesBatch COMPLETE: ${tiles.length} tiles (batch ${args.batchIndex + 1}/${totalBatches})\n`);
 
-    return { tiles, batchIndex: args.batchIndex, totalBatches, hasMore };
+    return { tiles, hasMore, totalBatches, batchIndex: args.batchIndex };
   },
 });
 
@@ -105,8 +105,8 @@ export const getPlaces = query({
 export const initMap = mutation({
   args: { seed: v.optional(v.string()), force: v.optional(v.boolean()) },
   returns: v.object({
-    success: v.boolean(),
     message: v.string(),
+    success: v.boolean(),
     tilesCreated: v.optional(v.number()),
     placesCreated: v.optional(v.number()),
   }),
@@ -135,16 +135,16 @@ export const initMap = mutation({
 
     return {
       success: true,
-      message: 'Map initialized successfully!',
       tilesCreated: result.tilesCreated,
       placesCreated: result.placesCreated,
+      message: 'Map initialized successfully!',
     };
   },
 });
 
 export const clearAllTiles = mutation({
   args: { batchSize: v.optional(v.number()) },
-  returns: v.object({ success: v.boolean(), tilesDeleted: v.number(), hasMore: v.boolean() }),
+  returns: v.object({ success: v.boolean(), hasMore: v.boolean(), tilesDeleted: v.number() }),
   handler: async (ctx, args) => {
     const batchSize = args.batchSize || 1000;
     console.log(`🗑️  Clearing map tiles (batch size: ${batchSize})...`);
@@ -155,7 +155,7 @@ export const clearAllTiles = mutation({
     const hasMore = (await ctx.db.query('map_tiles').first()) !== null;
 
     console.log(`✅ Deleted ${tiles.length} tiles${hasMore ? ' (more remaining)' : ''}`);
-    return { success: true, tilesDeleted: tiles.length, hasMore };
+    return { hasMore, success: true, tilesDeleted: tiles.length };
   },
 });
 

@@ -1,9 +1,7 @@
 import { twMerge } from 'tailwind-merge';
-import { type ClassValue, clsx } from 'clsx';
+import { clsx, type ClassValue } from 'clsx';
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+export const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs));
 
 const AGENT_PROFILE_PICTURES: Record<string, string> = {
   'Emma Kim': '/07.png',
@@ -16,6 +14,4 @@ const AGENT_PROFILE_PICTURES: Record<string, string> = {
   'Prof. James Wilson': '/02.png',
 };
 
-export function getProfilePicture(agentName: string) {
-  return AGENT_PROFILE_PICTURES[agentName] || '/01.png';
-}
+export const getProfilePicture = (agentName: string) => AGENT_PROFILE_PICTURES[agentName] || '/01.png';

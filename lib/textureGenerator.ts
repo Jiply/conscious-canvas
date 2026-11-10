@@ -1,6 +1,6 @@
 import type { TileType } from '@/lib/mapTypes';
 import { renderTile } from '@/lib/tileRenderer';
-import { Texture, Graphics, Renderer, RenderTexture } from 'pixi.js';
+import { Graphics, type Texture, RenderTexture, type Renderer } from 'pixi.js';
 
 const textureCache = new Map<string, Texture>();
 

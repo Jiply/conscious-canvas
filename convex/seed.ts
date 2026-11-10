@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 import type { Id } from './_generated/dataModel';
-import { type MutationCtx, mutation } from './_generated/server';
+import { mutation, type MutationCtx } from './_generated/server';
 
 const MAP_CENTER_X = 100;
 const MAP_CENTER_Y = 75;
@@ -133,8 +133,8 @@ export const seedAgents = mutation({
       const agentId = await ctx.db.insert('agents', {
         ...template,
         pos,
-        headingRad: Math.random() * Math.PI * 2,
         state: 'Idle',
+        headingRad: Math.random() * Math.PI * 2,
         nextDecisionAt: Date.now() + Math.random() * 5000,
       });
 
@@ -152,11 +152,11 @@ export const seedAgents = mutation({
         const sentiment = (Math.random() - 0.3) * 1.5;
 
         await ctx.db.insert('opinions', {
+          traits: {},
           agentId: agentIds[agent1Idx],
           targetAgentId: agentIds[agent2Idx],
-          sentiment: Math.max(-1, Math.min(1, sentiment)),
           summary: `Haven't interacted much yet`,
-          traits: {},
+          sentiment: Math.max(-1, Math.min(1, sentiment)),
         });
       }
 

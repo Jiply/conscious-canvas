@@ -6,12 +6,12 @@ import { useRef, useState, useEffect } from 'react';
 const CONVEX_READ_SAFE_BATCH_SIZE = 4000;
 
 export function useTileCache() {
-  const [tiles, setTiles] = useState<Map<string, Tile>>(new Map());
-  const [isLoading, setIsLoading] = useState(true);
   const [progress, setProgress] = useState(0);
   const [totalTiles, setTotalTiles] = useState(0);
-  const [batchesLoaded, setBatchesLoaded] = useState<Set<number>>(new Set());
+  const [isLoading, setIsLoading] = useState(true);
   const [totalBatches, setTotalBatches] = useState(0);
+  const [tiles, setTiles] = useState<Map<string, Tile>>(new Map());
+  const [batchesLoaded, setBatchesLoaded] = useState<Set<number>>(new Set());
   const hasInitialized = useRef(false);
 
   const batch0 = useQuery(

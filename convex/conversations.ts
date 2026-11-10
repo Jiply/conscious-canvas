@@ -6,7 +6,7 @@ import { internalAction } from './_generated/server';
 
 export const processConversationTurn = internalAction({
   args: { agentId: v.id('agents'), conversationId: v.id('conversations') },
-  returns: v.object({ continueConversation: v.boolean(), messageContent: v.string() }),
+  returns: v.object({ messageContent: v.string(), continueConversation: v.boolean() }),
   handler: async (ctx, args) => {
     const agent = await ctx.runQuery(api.agents.getAgent, { agentId: args.agentId });
     if (!agent) throw new Error('Agent not found');
@@ -27,9 +27,9 @@ export const processConversationTurn = internalAction({
     const opinions = await ctx.runQuery(api.opinions.getAgentOpinions, { agentId: args.agentId });
     const opinionOfOther = opinions.find(op => op.targetAgentId === otherParticipantId);
 
-    const observations = await ctx.runQuery(api.observations.getRecentObservations, { agentId: args.agentId, limit: 5 });
+    const observations = await ctx.runQuery(api.observations.getRecentObservations, { limit: 5, agentId: args.agentId });
 
-    const decisions = await ctx.runQuery(api.decisions.getDecisionHistory, { agentId: args.agentId, limit: 3 });
+    const decisions = await ctx.runQuery(api.decisions.getDecisionHistory, { limit: 3, agentId: args.agentId });
 
     let response;
     try {
@@ -42,24 +42,24 @@ export const processConversationTurn = internalAction({
     }
 
     await ctx.runMutation(api.conversationsMutations.addMessage, {
-      conversationId: args.conversationId,
       agentId: args.agentId,
       content: response.message,
-      continueConversation: response.continueConversation,
+      conversationId: args.conversationId,
       reasonForLeaving: response.reasonForLeaving,
+      continueConversation: response.continueConversation,
     });
 
     if (response.emotionDelta)
       await ctx.runMutation(api.agents.updateAgentEmotions, {
         agentId: args.agentId,
-        valence: Math.max(-1, Math.min(1, agent.emotions.valence + response.emotionDelta.valence)),
         arousal: Math.max(0, Math.min(1, agent.emotions.arousal + response.emotionDelta.arousal)),
+        valence: Math.max(-1, Math.min(1, agent.emotions.valence + response.emotionDelta.valence)),
       });
 
     if (!response.continueConversation)
       await ctx.runMutation(api.conversationsMutations.completeConversation, { conversationId: args.conversationId });
 
-    return { continueConversation: response.continueConversation, messageContent: response.message };
+    return { messageContent: response.message, continueConversation: response.continueConversation };
   },
 });
 
@@ -284,8 +284,8 @@ async function generateConversationMessage(
 
   return {
     message: parsed.message || '...',
-    continueConversation: parsed.continueConversation ?? true,
     reasonForLeaving: parsed.reasonForLeaving,
+    continueConversation: parsed.continueConversation ?? true,
     emotionDelta: parsed.emotionDelta || { valence: 0, arousal: 0 },
   };
 }

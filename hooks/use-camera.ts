@@ -44,9 +44,9 @@ export function useCamera({
       const worldHeight = mapSettings.gridHeight * mapSettings.tileSize * scale;
 
       return {
+        scale,
         x: Math.max(dimensions.width - worldWidth, Math.min(0, newCamera.x)),
         y: Math.max(dimensions.height - worldHeight, Math.min(0, newCamera.y)),
-        scale,
       };
     },
     [mapSettings, dimensions, getMinScale]

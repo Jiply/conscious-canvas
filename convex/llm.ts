@@ -7,12 +7,12 @@ import { action } from './_generated/server';
 export const makeAgentDecision = action({
   args: { agentId: v.id('agents') },
   returns: v.object({
-    action: v.union(v.literal('MoveTo'), v.literal('EngageConversation'), v.literal('Idle')),
-    targetPlaceId: v.optional(v.id('places')),
-    targetAgentId: v.optional(v.id('agents')),
     utterance: v.optional(v.string()),
     innerThought: v.optional(v.string()),
+    targetPlaceId: v.optional(v.id('places')),
+    targetAgentId: v.optional(v.id('agents')),
     emotionDelta: v.optional(v.object({ valence: v.number(), arousal: v.number() })),
+    action: v.union(v.literal('MoveTo'), v.literal('EngageConversation'), v.literal('Idle')),
   }),
   handler: async (ctx, args) => {
     const startTime = Date.now();
@@ -21,11 +21,11 @@ export const makeAgentDecision = action({
     if (!agent) throw new Error('Agent not found');
 
     const recentObservations = await ctx.runQuery(api.observations.getRecentObservations, {
-      agentId: args.agentId,
       limit: 10,
+      agentId: args.agentId,
     });
 
-    const recentDecisions = await ctx.runQuery(api.decisions.getDecisionHistory, { agentId: args.agentId, limit: 5 });
+    const recentDecisions = await ctx.runQuery(api.decisions.getDecisionHistory, { limit: 5, agentId: args.agentId });
 
     const agentOpinions = await ctx.runQuery(api.opinions.getAgentOpinions, { agentId: args.agentId });
 
@@ -74,11 +74,11 @@ export const makeAgentDecision = action({
       );
 
       decision = {
+        utterance: 'Hey!',
         action: 'EngageConversation' as const,
         targetAgentId: closestAgent.agent._id,
-        utterance: 'Hey!',
-        innerThought: `${closestAgent.agent.name} is right here - I should say hi and talk to them!`,
         emotionDelta: { valence: 0.1, arousal: 0.15 },
+        innerThought: `${closestAgent.agent.name} is right here - I should say hi and talk to them!`,
       };
     } else {
       const urgent = (
@@ -91,9 +91,9 @@ export const makeAgentDecision = action({
       const place = urgent && allPlaces.find(p => p.kind.toLowerCase() === urgent[1]);
       if (urgent && place)
         decision = {
-          action: 'MoveTo' as const,
-          targetPlaceId: place._id,
           innerThought: urgent[2],
+          targetPlaceId: place._id,
+          action: 'MoveTo' as const,
           emotionDelta: { valence: urgent[3], arousal: urgent[4] },
         };
     }
@@ -115,12 +115,12 @@ export const makeAgentDecision = action({
 
     const decisionId = await ctx.runMutation(api.decisions.addDecision, {
       agentId: args.agentId,
+      llmLatencyMs: latency,
       action: decision.action,
-      targetPlaceId: decision.targetPlaceId,
-      targetAgentId: decision.targetAgentId,
       utterance: decision.utterance,
       innerThought: decision.innerThought,
-      llmLatencyMs: latency,
+      targetPlaceId: decision.targetPlaceId,
+      targetAgentId: decision.targetAgentId,
     });
 
     if (decision.action === 'Idle') await ctx.runMutation(api.decisions.completeDecision, { decisionId });
@@ -148,13 +148,13 @@ export const makeAgentDecision = action({
           const entrance = targetPlace.entrances[0];
 
           const path = await ctx.runQuery(api.pathfinding.findPath, {
-            startX: agent.pos.x,
-            startY: agent.pos.y,
             goalX: entrance.x,
             goalY: entrance.y,
+            startX: agent.pos.x,
+            startY: agent.pos.y,
           });
 
-          if (path) await ctx.runMutation(api.agents.setAgentPath, { agentId: args.agentId, path, state: 'Transit' });
+          if (path) await ctx.runMutation(api.agents.setAgentPath, { path, state: 'Transit', agentId: args.agentId });
         }
       } catch (error) {}
     }
@@ -357,11 +357,11 @@ async function callOpenAIForDecision(
 
   return {
     action: parsed.toolName,
+    utterance: parsed.parameters?.utterance,
     targetPlaceId: parsed.parameters?.targetPlaceId,
     targetAgentId: parsed.parameters?.targetAgentId,
-    utterance: parsed.parameters?.utterance,
-    innerThought: parsed.parameters?.innerThought || 'Thinking...',
     emotionDelta: calculateEmotionDelta(parsed.toolName),
+    innerThought: parsed.parameters?.innerThought || 'Thinking...',
   };
 }
 

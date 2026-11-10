@@ -14,7 +14,7 @@ export const heartbeat = mutation({
 
     if (existing) await ctx.db.patch(existing._id, { lastHeartbeatAt: now });
     else {
-      await ctx.db.insert('observer', { sessionId: args.sessionId, lastHeartbeatAt: now, metadata: { joinedAt: now } });
+      await ctx.db.insert('observer', { lastHeartbeatAt: now, sessionId: args.sessionId, metadata: { joinedAt: now } });
 
       await ctx.db.insert('events', {
         type: 'world',
@@ -74,8 +74,8 @@ export const heartbeat = mutation({
       }
 
       await ctx.db.patch(worldSettings._id, {
-        isRunning: shouldRun,
         observerCount,
+        isRunning: shouldRun,
         simulationStartedAt: !wasRunning && shouldRun ? now : worldSettings.simulationStartedAt,
       });
     }
@@ -94,26 +94,26 @@ export const getWorldState = query({
 
     return {
       isRunning: worldSettings.isRunning,
-      observerCount: worldSettings.observerCount,
       adminEnabled: worldSettings.adminEnabled,
+      observerCount: worldSettings.observerCount,
     };
   },
 });
 
 export const toggleAdmin = mutation({
-  args: { enabled: v.boolean() },
   returns: v.null(),
+  args: { enabled: v.boolean() },
   handler: async (ctx, args) => {
     const now = Date.now();
     const worldSettings = await ctx.db.query('world_settings').first();
 
     if (!worldSettings)
       await ctx.db.insert('world_settings', {
+        tickHz: 0.2,
+        currentTick: 0,
         isRunning: false,
         observerCount: 0,
         adminEnabled: args.enabled,
-        tickHz: 0.2,
-        currentTick: 0,
       });
     else
       await ctx.db.patch(worldSettings._id, {
@@ -122,12 +122,12 @@ export const toggleAdmin = mutation({
       });
 
     await ctx.db.insert('events', {
-      timestamp: now,
       type: 'world',
+      timestamp: now,
+      metadata: { severity: 'critical' },
       description: args.enabled
         ? '⚙️ Admin enabled simulation - universe can run'
         : '⚙️ Admin disabled simulation - universe force frozen',
-      metadata: { severity: 'critical' },
     });
 
     return null;

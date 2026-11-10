@@ -3,26 +3,26 @@ import { decisionFields } from './schema';
 import { query, mutation } from './_generated/server';
 
 export const addDecision = mutation({
+  returns: v.id('decisions'),
   args: {
     agentId: v.id('agents'),
     action: decisionFields.action,
-    targetPlaceId: v.optional(v.id('places')),
-    targetAgentId: v.optional(v.id('agents')),
     utterance: v.optional(v.string()),
     innerThought: v.optional(v.string()),
     llmLatencyMs: v.optional(v.number()),
+    targetPlaceId: v.optional(v.id('places')),
+    targetAgentId: v.optional(v.id('agents')),
   },
-  returns: v.id('decisions'),
   handler: async (ctx, args) => {
     const decisionId = await ctx.db.insert('decisions', {
-      agentId: args.agentId,
       action: args.action,
-      targetPlaceId: args.targetPlaceId,
-      targetAgentId: args.targetAgentId,
+      agentId: args.agentId,
+      completedAt: undefined,
       utterance: args.utterance,
       innerThought: args.innerThought,
-      completedAt: undefined,
       llmLatencyMs: args.llmLatencyMs,
+      targetPlaceId: args.targetPlaceId,
+      targetAgentId: args.targetAgentId,
     });
 
     const agent = await ctx.db.get(args.agentId);
@@ -55,12 +55,12 @@ export const addDecision = mutation({
       if (args.innerThought) description += ` - "${args.innerThought}"`;
 
       await ctx.db.insert('events', {
-        timestamp: Date.now(),
-        type: 'decision',
-        agentIds: [args.agentId],
         description,
+        type: 'decision',
         location: agent.pos,
-        metadata: { placeId: args.targetPlaceId, severity: 'info' },
+        timestamp: Date.now(),
+        agentIds: [args.agentId],
+        metadata: { severity: 'info', placeId: args.targetPlaceId },
       });
     }
 
@@ -69,8 +69,8 @@ export const addDecision = mutation({
 });
 
 export const completeDecision = mutation({
-  args: { decisionId: v.id('decisions') },
   returns: v.null(),
+  args: { decisionId: v.id('decisions') },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.decisionId, { completedAt: Date.now() });
 

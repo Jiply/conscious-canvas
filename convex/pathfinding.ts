@@ -1,6 +1,7 @@
 import { v } from 'convex/values';
-import { type QueryCtx, query } from './_generated/server';
+import { query, type QueryCtx } from './_generated/server';
 
+const heuristic = (x1: number, y1: number, x2: number, y2: number): number => Math.abs(x1 - x2) + Math.abs(y1 - y2);
 interface PathNode {
   x: number;
   y: number;
@@ -11,16 +12,16 @@ interface PathNode {
 }
 
 export const findPath = query({
-  args: { startX: v.number(), startY: v.number(), goalX: v.number(), goalY: v.number() },
   returns: v.union(v.array(v.object({ x: v.number(), y: v.number() })), v.null()),
+  args: { goalX: v.number(), goalY: v.number(), startX: v.number(), startY: v.number() },
   handler: async (ctx, args) => {
     const startNode: PathNode = {
-      x: Math.round(args.startX),
-      y: Math.round(args.startY),
       g: 0,
-      h: heuristic(args.startX, args.startY, args.goalX, args.goalY),
       f: 0,
       parent: null,
+      x: Math.round(args.startX),
+      y: Math.round(args.startY),
+      h: heuristic(args.startX, args.startY, args.goalX, args.goalY),
     };
     startNode.f = startNode.g + startNode.h;
 
@@ -63,7 +64,7 @@ export const findPath = query({
             existingNode.f = f;
             existingNode.parent = current;
           }
-        } else openList.push({ x: neighbor.x, y: neighbor.y, g, h, f, parent: current });
+        } else openList.push({ g, h, f, x: neighbor.x, y: neighbor.y, parent: current });
       }
     }
 
@@ -94,10 +95,6 @@ async function getWalkableNeighbors(ctx: QueryCtx, x: number, y: number): Promis
   }
 
   return neighbors;
-}
-
-function heuristic(x1: number, y1: number, x2: number, y2: number): number {
-  return Math.abs(x1 - x2) + Math.abs(y1 - y2);
 }
 
 function reconstructPath(goalNode: PathNode): Array<{ x: number; y: number }> {

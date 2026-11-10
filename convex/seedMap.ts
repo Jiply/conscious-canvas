@@ -1,5 +1,5 @@
-import { mapTileFields } from './schema';
-import { type Infer, v } from 'convex/values';
+import { v, type Infer } from 'convex/values';
+import type { mapTileFields } from './schema';
 import { internalMutation } from './_generated/server';
 
 type TileType = Infer<typeof mapTileFields.tileType>;
@@ -244,13 +244,13 @@ const INTERNAL_AREAS: PlaceDefinition[] = [
 const DORM_ROOMS: PlaceDefinition[] = [
   ...[1, 2, 3].flatMap(floor =>
     [0, 1, 2, 3, 4, 5, 6, 7].map(i => ({
+      isIndoor: true,
       kind: 'dorm_room',
       name: `Room ${floor}0${i + 1}`,
+      realWorldInspiration: 'UTown Student Room',
       description: 'Single student bedroom with desk, bed, and storage',
       bounds: { width: 6, height: 4, x: 15 + 7 * i, y: 90 + 5 * floor },
       entrances: [{ x: 18 + 7 * i, y: [99, 100, 109][floor - 1], facing: floor === 2 ? 'north' : 'south' }],
-      isIndoor: true,
-      realWorldInspiration: 'UTown Student Room',
     }))
   ),
   {
@@ -302,13 +302,13 @@ export const initializeMap = internalMutation({
 
     if (tileOffset === 0)
       await ctx.db.insert('map_settings', {
+        seed,
         gridWidth,
         gridHeight,
+        version: 1,
         tileSize: 32,
         metersPerTile: 1,
-        version: 1,
         lastRegeneratedAt: Date.now(),
-        seed,
       });
 
     console.log(`📍 Generating base grid (${gridWidth}×${gridHeight} = ${gridWidth * gridHeight} tiles)...`);
@@ -333,11 +333,11 @@ export const initializeMap = internalMutation({
           const placeId = await ctx.db.insert('places', {
             kind: def.kind,
             name: def.name,
-            description: def.description,
             bounds: def.bounds,
-            entrances: def.entrances,
-            capacity: capacity(def),
             isIndoor: def.isIndoor,
+            capacity: capacity(def),
+            entrances: def.entrances,
+            description: def.description,
             metadata: { realWorldInspiration: def.realWorldInspiration },
           });
           placeIdMap.set(`${def.kind}_${def.name}`, placeId);
@@ -365,9 +365,9 @@ export const initializeMap = internalMutation({
           const tile: any = {
             x,
             y,
-            tileType: isPerimeter ? (isEntrance ? 'door' : 'wall') : interior(x, y),
-            isWalkable: isPerimeter ? isEntrance : true,
             visualVariant: variant(x, y),
+            isWalkable: isPerimeter ? isEntrance : true,
+            tileType: isPerimeter ? (isEntrance ? 'door' : 'wall') : interior(x, y),
           };
           if (placeId) tile.placeId = placeId;
           tiles[y * gridWidth + x] = tile;

@@ -45,10 +45,10 @@ export function useHeartbeat() {
         setIsLeader(result.isLeader);
         if (result.isLeader && result.success) {
           setStats({
-            processedAgents: result.processedAgents,
-            latencyMs: result.latencyMs,
-            lastTickAt: Date.now(),
             observerCount,
+            lastTickAt: Date.now(),
+            latencyMs: result.latencyMs,
+            processedAgents: result.processedAgents,
           });
           timeoutRef.current = setTimeout(heartbeat, 5000);
         } else if (!result.isLeader) setIsLeader(false);

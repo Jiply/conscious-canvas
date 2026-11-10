@@ -7,8 +7,8 @@ import { useRef, useState, useEffect } from 'react';
 import { useTileCache } from '@/hooks/use-tile-cache';
 import { MapOverlays } from '@/components/MapOverlays';
 import type { Id } from '@/convex/_generated/dataModel';
-import { usePlaceRenderer } from '@/hooks/use-place-renderer';
 import { useAgentRenderer } from '@/hooks/use-agent-renderer';
+import { usePlaceRenderer } from '@/hooks/use-place-renderer';
 import { useTileRendererCached } from '@/hooks/use-tile-renderer-cached';
 
 interface PixiMapProps {
@@ -21,9 +21,9 @@ interface PixiMapProps {
 
 export function PixiMap({ className, onWorldReady, centerOnLocation, onCenterComplete, onAgentClick }: PixiMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-  const [isCameraReady, setIsCameraReady] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const [isCameraReady, setIsCameraReady] = useState(false);
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -76,9 +76,9 @@ export function PixiMap({ className, onWorldReady, centerOnLocation, onCenterCom
     if (!centralGreen) return;
 
     const initialPos = {
+      scale: 1,
       x: dimensions.width / 2 - (centralGreen.bounds.x + centralGreen.bounds.width / 2) * tileSize,
       y: dimensions.height / 2 - (centralGreen.bounds.y + centralGreen.bounds.height / 2) * tileSize,
-      scale: 1,
     };
     setCamera(initialPos);
     setInitialCameraPos(initialPos);
@@ -86,18 +86,18 @@ export function PixiMap({ className, onWorldReady, centerOnLocation, onCenterCom
   }, [mapSettings, places, dimensions.width, dimensions.height, isCameraReady, setCamera, setInitialCameraPos]);
 
   useTileRendererCached({
-    tilesLayer: refs.tilesLayer,
-    tiles: tileCache,
+    dimensions,
     mapSettings,
+    tiles: tileCache,
     isLoading: tilesLoading,
     renderer: refs.renderer,
     camera: debouncedCamera,
-    dimensions,
+    tilesLayer: refs.tilesLayer,
   });
 
-  usePlaceRenderer({ placesLayer: refs.placesLayer, places, mapSettings, isCameraReady });
+  usePlaceRenderer({ places, mapSettings, isCameraReady, placesLayer: refs.placesLayer });
 
-  useAgentRenderer({ agentsLayer: refs.agentsLayer, agents, mapSettings, isCameraReady, onAgentClick });
+  useAgentRenderer({ agents, mapSettings, onAgentClick, isCameraReady, agentsLayer: refs.agentsLayer });
 
   useEffect(() => {
     if (!refs.worldContainer || !isCameraReady || refs.worldContainer.destroyed) return;
@@ -144,9 +144,9 @@ export function PixiMap({ className, onWorldReady, centerOnLocation, onCenterCom
         style={{
           width: '100%',
           height: '100%',
-          cursor: isDraggingRef.current ? 'grabbing' : 'grab',
           touchAction: 'none',
           visibility: isLoading ? 'hidden' : 'visible',
+          cursor: isDraggingRef.current ? 'grabbing' : 'grab',
         }}
         className="rounded-lg overflow-hidden"
       />

@@ -6,14 +6,14 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Sheet, SheetTitle, SheetHeader, SheetContent, SheetDescription } from '@/components/ui/sheet';
 import {
-  type CSSProperties,
-  type ComponentProps,
   useMemo,
   useState,
   useEffect,
   useContext,
   useCallback,
   createContext,
+  type CSSProperties,
+  type ComponentProps,
 } from 'react';
 
 const SIDEBAR_WIDTH = `18rem`;
@@ -43,9 +43,8 @@ function useSidebar() {
 
 function SidebarProvider({ children, className, ...props }: ComponentProps<`div`>) {
   const isMobile = useIsMobile();
-  const [openMobile, setOpenMobile] = useState(false);
-
   const [open, _setOpen] = useState(true);
+  const [openMobile, setOpenMobile] = useState(false);
   const setOpen = useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {
       const openState = typeof value === `function` ? value(open) : value;

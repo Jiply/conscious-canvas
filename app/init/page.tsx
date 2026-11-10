@@ -20,7 +20,7 @@ export default function InitPage() {
     setResult(null);
 
     try {
-      const res = await initMap({ seed: `utown_${Date.now()}`, force });
+      const res = await initMap({ force, seed: `utown_${Date.now()}` });
       setResult(res);
     } catch (error: any) {
       setResult({ success: false, message: error.message || 'Failed to initialize map' });

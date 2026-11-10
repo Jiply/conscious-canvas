@@ -39,12 +39,12 @@ export function usePlaceRenderer({
         const label = new Text({
           text: place.name,
           style: new TextStyle({
-            fontFamily: 'Arial, sans-serif',
             fontSize: 14,
-            fontWeight: 'bold',
             fill: 0xffffff,
+            fontWeight: 'bold',
+            fontFamily: 'Arial, sans-serif',
             stroke: { width: 3, color: 0x000000 },
-            dropShadow: { alpha: 0.8, angle: Math.PI / 6, blur: 2, color: 0x000000, distance: 2 },
+            dropShadow: { blur: 2, alpha: 0.8, distance: 2, color: 0x000000, angle: Math.PI / 6 },
           }),
         });
         label.anchor.set(0.5);

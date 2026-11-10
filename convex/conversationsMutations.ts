@@ -3,8 +3,8 @@ import { query, mutation } from './_generated/server';
 import { messageFields, conversationFields } from './schema';
 
 export const createConversation = mutation({
-  args: { initiatorId: v.id('agents'), targetId: v.id('agents') },
   returns: v.id('conversations'),
+  args: { targetId: v.id('agents'), initiatorId: v.id('agents') },
   handler: async (ctx, args) => {
     const initiator = await ctx.db.get(args.initiatorId);
     const target = await ctx.db.get(args.targetId);
@@ -12,11 +12,11 @@ export const createConversation = mutation({
     if (!initiator || !target) throw new Error('One or both agents not found');
 
     const conversationId = await ctx.db.insert('conversations', {
-      participantIds: [args.initiatorId, args.targetId],
+      turnCount: 0,
       status: 'active',
       startedAt: Date.now(),
       location: initiator.pos,
-      turnCount: 0,
+      participantIds: [args.initiatorId, args.targetId],
     });
 
     await ctx.db.patch(args.initiatorId, { state: 'Interact', currentConversationId: conversationId });
@@ -28,14 +28,14 @@ export const createConversation = mutation({
 });
 
 export const addMessage = mutation({
+  returns: v.id('messages'),
   args: {
-    conversationId: v.id('conversations'),
-    agentId: v.id('agents'),
     content: v.string(),
+    agentId: v.id('agents'),
     continueConversation: v.boolean(),
+    conversationId: v.id('conversations'),
     reasonForLeaving: v.optional(v.string()),
   },
-  returns: v.id('messages'),
   handler: async (ctx, args) => {
     const conversation = await ctx.db.get(args.conversationId);
     if (!conversation) throw new Error('Conversation not found');
@@ -46,12 +46,12 @@ export const addMessage = mutation({
     if (!agent) throw new Error('Agent not found');
 
     const messageId = await ctx.db.insert('messages', {
-      conversationId: args.conversationId,
       agentId: args.agentId,
       content: args.content,
-      emotionSnapshot: { valence: agent.emotions.valence, arousal: agent.emotions.arousal },
-      continueConversation: args.continueConversation,
+      conversationId: args.conversationId,
       reasonForLeaving: args.reasonForLeaving,
+      continueConversation: args.continueConversation,
+      emotionSnapshot: { valence: agent.emotions.valence, arousal: agent.emotions.arousal },
     });
 
     await ctx.db.patch(args.conversationId, { turnCount: conversation.turnCount + 1 });
@@ -61,8 +61,8 @@ export const addMessage = mutation({
 });
 
 export const completeConversation = mutation({
-  args: { conversationId: v.id('conversations') },
   returns: v.null(),
+  args: { conversationId: v.id('conversations') },
   handler: async (ctx, args) => {
     const conversation = await ctx.db.get(args.conversationId);
     if (!conversation) throw new Error('Conversation not found');
@@ -92,7 +92,7 @@ export const getConversationMessages = query({
 
 export const getAgentActiveConversation = query({
   args: { agentId: v.id('agents') },
-  returns: v.union(v.object({ _id: v.id('conversations'), _creationTime: v.number(), ...conversationFields }), v.null()),
+  returns: v.union(v.object({ _creationTime: v.number(), _id: v.id('conversations'), ...conversationFields }), v.null()),
   handler: async (ctx, args) => {
     const agent = await ctx.db.get(args.agentId);
     if (!agent || !agent.currentConversationId) return null;
@@ -105,13 +105,13 @@ export const getRecentConversations = query({
   args: { limit: v.number() },
   returns: v.array(
     v.object({
-      _id: v.id('conversations'),
-      _creationTime: v.number(),
-      participantNames: v.array(v.string()),
-      status: conversationFields.status,
       startedAt: v.number(),
-      completedAt: v.optional(v.number()),
       turnCount: v.number(),
+      _creationTime: v.number(),
+      _id: v.id('conversations'),
+      status: conversationFields.status,
+      completedAt: v.optional(v.number()),
+      participantNames: v.array(v.string()),
     })
   ),
   handler: async (ctx, args) => {
@@ -126,13 +126,13 @@ export const getRecentConversations = query({
       }
 
       conversationsWithNames.push({
-        _id: conversation._id,
-        _creationTime: conversation._creationTime,
         participantNames,
+        _id: conversation._id,
         status: conversation.status,
         startedAt: conversation.startedAt,
-        completedAt: conversation.completedAt,
         turnCount: conversation.turnCount,
+        completedAt: conversation.completedAt,
+        _creationTime: conversation._creationTime,
       });
     }
 

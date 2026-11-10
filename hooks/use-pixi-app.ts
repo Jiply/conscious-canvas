@@ -9,8 +9,8 @@ export function usePixiApp({ width, height }: { width: number; height: number })
   const placesLayerRef = useRef<Container | null>(null);
   const agentsLayerRef = useRef<Container | null>(null);
   const lastFrameTimeRef = useRef(performance.now());
-  const [isInitialized, setIsInitialized] = useState(false);
   const [fps, setFps] = useState(60);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     if (!canvasRef.current || appRef.current || width === 0 || height === 0) return;
@@ -21,10 +21,10 @@ export function usePixiApp({ width, height }: { width: number; height: number })
       .init({
         width,
         height,
-        backgroundColor: 0xffffff,
         antialias: true,
-        resolution: window.devicePixelRatio * 1.5 || 2,
         autoDensity: true,
+        backgroundColor: 0xffffff,
+        resolution: window.devicePixelRatio * 1.5 || 2,
       })
       .then(() => {
         if (!canvasRef.current || !app.canvas) return;
@@ -70,15 +70,15 @@ export function usePixiApp({ width, height }: { width: number; height: number })
   }, [width, height]);
 
   return {
+    fps,
     canvasRef,
+    isInitialized,
     refs: {
-      worldContainer: worldContainerRef.current,
       tilesLayer: tilesLayerRef.current,
       placesLayer: placesLayerRef.current,
       agentsLayer: agentsLayerRef.current,
+      worldContainer: worldContainerRef.current,
       renderer: appRef.current?.renderer || null,
     },
-    isInitialized,
-    fps,
   };
 }

@@ -1,7 +1,6 @@
-import { Sprite } from 'pixi.js';
 import { useRef, useEffect } from 'react';
-import type { Renderer, Container } from 'pixi.js';
 import type { Tile, MapSettings } from '@/lib/mapTypes';
+import { Sprite, type Renderer, type Container } from 'pixi.js';
 import { getTileTexture, preGenerateAllTileTextures } from '@/lib/textureGenerator';
 
 export function useTileRendererCached({

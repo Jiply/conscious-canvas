@@ -3,8 +3,8 @@ import { agentFields } from './schema';
 import { query, mutation } from './_generated/server';
 
 export const updateAgentEmotions = mutation({
-  args: { agentId: v.id('agents'), valence: v.optional(v.number()), arousal: v.optional(v.number()) },
   returns: v.null(),
+  args: { agentId: v.id('agents'), valence: v.optional(v.number()), arousal: v.optional(v.number()) },
   handler: async (ctx, args) => {
     const agent = await ctx.db.get(args.agentId);
     if (!agent) throw new Error('Agent not found');
@@ -18,8 +18,8 @@ export const updateAgentEmotions = mutation({
 });
 
 export const setAgentPath = mutation({
-  args: { agentId: v.id('agents'), path: v.array(v.object({ x: v.number(), y: v.number() })), state: agentFields.state },
   returns: v.null(),
+  args: { agentId: v.id('agents'), state: agentFields.state, path: v.array(v.object({ x: v.number(), y: v.number() })) },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.agentId, { path: args.path, state: args.state });
 
@@ -28,8 +28,8 @@ export const setAgentPath = mutation({
 });
 
 export const setNextDecisionTime = mutation({
-  args: { agentId: v.id('agents'), nextDecisionAt: v.number() },
   returns: v.null(),
+  args: { agentId: v.id('agents'), nextDecisionAt: v.number() },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.agentId, { nextDecisionAt: args.nextDecisionAt });
 
