@@ -3,7 +3,6 @@ import { agentFields } from './schema';
 import { query, mutation } from './_generated/server';
 
 export const updateAgentEmotions = mutation({
-  returns: v.null(),
   args: { agentId: v.id('agents'), valence: v.optional(v.number()), arousal: v.optional(v.number()) },
   handler: async (ctx, args) => {
     const agent = await ctx.db.get(args.agentId);
@@ -15,26 +14,25 @@ export const updateAgentEmotions = mutation({
 
     return null;
   },
+  returns: v.null(),
 });
 
 export const setAgentPath = mutation({
-  returns: v.null(),
   args: { agentId: v.id('agents'), state: agentFields.state, path: v.array(v.object({ x: v.number(), y: v.number() })) },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.agentId, { path: args.path, state: args.state });
-
     return null;
   },
+  returns: v.null(),
 });
 
 export const setNextDecisionTime = mutation({
-  returns: v.null(),
   args: { agentId: v.id('agents'), nextDecisionAt: v.number() },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.agentId, { nextDecisionAt: args.nextDecisionAt });
-
     return null;
   },
+  returns: v.null(),
 });
 
 export const listAgents = query({
@@ -51,7 +49,6 @@ export const getAgent = query({
 
 export const migrateAddConversationField = mutation({
   args: {},
-  returns: v.number(),
   handler: async ctx => {
     const agents = await ctx.db.query('agents').collect();
     let count = 0;
@@ -65,4 +62,5 @@ export const migrateAddConversationField = mutation({
 
     return count;
   },
+  returns: v.number(),
 });

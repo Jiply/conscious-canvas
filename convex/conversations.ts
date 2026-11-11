@@ -10,7 +10,6 @@ export const processConversationTurn = internalAction({
   handler: async (ctx, args) => {
     const agent = await ctx.runQuery(api.agents.getAgent, { agentId: args.agentId });
     if (!agent) throw new Error('Agent not found');
-
     const conversation = await ctx.runQuery(api.conversationsMutations.getAgentActiveConversation, { agentId: args.agentId });
     if (!conversation) throw new Error('No active conversation');
 
@@ -20,18 +19,14 @@ export const processConversationTurn = internalAction({
 
     const otherParticipantId = conversation.participantIds.find(id => id !== args.agentId);
     if (!otherParticipantId) throw new Error('No other participant found');
-
     const otherAgent = await ctx.runQuery(api.agents.getAgent, { agentId: otherParticipantId });
     if (!otherAgent) throw new Error('Other agent not found');
-
     const opinions = await ctx.runQuery(api.opinions.getAgentOpinions, { agentId: args.agentId });
     const opinionOfOther = opinions.find(op => op.targetAgentId === otherParticipantId);
-
     const observations = await ctx.runQuery(api.observations.getRecentObservations, { limit: 5, agentId: args.agentId });
-
     const decisions = await ctx.runQuery(api.decisions.getDecisionHistory, { limit: 3, agentId: args.agentId });
-
     let response;
+
     try {
       response = await generateConversationMessage(agent, otherAgent, opinionOfOther, messages, observations, decisions);
       if ((response as any).thoughts) console.log(`💭 ${agent.name} (thinking): ${(response as any).thoughts}`);
@@ -102,9 +97,11 @@ function buildConversationPrompt(
   const conversationHistory = messages
     .map((msg, idx) => {
       const speaker = msg.agentId === agent._id ? 'You' : otherAgent.name;
+
       const emotion = msg.emotionSnapshot
         ? ` [felt ${interpretValence(msg.emotionSnapshot.valence)}, ${interpretArousal(msg.emotionSnapshot.arousal)}]`
         : '';
+
       return `${idx + 1}. ${speaker}: "${msg.content}"${emotion}`;
     })
     .join('\n');
@@ -125,7 +122,6 @@ function buildConversationPrompt(
   const myMood = interpretValence(agent.emotions.valence);
   const myEnergy = interpretArousal(agent.emotions.arousal);
   const emotionalState = `You feel ${myMood} and ${myEnergy}`;
-
   const theirMood = interpretValence(otherAgent.emotions.valence);
   const theirEnergy = interpretArousal(otherAgent.emotions.arousal);
   const theirEmotionalState = `They seem ${theirMood} and ${theirEnergy}`;
@@ -137,8 +133,10 @@ function buildConversationPrompt(
     .join(', ');
 
   let relationshipContext = '';
+
   if (opinion) {
     const sentiment = opinion.sentiment;
+
     if (sentiment > 0.6)
       relationshipContext = `You genuinely like ${otherAgent.name} (sentiment: ${sentiment.toFixed(2)}). ${opinion.summary}`;
     else if (sentiment > 0.2)
@@ -156,7 +154,6 @@ function buildConversationPrompt(
   if (agent.needs.sleepiness > 0.8) urgentNeeds.push("EXHAUSTED - You're extremely tired and need rest");
   if (agent.needs.studyPressure > 0.8) urgentNeeds.push('STRESSED - Academic pressure is crushing you');
   if (agent.needs.socialDrive > 0.8) urgentNeeds.push('LONELY - You desperately need social connection');
-
   const urgentWarning = urgentNeeds.length > 0 ? `\nURGENT NEEDS:\n${urgentNeeds.map(n => `  - ${n}`).join('\n')}\n` : '';
 
   return `
@@ -254,15 +251,13 @@ async function generateConversationMessage(
   decisions: any[]
 ): Promise<{
   message: string;
+  emotionDelta?: { arousal: number; valence: number };
   reasonForLeaving?: string;
   continueConversation: boolean;
-  emotionDelta?: { valence: number; arousal: number };
 }> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY environment variable is not set');
-
   const openai = new OpenAI({ apiKey });
-
   const systemPrompt = buildConversationSystemPrompt();
   const userPrompt = buildConversationPrompt(agent, otherAgent, opinion, messages, observations, decisions);
 
@@ -279,48 +274,47 @@ async function generateConversationMessage(
 
   const content = completion.choices[0].message.content;
   if (!content) throw new Error('No content in OpenAI response');
-
   const parsed = JSON.parse(content);
 
   return {
     message: parsed.message || '...',
+    emotionDelta: parsed.emotionDelta || { arousal: 0, valence: 0 },
     reasonForLeaving: parsed.reasonForLeaving,
     continueConversation: parsed.continueConversation ?? true,
-    emotionDelta: parsed.emotionDelta || { valence: 0, arousal: 0 },
   };
 }
 
 function fallbackConversationResponse(agent: any): {
   message: string;
+  emotionDelta: { arousal: number; valence: number };
   reasonForLeaving?: string;
   continueConversation: boolean;
-  emotionDelta: { valence: number; arousal: number };
 } {
   const { needs } = agent;
 
   if (needs.hunger > 0.8)
     return {
-      continueConversation: false,
-      reasonForLeaving: 'Urgent hunger',
-      emotionDelta: { arousal: 0.1, valence: -0.1 },
       message: 'Sorry, I really need to grab some food. Talk later!',
+      emotionDelta: { arousal: 0.1, valence: -0.1 },
+      reasonForLeaving: 'Urgent hunger',
+      continueConversation: false,
     };
 
   if (needs.sleepiness > 0.8)
     return {
-      continueConversation: false,
-      reasonForLeaving: 'Urgent sleepiness',
-      emotionDelta: { valence: -0.1, arousal: -0.1 },
       message: "I'm really tired, I should go rest. Catch you later!",
+      emotionDelta: { arousal: -0.1, valence: -0.1 },
+      reasonForLeaving: 'Urgent sleepiness',
+      continueConversation: false,
     };
 
   if (needs.studyPressure > 0.8)
     return {
-      continueConversation: false,
-      reasonForLeaving: 'Urgent study pressure',
-      emotionDelta: { arousal: 0.05, valence: -0.05 },
       message: 'I need to hit the books. See you around!',
+      emotionDelta: { arousal: 0.05, valence: -0.05 },
+      reasonForLeaving: 'Urgent study pressure',
+      continueConversation: false,
     };
 
-  return { continueConversation: true, message: 'Yeah, I hear you.', emotionDelta: { valence: 0, arousal: 0 } };
+  return { continueConversation: true, message: 'Yeah, I hear you.', emotionDelta: { arousal: 0, valence: 0 } };
 }

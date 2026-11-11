@@ -10,7 +10,6 @@ import { HomeIcon, MapPinIcon, Loader2Icon, Building2Icon, AlertCircleIcon, Chec
 export default function InitPage() {
   const [result, setResult] = useState<any>(null);
   const [isInitializing, setIsInitializing] = useState(false);
-
   const places = useQuery(api.map.getPlaces);
   const initMap = useMutation(api.map.initMap);
   const settings = useQuery(api.map.getMapSettings);
@@ -32,10 +31,10 @@ export default function InitPage() {
   const isMapInitialized = settings != null;
 
   return (
-    <div className="container mx-auto p-8 max-w-4xl">
+    <div className="container mx-auto max-w-4xl p-8">
       <div className="space-y-6">
         <div>
-          <h1 className="text-4xl font-bold mb-2">🗺️ Map Initialization</h1>
+          <h1 className="mb-2 text-4xl font-bold">🗺️ Map Initialization</h1>
           <p className="text-muted-foreground">Initialize the NUS UTown-inspired campus with landmarks and dorm rooms</p>
         </div>
         <Card>
@@ -59,7 +58,7 @@ export default function InitPage() {
               )}
             </div>
             {settings ? (
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+              <div className="grid grid-cols-2 gap-4 border-t pt-4">
                 <div>
                   <div className="text-sm font-medium text-muted-foreground">Grid Size</div>
                   <div className="text-2xl font-bold">
@@ -75,9 +74,9 @@ export default function InitPage() {
               </div>
             ) : null}
             {places && places.length > 0 ? (
-              <div className="pt-4 border-t">
-                <div className="text-sm font-medium text-muted-foreground mb-2">Places Created</div>
-                <div className="text-2xl font-bold mb-3">{places.length} total</div>
+              <div className="border-t pt-4">
+                <div className="mb-2 text-sm font-medium text-muted-foreground">Places Created</div>
+                <div className="mb-3 text-2xl font-bold">{places.length} total</div>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm">
                     <Building2Icon className="h-4 w-4" />
@@ -121,7 +120,7 @@ export default function InitPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm mb-2">{result.message}</p>
+              <p className="mb-2 text-sm">{result.message}</p>
               {result.tilesCreated ? (
                 <div className="space-y-1 text-sm text-muted-foreground">
                   <div>✓ Tiles created: {result.tilesCreated}</div>
@@ -179,9 +178,9 @@ export default function InitPage() {
               <CardDescription>All locations in the campus</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2 max-h-96 overflow-y-auto">
+              <div className="max-h-96 space-y-2 overflow-y-auto">
                 {places.map(place => (
-                  <div key={place._id} className="flex items-center justify-between p-3 rounded-lg border">
+                  <div key={place._id} className="flex items-center justify-between rounded-lg border p-3">
                     <div className="flex-1">
                       <div className="font-medium">{place.name}</div>
                       <div className="text-xs text-muted-foreground">

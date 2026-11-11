@@ -1,6 +1,5 @@
 import { twMerge } from 'tailwind-merge';
-import { clsx, type ClassValue } from 'clsx';
-
+import { type ClassValue, clsx } from 'clsx';
 export const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs));
 
 const AGENT_PROFILE_PICTURES: Record<string, string> = {

@@ -1,7 +1,7 @@
 import { useRef, useEffect } from 'react';
-import type { Tile, MapSettings } from '@/lib/mapTypes';
-import { Sprite, type Renderer, type Container } from 'pixi.js';
-import { getTileTexture, preGenerateAllTileTextures } from '@/lib/textureGenerator';
+import type { Tile, MapSettings } from '@/lib/map-types';
+import { type Renderer, type Container, Sprite } from 'pixi.js';
+import { getTileTexture, preGenerateAllTileTextures } from '@/lib/texture-generator';
 
 export function useTileRendererCached({
   tilesLayer,
@@ -32,13 +32,11 @@ export function useTileRendererCached({
     if (!tilesLayer || !mapSettings || isLoading || !renderer) return;
     if (hasPreRendered.current) return;
     if (tiles.size === 0) return;
-
     const tileSize = mapSettings.tileSize;
 
     try {
       for (const [key, tile] of tiles.entries()) {
         if (renderedSprites.current.has(key)) continue;
-
         const sprite = new Sprite(getTileTexture(renderer, tile.tileType, tileSize, tile.visualVariant || 0));
         sprite.x = tile.x * tileSize;
         sprite.y = tile.y * tileSize;
@@ -54,15 +52,12 @@ export function useTileRendererCached({
   useEffect(() => {
     if (!hasPreRendered.current || !mapSettings) return;
     if (renderedSprites.current.size === 0) return;
-
     const tileSize = mapSettings.tileSize;
     const padding = 5;
-
     const viewportLeft = -camera.x / camera.scale;
     const viewportTop = -camera.y / camera.scale;
     const viewportRight = (dimensions.width - camera.x) / camera.scale;
     const viewportBottom = (dimensions.height - camera.y) / camera.scale;
-
     const minX = Math.max(0, Math.floor(viewportLeft / tileSize) - padding);
     const minY = Math.max(0, Math.floor(viewportTop / tileSize) - padding);
     const maxX = Math.min(mapSettings.gridWidth, Math.ceil(viewportRight / tileSize) + padding);
@@ -70,7 +65,6 @@ export function useTileRendererCached({
 
     for (const [key, sprite] of renderedSprites.current.entries()) {
       if (sprite.destroyed) continue;
-
       const [xStr, yStr] = key.split(',');
       const tileX = parseInt(xStr);
       const tileY = parseInt(yStr);
@@ -83,6 +77,7 @@ export function useTileRendererCached({
       for (const sprite of renderedSprites.current.values()) {
         if (!sprite.destroyed) sprite.destroy();
       }
+
       renderedSprites.current.clear();
       hasPreRendered.current = false;
     },

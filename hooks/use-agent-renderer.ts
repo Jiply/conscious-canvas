@@ -8,8 +8,8 @@ type AgentData = {
   startY: number;
   targetX: number;
   targetY: number;
-  wobbleSpeed: number;
   container: Container;
+  wobbleSpeed: number;
   wobbleOffsetX: number;
   wobbleOffsetY: number;
   animationStartTime: number;
@@ -24,19 +24,16 @@ export function useAgentRenderer({
 }: {
   isCameraReady: boolean;
   agentsLayer: Container | null;
-  agents: Doc<`agents`>[] | undefined;
+  agents: Doc<'agents'>[] | undefined;
   mapSettings: { tileSize: number } | undefined;
-  onAgentClick?: (agentId: Id<`agents`>) => void;
+  onAgentClick?: (agentId: Id<'agents'>) => void;
 }) {
   const agentContainersRef = useRef<Map<string, AgentData>>(new Map());
-
   useEffect(() => {
     if (!agents || !agentsLayer || !mapSettings || !isCameraReady) return;
-
     const tileSize = mapSettings.tileSize;
     const agentContainers = agentContainersRef.current;
     const activeAgentIds = new Set<string>();
-
     agents.forEach(a => {
       activeAgentIds.add(a._id);
       const targetX = a.pos.x * tileSize;
@@ -46,14 +43,12 @@ export function useAgentRenderer({
       if (!agentData) {
         const agentContainer = new Container();
         agentsLayer.addChild(agentContainer);
-
         const visionRadius = new Graphics();
         visionRadius.circle(0, 0, 20 * tileSize);
         visionRadius.fill({ alpha: 0.08, color: 0x3b82f6 });
-        visionRadius.stroke({ width: 2, alpha: 0.25, color: 0x3b82f6 });
+        visionRadius.stroke({ alpha: 0.25, color: 0x3b82f6, width: 2 });
         visionRadius.eventMode = 'none';
         agentContainer.addChild(visionRadius);
-
         const profileContainer = new Container();
         profileContainer.eventMode = 'static';
         profileContainer.cursor = 'pointer';
@@ -66,12 +61,10 @@ export function useAgentRenderer({
 
         const profileSprite = new Sprite();
         profileSprite.anchor.set(0.5);
-
         const circleMask = new Graphics();
         circleMask.circle(0, 0, 16);
         circleMask.fill(0xffffff);
         circleMask.alpha = 0;
-
         profileContainer.addChild(profileSprite);
         profileContainer.addChild(circleMask);
         profileSprite.mask = circleMask;
@@ -87,11 +80,9 @@ export function useAgentRenderer({
 
         const border = new Graphics();
         border.circle(0, 0, 16);
-        border.stroke({ width: 2, alpha: 0.8, color: 0xffffff });
+        border.stroke({ alpha: 0.8, color: 0xffffff, width: 2 });
         profileContainer.addChild(border);
-
         profileContainer.hitArea = { contains: (x: number, y: number) => Math.sqrt(x * x + y * y) <= 18 };
-
         agentContainer.addChild(profileContainer);
 
         const label = new Text({
@@ -104,27 +95,27 @@ export function useAgentRenderer({
             stroke: { width: 2.5, color: 0x000000 },
           }),
         });
+
         label.anchor.set(0.5);
         label.y = -22;
         label.eventMode = 'none';
         agentContainer.addChild(label);
-
         agentContainer.x = targetX;
         agentContainer.y = targetY;
 
         agentData = {
-          targetX,
-          targetY,
           startX: targetX,
           startY: targetY,
+          targetX,
+          targetY,
           container: agentContainer,
-          animationStartTime: performance.now(),
           wobbleSpeed: 0.8 + Math.random() * 0.4,
           wobbleOffsetX: Math.random() * Math.PI * 2,
           wobbleOffsetY: Math.random() * Math.PI * 2,
+          animationStartTime: performance.now(),
         };
-        agentContainers.set(a._id, agentData);
 
+        agentContainers.set(a._id, agentData);
         agentContainer.alpha = 0;
         const startTime = Date.now();
         const duration = 250;
@@ -135,6 +126,7 @@ export function useAgentRenderer({
           agentContainer.alpha = progress;
           if (progress < 1) requestAnimationFrame(fadeIn);
         };
+
         requestAnimationFrame(fadeIn);
       } else if (
         (Math.abs(agentData.targetX - targetX) > 0.1 || Math.abs(agentData.targetY - targetY) > 0.1) &&
@@ -157,7 +149,6 @@ export function useAgentRenderer({
 
   useEffect(() => {
     if (!agentsLayer || !isCameraReady) return;
-
     let animationFrameId: number;
     const ANIMATION_DURATION = 5000;
     const WOBBLE_AMPLITUDE = 1;
@@ -165,15 +156,16 @@ export function useAgentRenderer({
 
     const animate = () => {
       const now = performance.now();
+
       for (const agentData of agentContainersRef.current.values()) {
         if (agentData.container.destroyed || !agentData.container.visible) continue;
-
         const progress = Math.min((now - agentData.animationStartTime) / ANIMATION_DURATION, 1);
         const currentX = agentData.startX + (agentData.targetX - agentData.startX) * progress;
         const currentY = agentData.startY + (agentData.targetY - agentData.startY) * progress;
 
         const wobbleX =
           Math.sin(now * 0.001 * WOBBLE_FREQUENCY * agentData.wobbleSpeed + agentData.wobbleOffsetX) * WOBBLE_AMPLITUDE;
+
         const wobbleY =
           Math.sin(now * 0.001 * WOBBLE_FREQUENCY * agentData.wobbleSpeed + agentData.wobbleOffsetY) * WOBBLE_AMPLITUDE;
 

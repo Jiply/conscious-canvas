@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
-import { query, type QueryCtx } from './_generated/server';
-
+import { type QueryCtx, query } from './_generated/server';
 const heuristic = (x1: number, y1: number, x2: number, y2: number): number => Math.abs(x1 - x2) + Math.abs(y1 - y2);
+
 interface PathNode {
   x: number;
   y: number;
@@ -16,46 +16,36 @@ export const findPath = query({
   args: { goalX: v.number(), goalY: v.number(), startX: v.number(), startY: v.number() },
   handler: async (ctx, args) => {
     const startNode: PathNode = {
-      g: 0,
       f: 0,
-      parent: null,
+      g: 0,
+      h: heuristic(args.startX, args.startY, args.goalX, args.goalY),
       x: Math.round(args.startX),
       y: Math.round(args.startY),
-      h: heuristic(args.startX, args.startY, args.goalX, args.goalY),
+      parent: null,
     };
-    startNode.f = startNode.g + startNode.h;
 
+    startNode.f = startNode.g + startNode.h;
     const goalX = Math.round(args.goalX);
     const goalY = Math.round(args.goalY);
-
     const openList: PathNode[] = [startNode];
-
     const closedSet = new Set<string>();
-
     let iterations = 0;
     const MAX_ITERATIONS = 2000;
 
     while (openList.length > 0 && iterations < MAX_ITERATIONS) {
       iterations++;
-
       openList.sort((a, b) => a.f - b.f);
       const current = openList.shift()!;
-
       if (current.x === goalX && current.y === goalY) return reconstructPath(current);
-
       closedSet.add(`${current.x},${current.y}`);
-
       const neighbors = await getWalkableNeighbors(ctx, current.x, current.y);
 
       for (const neighbor of neighbors) {
         const neighborKey = `${neighbor.x},${neighbor.y}`;
-
         if (closedSet.has(neighborKey)) continue;
-
         const g = current.g + 1;
         const h = heuristic(neighbor.x, neighbor.y, goalX, goalY);
         const f = g + h;
-
         const existingNode = openList.find(node => node.x === neighbor.x && node.y === neighbor.y);
 
         if (existingNode) {
@@ -64,7 +54,7 @@ export const findPath = query({
             existingNode.f = f;
             existingNode.parent = current;
           }
-        } else openList.push({ g, h, f, x: neighbor.x, y: neighbor.y, parent: current });
+        } else openList.push({ f, g, h, x: neighbor.x, y: neighbor.y, parent: current });
       }
     }
 
@@ -78,7 +68,7 @@ async function getWalkableNeighbors(ctx: QueryCtx, x: number, y: number): Promis
   const directions = [
     { dx: 0, dy: -1 },
     { dx: 0, dy: 1 },
-    { dy: 0, dx: -1 },
+    { dx: -1, dy: 0 },
     { dx: 1, dy: 0 },
   ];
 

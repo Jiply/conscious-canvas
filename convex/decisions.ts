@@ -3,7 +3,6 @@ import { decisionFields } from './schema';
 import { query, mutation } from './_generated/server';
 
 export const addDecision = mutation({
-  returns: v.id('decisions'),
   args: {
     agentId: v.id('agents'),
     action: decisionFields.action,
@@ -26,6 +25,7 @@ export const addDecision = mutation({
     });
 
     const agent = await ctx.db.get(args.agentId);
+
     if (agent) {
       let description = `${agent.name} `;
 
@@ -39,16 +39,16 @@ export const addDecision = mutation({
           description += `is chatting with ${targetAgent?.name ?? 'someone'}`;
           break;
         case 'Study':
-          description += `is studying`;
+          description += 'is studying';
           break;
         case 'Eat':
-          description += `is grabbing a bite to eat`;
+          description += 'is grabbing a bite to eat';
           break;
         case 'Sleep':
-          description += `is going to sleep`;
+          description += 'is going to sleep';
           break;
         case 'Idle':
-          description += `is taking a moment to think`;
+          description += 'is taking a moment to think';
           break;
       }
 
@@ -66,25 +66,24 @@ export const addDecision = mutation({
 
     return decisionId;
   },
+  returns: v.id('decisions'),
 });
 
 export const completeDecision = mutation({
-  returns: v.null(),
   args: { decisionId: v.id('decisions') },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.decisionId, { completedAt: Date.now() });
-
     return null;
   },
+  returns: v.null(),
 });
 
 export const completeAllIncompleteDecisions = mutation({
   args: {},
-  returns: v.number(),
   handler: async ctx => {
     const allDecisions = await ctx.db.query('decisions').collect();
-
     let count = 0;
+
     for (const decision of allDecisions) {
       if (decision.completedAt === undefined) {
         await ctx.db.patch(decision._id, { completedAt: Date.now() });
@@ -94,6 +93,7 @@ export const completeAllIncompleteDecisions = mutation({
 
     return count;
   },
+  returns: v.number(),
 });
 
 export const getDecisionHistory = query({
@@ -101,6 +101,7 @@ export const getDecisionHistory = query({
   returns: v.array(v.object({ _id: v.id('decisions'), _creationTime: v.number(), ...decisionFields })),
   handler: async (ctx, args) => {
     const limit = args.limit ?? 10;
+
     return await ctx.db
       .query('decisions')
       .withIndex('by_agent', q => q.eq('agentId', args.agentId))

@@ -1,4 +1,4 @@
-import type { MapSettings } from '@/lib/mapTypes';
+import type { MapSettings } from '@/lib/map-types';
 import { useRef, useState, useEffect, useCallback } from 'react';
 
 interface CameraState {
@@ -29,6 +29,7 @@ export function useCamera({
 
   const getMinScale = useCallback(() => {
     if (!mapSettings || dimensions.width === 0 || dimensions.height === 0) return 0.1;
+
     return Math.max(
       dimensions.width / (mapSettings.gridWidth * mapSettings.tileSize),
       dimensions.height / (mapSettings.gridHeight * mapSettings.tileSize)
@@ -38,15 +39,14 @@ export function useCamera({
   const constrainCamera = useCallback(
     (newCamera: CameraState): CameraState => {
       if (!mapSettings) return newCamera;
-
       const scale = Math.max(getMinScale(), Math.min(5, newCamera.scale));
       const worldWidth = mapSettings.gridWidth * mapSettings.tileSize * scale;
       const worldHeight = mapSettings.gridHeight * mapSettings.tileSize * scale;
 
       return {
-        scale,
         x: Math.max(dimensions.width - worldWidth, Math.min(0, newCamera.x)),
         y: Math.max(dimensions.height - worldHeight, Math.min(0, newCamera.y)),
+        scale,
       };
     },
     [mapSettings, dimensions, getMinScale]
@@ -59,7 +59,6 @@ export function useCamera({
     const zoomWithoutPageScroll = (e: WheelEvent) => {
       e.preventDefault();
       const zoomFactor = 1 - e.deltaY * 0.001;
-
       setCamera(prev => {
         const newScale = Math.max(getMinScale(), Math.min(5, prev.scale * zoomFactor));
         const rect = canvas.getBoundingClientRect();
@@ -67,7 +66,7 @@ export function useCamera({
         const mouseY = e.clientY - rect.top;
         const worldX = (mouseX - prev.x) / prev.scale;
         const worldY = (mouseY - prev.y) / prev.scale;
-        return constrainCamera({ scale: newScale, x: mouseX - worldX * newScale, y: mouseY - worldY * newScale });
+        return constrainCamera({ x: mouseX - worldX * newScale, y: mouseY - worldY * newScale, scale: newScale });
       });
     };
 
@@ -83,7 +82,6 @@ export function useCamera({
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
       if (!isDraggingRef.current || !mapSettings) return;
-
       const dx = e.clientX - lastPosRef.current.x;
       const dy = e.clientY - lastPosRef.current.y;
       setCamera(prev => constrainCamera({ ...prev, x: prev.x + dx, y: prev.y + dy }));

@@ -4,15 +4,16 @@ import { useMemo, useState } from 'react';
 import { api } from '@/convex/_generated/api';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { PixiMap } from '@/components/PixiMap';
 import { Button } from '@/components/ui/button';
 import { getProfilePicture } from '@/lib/utils';
-import { EventFeed } from '@/components/EventFeed';
+import { PixiMap } from '@/components/pixi-map';
+import { EventFeed } from '@/components/event-feed';
 import { useHeartbeat } from '@/hooks/use-heartbeat';
 import { Separator } from '@/components/ui/separator';
 import type { Id } from '@/convex/_generated/dataModel';
-import { ConversationSheet } from '@/components/ConversationSheet';
+import { ConversationSheet } from '@/components/conversation-sheet';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+
 import {
   EyeIcon,
   UserIcon,
@@ -24,6 +25,7 @@ import {
   PlayCircleIcon,
   PauseCircleIcon,
 } from 'lucide-react';
+
 import {
   Sidebar,
   SidebarMenu,
@@ -42,21 +44,19 @@ import {
 } from '@/components/ui/sidebar';
 
 export default function SimPage() {
-  const [searchQuery, setSearchQuery] = useState(``);
+  const [searchQuery, setSearchQuery] = useState('');
   const { isLeader, stats } = useHeartbeat();
   const [isWorldReady, setIsWorldReady] = useState(false);
   const [isConvoSheetOpen, setIsConvoSheetOpen] = useState(false);
-  const [chosenAgentId, setChosenAgentId] = useState<Id<`agents`> | null>(null);
-
+  const [chosenAgentId, setChosenAgentId] = useState<Id<'agents'> | null>(null);
   const places = useQuery(api.map.getPlaces) ?? [];
   const agents = useQuery(api.agents.listAgents) ?? [];
-
   const [centerOnPlace, setCenterOnPlace] = useState<{ x: number; y: number } | null>(null);
 
   const filteredAgents = useMemo(() => {
     if (!searchQuery.trim()) return agents;
-
     const query = searchQuery.toLowerCase();
+
     return agents.filter(
       agent =>
         agent.name.toLowerCase().includes(query) ||
@@ -88,7 +88,7 @@ export default function SimPage() {
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm">
                 <ClockIcon className="size-4 flex-shrink-0" />
-                <span className="text-muted-foreground whitespace-nowrap">World:</span>
+                <span className="whitespace-nowrap text-muted-foreground">World:</span>
                 {!isWorldReady ? (
                   <Badge variant="outline" className="gap-1.5 whitespace-nowrap">
                     <Loader2Icon className="size-3 animate-spin" />
@@ -108,16 +108,16 @@ export default function SimPage() {
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <EyeIcon className="size-4 flex-shrink-0" />
-                <span className="text-muted-foreground whitespace-nowrap">Observers:</span>
-                <Badge className="text-xs font-mono whitespace-nowrap" variant="default">
+                <span className="whitespace-nowrap text-muted-foreground">Observers:</span>
+                <Badge className="font-mono text-xs whitespace-nowrap" variant="default">
                   1
                 </Badge>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <ActivityIcon className="size-4 flex-shrink-0" />
-                <span className="text-muted-foreground whitespace-nowrap">{isLeader ? 'Leader' : 'Follower'}</span>
+                <span className="whitespace-nowrap text-muted-foreground">{isLeader ? 'Leader' : 'Follower'}</span>
                 {stats ? (
-                  <Badge variant="outline" className="text-xs font-mono whitespace-nowrap">
+                  <Badge variant="outline" className="font-mono text-xs whitespace-nowrap">
                     {stats.latencyMs}ms
                   </Badge>
                 ) : null}
@@ -129,10 +129,10 @@ export default function SimPage() {
               <SidebarGroupLabel className="px-2">Search Agents</SidebarGroupLabel>
               <SidebarGroupContent className="px-2">
                 <div className="relative">
-                  <SearchIcon className="absolute left-3 top-2.5 size-4 text-muted-foreground pointer-events-none" />
+                  <SearchIcon className="pointer-events-none absolute top-2.5 left-3 size-4 text-muted-foreground" />
                   <Input
                     value={searchQuery}
-                    className="pl-9 h-9"
+                    className="h-9 pl-9"
                     placeholder="Search by name, role, state..."
                     onChange={e => setSearchQuery(e.target.value)}
                   />
@@ -142,7 +142,7 @@ export default function SimPage() {
             <div className="grow border-y">
               <SidebarGroup className="h-0 min-h-full pb-4">
                 <SidebarGroupLabel>
-                  <div className="flex items-center justify-between w-full">
+                  <div className="flex w-full items-center justify-between">
                     Agents
                     <Badge variant="secondary" className="ml-auto font-mono text-xs whitespace-nowrap">
                       {filteredAgents.length}/{agents.length}
@@ -152,7 +152,7 @@ export default function SimPage() {
                 <div className="grow overflow-y-auto px-2">
                   <SidebarGroupContent className="h-full">
                     {filteredAgents.length < 1 ? (
-                      <div className="h-full p-4 flex flex-col justify-center items-center text-xs text-muted-foreground bg-muted rounded-md">
+                      <div className="flex h-full flex-col items-center justify-center rounded-md bg-muted p-4 text-xs text-muted-foreground">
                         {agents.length < 1 ? <Loader2Icon className="size-4 animate-spin" /> : 'No agents match your search.'}
                       </div>
                     ) : (
@@ -162,11 +162,11 @@ export default function SimPage() {
                             <SidebarMenuItem key={a._id}>
                               <Tooltip delayDuration={300}>
                                 <TooltipTrigger asChild>
-                                  <SidebarMenuButton className="h-auto py-1 px-2">
+                                  <SidebarMenuButton className="h-auto px-2 py-1">
                                     <UserIcon className="size-4 flex-shrink-0" />
-                                    <div className="flex flex-col items-start min-w-0 flex-1">
-                                      <span className="text-sm font-medium truncate w-full">{a.name}</span>
-                                      <span className="text-xs text-muted-foreground truncate w-full">
+                                    <div className="flex min-w-0 flex-1 flex-col items-start">
+                                      <span className="w-full truncate text-sm font-medium">{a.name}</span>
+                                      <span className="w-full truncate text-xs text-muted-foreground">
                                         {a.state} • {a.role}
                                       </span>
                                     </div>
@@ -178,22 +178,22 @@ export default function SimPage() {
                                       <img
                                         alt={a.name}
                                         src={getProfilePicture(a.name)}
-                                        className="w-20 h-20 rounded-full object-cover border-2 border-border"
+                                        className="h-20 w-20 rounded-full border-2 border-border object-cover"
                                       />
                                     </div>
-                                    <div className="pb-2 border-b">
-                                      <p className="font-semibold text-sm">{a.name}</p>
-                                      <p className="text-xs text-muted-foreground mt-0.5">{a.role}</p>
+                                    <div className="border-b pb-2">
+                                      <p className="text-sm font-semibold">{a.name}</p>
+                                      <p className="mt-0.5 text-xs text-muted-foreground">{a.role}</p>
                                     </div>
                                     {a.personality ? (
                                       <div className="space-y-1">
                                         <p className="text-xs font-medium">Personality</p>
-                                        <p className="text-xs text-muted-foreground leading-relaxed">{a.personality}</p>
+                                        <p className="text-xs leading-relaxed text-muted-foreground">{a.personality}</p>
                                       </div>
                                     ) : null}
                                     <div className="space-y-1">
                                       <p className="text-xs font-medium">Position</p>
-                                      <p className="text-xs text-muted-foreground font-mono">
+                                      <p className="font-mono text-xs text-muted-foreground">
                                         ({a.pos.x}, {a.pos.y})
                                       </p>
                                     </div>
@@ -203,7 +203,7 @@ export default function SimPage() {
                                     </div>
                                     <div className="space-y-1.5">
                                       <p className="text-xs font-medium">Emotions</p>
-                                      <div className="flex gap-3 text-xs flex-wrap">
+                                      <div className="flex flex-wrap gap-3 text-xs">
                                         <span className="whitespace-nowrap">
                                           Mood:&nbsp;
                                           {a.emotions.valence > 0 ? '😊' : '😔'}
@@ -273,7 +273,7 @@ export default function SimPage() {
                     <PauseCircleIcon className="h-4 w-4" />
                     Freeze Universe
                   </Button>
-                  <div className="text-xs text-muted-foreground px-2">Admin: Simulation enabled</div>
+                  <div className="px-2 text-xs text-muted-foreground">Admin: Simulation enabled</div>
                 </div>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -288,12 +288,12 @@ export default function SimPage() {
             <div className="ml-auto flex items-center gap-2">
               <Badge variant="outline" className="gap-1">
                 <ClockIcon className="size-3" />
-                <span className="text-xs font-mono">00:00:00</span>
+                <span className="font-mono text-xs">00:00:00</span>
               </Badge>
             </div>
           </header>
-          <main className="flex-1 overflow-hidden bg-muted/20 p-6 flex gap-6">
-            <div className="flex-1 rounded-lg border border-dashed border-border overflow-hidden">
+          <main className="flex flex-1 gap-6 overflow-hidden bg-muted/20 p-6">
+            <div className="flex-1 overflow-hidden rounded-lg border border-dashed border-border">
               <PixiMap
                 onWorldReady={setIsWorldReady}
                 onAgentClick={handleAgentClick}
@@ -301,8 +301,8 @@ export default function SimPage() {
                 onCenterComplete={() => setCenterOnPlace(null)}
               />
             </div>
-            <div className="w-80 flex-shrink-0 rounded-lg border border-border bg-background overflow-hidden flex flex-col">
-              <div className="flex flex-col h-full">
+            <div className="flex w-80 flex-shrink-0 flex-col overflow-hidden rounded-lg border border-border bg-background">
+              <div className="flex h-full flex-col">
                 <EventFeed />
               </div>
             </div>

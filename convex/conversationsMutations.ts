@@ -3,12 +3,10 @@ import { query, mutation } from './_generated/server';
 import { messageFields, conversationFields } from './schema';
 
 export const createConversation = mutation({
-  returns: v.id('conversations'),
   args: { targetId: v.id('agents'), initiatorId: v.id('agents') },
   handler: async (ctx, args) => {
     const initiator = await ctx.db.get(args.initiatorId);
     const target = await ctx.db.get(args.targetId);
-
     if (!initiator || !target) throw new Error('One or both agents not found');
 
     const conversationId = await ctx.db.insert('conversations', {
@@ -20,15 +18,13 @@ export const createConversation = mutation({
     });
 
     await ctx.db.patch(args.initiatorId, { state: 'Interact', currentConversationId: conversationId });
-
     await ctx.db.patch(args.targetId, { state: 'Interact', currentConversationId: conversationId });
-
     return conversationId;
   },
+  returns: v.id('conversations'),
 });
 
 export const addMessage = mutation({
-  returns: v.id('messages'),
   args: {
     content: v.string(),
     agentId: v.id('agents'),
@@ -39,9 +35,7 @@ export const addMessage = mutation({
   handler: async (ctx, args) => {
     const conversation = await ctx.db.get(args.conversationId);
     if (!conversation) throw new Error('Conversation not found');
-
     if (conversation.status !== 'active') throw new Error('Cannot add message to completed conversation');
-
     const agent = await ctx.db.get(args.agentId);
     if (!agent) throw new Error('Agent not found');
 
@@ -55,28 +49,28 @@ export const addMessage = mutation({
     });
 
     await ctx.db.patch(args.conversationId, { turnCount: conversation.turnCount + 1 });
-
     return messageId;
   },
+  returns: v.id('messages'),
 });
 
 export const completeConversation = mutation({
-  returns: v.null(),
   args: { conversationId: v.id('conversations') },
   handler: async (ctx, args) => {
     const conversation = await ctx.db.get(args.conversationId);
     if (!conversation) throw new Error('Conversation not found');
-
     await ctx.db.patch(args.conversationId, { status: 'completed', completedAt: Date.now() });
 
     for (const participantId of conversation.participantIds) {
       const agent = await ctx.db.get(participantId);
+
       if (agent && agent.currentConversationId === args.conversationId)
         await ctx.db.patch(participantId, { state: 'Idle', currentConversationId: undefined });
     }
 
     return null;
   },
+  returns: v.null(),
 });
 
 export const getConversationMessages = query({
@@ -96,46 +90,46 @@ export const getAgentActiveConversation = query({
   handler: async (ctx, args) => {
     const agent = await ctx.db.get(args.agentId);
     if (!agent || !agent.currentConversationId) return null;
-
     return await ctx.db.get(agent.currentConversationId);
   },
 });
 
 export const getRecentConversations = query({
   args: { limit: v.number() },
-  returns: v.array(
-    v.object({
-      startedAt: v.number(),
-      turnCount: v.number(),
-      _creationTime: v.number(),
-      _id: v.id('conversations'),
-      status: conversationFields.status,
-      completedAt: v.optional(v.number()),
-      participantNames: v.array(v.string()),
-    })
-  ),
   handler: async (ctx, args) => {
     const conversations = await ctx.db.query('conversations').order('desc').take(args.limit);
-
     const conversationsWithNames = [];
+
     for (const conversation of conversations) {
       const participantNames: Array<string> = [];
+
       for (const participantId of conversation.participantIds) {
         const agent = await ctx.db.get(participantId);
         if (agent) participantNames.push(agent.name);
       }
 
       conversationsWithNames.push({
-        participantNames,
         _id: conversation._id,
         status: conversation.status,
         startedAt: conversation.startedAt,
         turnCount: conversation.turnCount,
         completedAt: conversation.completedAt,
         _creationTime: conversation._creationTime,
+        participantNames,
       });
     }
 
     return conversationsWithNames;
   },
+  returns: v.array(
+    v.object({
+      _id: v.id('conversations'),
+      status: conversationFields.status,
+      startedAt: v.number(),
+      turnCount: v.number(),
+      completedAt: v.optional(v.number()),
+      _creationTime: v.number(),
+      participantNames: v.array(v.string()),
+    })
+  ),
 });

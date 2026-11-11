@@ -3,7 +3,6 @@ import { query, mutation } from './_generated/server';
 
 export const heartbeat = mutation({
   args: { sessionId: v.string() },
-  returns: v.object({ observerCount: v.number(), isWorldRunning: v.boolean() }),
   handler: async (ctx, args) => {
     const now = Date.now();
 
@@ -18,13 +17,14 @@ export const heartbeat = mutation({
 
       await ctx.db.insert('events', {
         type: 'world',
-        timestamp: now,
         metadata: { severity: 'info' },
+        timestamp: now,
         description: '👁️ A new observer has entered the simulation',
       });
     }
 
     const cutoff = now - 15000;
+
     const activeObservers = await ctx.db
       .query('observer')
       .withIndex('by_heartbeat')
@@ -32,7 +32,6 @@ export const heartbeat = mutation({
       .collect();
 
     const observerCount = activeObservers.length;
-
     const worldSettings = await ctx.db.query('world_settings').first();
 
     if (!worldSettings)
@@ -57,8 +56,8 @@ export const heartbeat = mutation({
 
         await ctx.db.insert('events', {
           type: 'world',
-          timestamp: now,
           metadata: { severity: 'important' },
+          timestamp: now,
           description: `🌍 Universe awakens: ${observerCount} ${observerCount === 1 ? 'observer' : 'observers'} watching`,
         });
       } else if (wasRunning && !shouldRun) {
@@ -67,9 +66,9 @@ export const heartbeat = mutation({
 
         await ctx.db.insert('events', {
           type: 'world',
-          timestamp: now,
           metadata: { severity: 'important' },
-          description: `🧊 Universe frozen: No observers remain`,
+          timestamp: now,
+          description: '🧊 Universe frozen: No observers remain',
         });
       }
 
@@ -82,15 +81,14 @@ export const heartbeat = mutation({
 
     return { observerCount, isWorldRunning: observerCount > 0 };
   },
+  returns: v.object({ observerCount: v.number(), isWorldRunning: v.boolean() }),
 });
 
 export const getWorldState = query({
   args: {},
-  returns: v.object({ isRunning: v.boolean(), observerCount: v.number(), adminEnabled: v.boolean() }),
   handler: async ctx => {
     const worldSettings = await ctx.db.query('world_settings').first();
-
-    if (!worldSettings) return { isRunning: false, observerCount: 0, adminEnabled: true };
+    if (!worldSettings) return { isRunning: false, adminEnabled: true, observerCount: 0 };
 
     return {
       isRunning: worldSettings.isRunning,
@@ -98,10 +96,10 @@ export const getWorldState = query({
       observerCount: worldSettings.observerCount,
     };
   },
+  returns: v.object({ isRunning: v.boolean(), adminEnabled: v.boolean(), observerCount: v.number() }),
 });
 
 export const toggleAdmin = mutation({
-  returns: v.null(),
   args: { enabled: v.boolean() },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -123,8 +121,8 @@ export const toggleAdmin = mutation({
 
     await ctx.db.insert('events', {
       type: 'world',
-      timestamp: now,
       metadata: { severity: 'critical' },
+      timestamp: now,
       description: args.enabled
         ? '⚙️ Admin enabled simulation - universe can run'
         : '⚙️ Admin disabled simulation - universe force frozen',
@@ -132,11 +130,11 @@ export const toggleAdmin = mutation({
 
     return null;
   },
+  returns: v.null(),
 });
 
 export const cleanupStaleObservers = mutation({
   args: {},
-  returns: v.number(),
   handler: async ctx => {
     const now = Date.now();
     const cutoff = now - 60000;
@@ -148,7 +146,7 @@ export const cleanupStaleObservers = mutation({
       .collect();
 
     for (const observer of staleObservers) await ctx.db.delete(observer._id);
-
     return staleObservers.length;
   },
+  returns: v.number(),
 });

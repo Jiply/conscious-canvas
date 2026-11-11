@@ -2,14 +2,12 @@ import '@/app/globals.css';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { Geist, Geist_Mono } from 'next/font/google';
-import { ConvexClientProvider } from '@/app/ConvexClientProvider';
-
+import { ConvexClientProvider } from '@/app/convex-client-provider';
 const geistSans = Geist({ subsets: ['latin'], variable: '--font-geist-sans' });
-
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' });
 
 export const metadata: Metadata = {
-  title: `Conscious Campus`,
+  title: 'Conscious Campus',
   description: `Observer-dependent, real-time campus simulation where emotionally-motivated agents form relationships and culture while the universe only runs when someone is watching.`,
 };
 

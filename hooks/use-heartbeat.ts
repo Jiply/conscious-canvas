@@ -15,20 +15,20 @@ export function useHeartbeat() {
   const convex = useConvex();
   const [isLeader, setIsLeader] = useState(false);
   const [observerCount, setObserverCount] = useState(0);
+
   const [stats, setStats] = useState<{
     latencyMs: number;
     lastTickAt: number;
     observerCount: number;
     processedAgents: number;
   } | null>(null);
+
   getOrPersistSessionId('observer_session_id');
   const leaderIdRef = useRef(getOrPersistSessionId('heartbeat_leader_id'));
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const mountedRef = useRef(true);
-
   useEffect(() => {
     mountedRef.current = true;
-
     setObserverCount(1);
   }, [convex]);
 
@@ -41,15 +41,16 @@ export function useHeartbeat() {
       try {
         const result = await convex.mutation(api.heartbeat.tick, { leaderId: leaderIdRef.current });
         if (!mountedRef.current) return;
-
         setIsLeader(result.isLeader);
+
         if (result.isLeader && result.success) {
           setStats({
-            observerCount,
-            lastTickAt: Date.now(),
             latencyMs: result.latencyMs,
+            lastTickAt: Date.now(),
+            observerCount,
             processedAgents: result.processedAgents,
           });
+
           timeoutRef.current = setTimeout(heartbeat, 5000);
         } else if (!result.isLeader) setIsLeader(false);
       } catch {

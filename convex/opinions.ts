@@ -3,13 +3,12 @@ import { opinionFields } from './schema';
 import { query, mutation } from './_generated/server';
 
 export const upsertOpinion = mutation({
-  returns: v.id('opinions'),
   args: {
+    traits: v.optional(v.record(v.string(), v.number())),
+    agentId: v.id('agents'),
     summary: v.string(),
     sentiment: v.number(),
-    agentId: v.id('agents'),
     targetAgentId: v.id('agents'),
-    traits: v.optional(v.record(v.string(), v.number())),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -28,9 +27,11 @@ export const upsertOpinion = mutation({
         sentiment: args.sentiment,
         targetAgentId: args.targetAgentId,
       });
+
       return opinionId;
     }
   },
+  returns: v.id('opinions'),
 });
 
 export const getAgentOpinions = query({

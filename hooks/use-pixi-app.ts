@@ -14,9 +14,7 @@ export function usePixiApp({ width, height }: { width: number; height: number })
 
   useEffect(() => {
     if (!canvasRef.current || appRef.current || width === 0 || height === 0) return;
-
     const app = new Application();
-
     app
       .init({
         width,
@@ -28,14 +26,11 @@ export function usePixiApp({ width, height }: { width: number; height: number })
       })
       .then(() => {
         if (!canvasRef.current || !app.canvas) return;
-
         canvasRef.current.appendChild(app.canvas);
         appRef.current = app;
-
         const worldContainer = new Container();
         app.stage.addChild(worldContainer);
         worldContainerRef.current = worldContainer;
-
         const tilesLayer = new Container();
         const placesLayer = new Container();
         const agentsLayer = new Container();

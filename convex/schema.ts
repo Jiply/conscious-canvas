@@ -63,7 +63,7 @@ export const agentFields = {
   profilePicture: v.optional(v.string()),
   pos: v.object({ x: v.number(), y: v.number() }),
   currentConversationId: v.optional(v.id('conversations')),
-  emotions: v.object({ valence: v.number(), arousal: v.number() }),
+  emotions: v.object({ arousal: v.number(), valence: v.number() }),
   goals: v.array(v.object({ name: v.string(), weight: v.number() })),
   path: v.optional(v.array(v.object({ x: v.number(), y: v.number() }))),
   role: v.union(v.literal('student'), v.literal('prof'), v.literal('barista')),
@@ -113,7 +113,7 @@ export const messageFields = {
   continueConversation: v.boolean(),
   conversationId: v.id('conversations'),
   reasonForLeaving: v.optional(v.string()),
-  emotionSnapshot: v.optional(v.object({ valence: v.number(), arousal: v.number() })),
+  emotionSnapshot: v.optional(v.object({ arousal: v.number(), valence: v.number() })),
 };
 
 export default defineSchema({

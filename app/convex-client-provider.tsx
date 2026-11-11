@@ -1,7 +1,6 @@
 'use client';
 import type { ReactNode } from 'react';
 import { ConvexProvider, ConvexReactClient } from 'convex/react';
-
 const url = process.env.NEXT_PUBLIC_CONVEX_URL!;
 const convex = new ConvexReactClient(url, { verbose: false });
 

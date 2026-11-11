@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-
 const MOBILE_BREAKPOINT = 768;
 
 export function useIsMobile() {
@@ -13,9 +12,7 @@ export function useIsMobile() {
     };
 
     mql.addEventListener('change', onChange);
-
     setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
-
     return () => mql.removeEventListener('change', onChange);
   }, []);
 

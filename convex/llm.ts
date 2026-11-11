@@ -7,16 +7,15 @@ import { action } from './_generated/server';
 export const makeAgentDecision = action({
   args: { agentId: v.id('agents') },
   returns: v.object({
-    utterance: v.optional(v.string()),
-    innerThought: v.optional(v.string()),
-    targetPlaceId: v.optional(v.id('places')),
-    targetAgentId: v.optional(v.id('agents')),
-    emotionDelta: v.optional(v.object({ valence: v.number(), arousal: v.number() })),
     action: v.union(v.literal('MoveTo'), v.literal('EngageConversation'), v.literal('Idle')),
+    utterance: v.optional(v.string()),
+    emotionDelta: v.optional(v.object({ arousal: v.number(), valence: v.number() })),
+    innerThought: v.optional(v.string()),
+    targetAgentId: v.optional(v.id('agents')),
+    targetPlaceId: v.optional(v.id('places')),
   }),
   handler: async (ctx, args) => {
     const startTime = Date.now();
-
     const agent = await ctx.runQuery(api.agents.getAgent, { agentId: args.agentId });
     if (!agent) throw new Error('Agent not found');
 
@@ -26,37 +25,31 @@ export const makeAgentDecision = action({
     });
 
     const recentDecisions = await ctx.runQuery(api.decisions.getDecisionHistory, { limit: 5, agentId: args.agentId });
-
     const agentOpinions = await ctx.runQuery(api.opinions.getAgentOpinions, { agentId: args.agentId });
-
     const allPlaces = await ctx.runQuery(api.map.getPlaces, {});
-
     const allAgents = await ctx.runQuery(api.agents.listAgents, {});
-
     const TALKING_RANGE = 2;
+
     const nearbyAgents = allAgents
       .filter(other => {
         if (other._id === args.agentId) return false;
         if (other.currentConversationId) return false;
-
         const dx = other.pos.x - agent.pos.x;
         const dy = other.pos.y - agent.pos.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-
         return distance <= TALKING_RANGE;
       })
       .map(other => {
         const dx = other.pos.x - agent.pos.x;
         const dy = other.pos.y - agent.pos.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-
         const opinion = agentOpinions.find(op => op.targetAgentId === other._id);
-
-        return { opinion, distance, agent: other };
+        return { agent: other, opinion, distance };
       })
       .sort((a, b) => a.distance - b.distance);
 
     const systemPrompt = buildSystemPrompt();
+
     const userPrompt = buildDecisionPrompt(
       agent,
       recentObservations,
@@ -67,6 +60,7 @@ export const makeAgentDecision = action({
     );
 
     let decision: any;
+
     if (nearbyAgents.length > 0 && agent.needs.hunger < 0.95 && agent.needs.sleepiness < 0.95 && Math.random() < 0.5) {
       const closestAgent = nearbyAgents[0];
       console.log(
@@ -77,24 +71,26 @@ export const makeAgentDecision = action({
         utterance: 'Hey!',
         action: 'EngageConversation' as const,
         targetAgentId: closestAgent.agent._id,
-        emotionDelta: { valence: 0.1, arousal: 0.15 },
+        emotionDelta: { arousal: 0.15, valence: 0.1 },
         innerThought: `${closestAgent.agent.name} is right here - I should say hi and talk to them!`,
       };
     } else {
       const urgent = (
         [
-          ['hunger', 'cafe', `CRITICAL HUNGER! Must eat immediately or I'll collapse!`, -0.3, 0.2],
-          ['sleepiness', 'dorm', `CRITICAL EXHAUSTION! Must sleep immediately or I'll collapse!`, -0.3, -0.2],
-          ['studyPressure', 'library', `CRITICAL DEADLINE! Must study immediately or I'll fail!`, -0.2, 0.3],
+          ['hunger', 'cafe', "CRITICAL HUNGER! Must eat immediately or I'll collapse!", -0.3, 0.2],
+          ['sleepiness', 'dorm', "CRITICAL EXHAUSTION! Must sleep immediately or I'll collapse!", -0.3, -0.2],
+          ['studyPressure', 'library', "CRITICAL DEADLINE! Must study immediately or I'll fail!", -0.2, 0.3],
         ] as const
       ).find(([need]) => agent.needs[need] >= 0.95);
+
       const place = urgent && allPlaces.find(p => p.kind.toLowerCase() === urgent[1]);
+
       if (urgent && place)
         decision = {
           innerThought: urgent[2],
           targetPlaceId: place._id,
           action: 'MoveTo' as const,
-          emotionDelta: { valence: urgent[3], arousal: urgent[4] },
+          emotionDelta: { arousal: urgent[4], valence: urgent[3] },
         };
     }
 
@@ -209,10 +205,12 @@ function buildDecisionPrompt(
   const observationsSummary = observations
     .map((obs, idx) => {
       let line = `${idx + 1}. ${obs.summary ?? 'observed something'}`;
+
       if (obs.targetId) {
         const opinion = opinions.find(op => op.targetAgentId === obs.targetId);
         if (opinion) line += ` [Opinion: ${opinion.summary} (sentiment: ${opinion.sentiment.toFixed(2)})]`;
       }
+
       return line;
     })
     .join('\n');
@@ -225,7 +223,6 @@ function buildDecisionPrompt(
     .join('\n');
 
   const placesList = places.map(p => `- ${p.name} (${p.kind}) [ID: ${p._id}]`).join('\n');
-
   let nearbyAgentsSummary = '';
   let conversationBias = '';
 
@@ -254,6 +251,7 @@ Use "EngageConversation" action with their ID to start talking to them.
 `;
   } else {
     nearbyAgentsSummary = "None - you're alone right now";
+
     conversationBias = `
 No one is nearby at the moment. Consider:
 - Moving to a social location (Café, Quad, Library) to meet people
@@ -327,16 +325,15 @@ async function callOpenAIForDecision(
   systemPrompt: string,
   userPrompt: string
 ): Promise<{
-  utterance?: string;
-  innerThought?: string;
-  targetPlaceId?: string;
-  targetAgentId?: string;
   action: 'MoveTo' | 'EngageConversation' | 'Idle';
-  emotionDelta?: { valence: number; arousal: number };
+  utterance?: string;
+  emotionDelta?: { arousal: number; valence: number };
+  innerThought?: string;
+  targetAgentId?: string;
+  targetPlaceId?: string;
 }> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY environment variable is not set');
-
   const openai = new OpenAI({ apiKey: apiKey });
 
   const completion = await openai.chat.completions.create({
@@ -352,49 +349,48 @@ async function callOpenAIForDecision(
 
   const content = completion.choices[0].message.content;
   if (!content) throw new Error('No content in OpenAI response');
-
   const parsed = JSON.parse(content);
 
   return {
     action: parsed.toolName,
     utterance: parsed.parameters?.utterance,
-    targetPlaceId: parsed.parameters?.targetPlaceId,
-    targetAgentId: parsed.parameters?.targetAgentId,
     emotionDelta: calculateEmotionDelta(parsed.toolName),
     innerThought: parsed.parameters?.innerThought || 'Thinking...',
+    targetAgentId: parsed.parameters?.targetAgentId,
+    targetPlaceId: parsed.parameters?.targetPlaceId,
   };
 }
 
-function calculateEmotionDelta(action: string): { valence: number; arousal: number } {
+function calculateEmotionDelta(action: string): { arousal: number; valence: number } {
   switch (action) {
     case 'Eat':
-      return { valence: 0.2, arousal: -0.1 };
+      return { arousal: -0.1, valence: 0.2 };
     case 'Sleep':
-      return { valence: 0.1, arousal: -0.3 };
+      return { arousal: -0.3, valence: 0.1 };
     case 'Study':
       return { arousal: 0.1, valence: -0.05 };
     case 'EngageConversation':
       return { arousal: 0.2, valence: 0.15 };
     case 'MoveTo':
-      return { valence: 0, arousal: 0.05 };
+      return { arousal: 0.05, valence: 0 };
     case 'Idle':
-      return { valence: 0, arousal: -0.05 };
+      return { arousal: -0.05, valence: 0 };
     default:
-      return { valence: 0, arousal: 0 };
+      return { arousal: 0, valence: 0 };
   }
 }
 
 function heuristicFallback(): {
-  utterance?: string;
-  targetPlaceId?: any;
-  targetAgentId?: any;
-  innerThought?: string;
   action: 'MoveTo' | 'EngageConversation' | 'Idle';
-  emotionDelta?: { valence: number; arousal: number };
+  utterance?: string;
+  emotionDelta?: { arousal: number; valence: number };
+  innerThought?: string;
+  targetAgentId?: any;
+  targetPlaceId?: any;
 } {
   return {
     action: 'Idle',
-    emotionDelta: { valence: 0, arousal: -0.05 },
+    emotionDelta: { arousal: -0.05, valence: 0 },
     innerThought: 'Taking a moment to assess my situation.',
   };
 }

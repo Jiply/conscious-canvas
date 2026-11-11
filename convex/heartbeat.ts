@@ -1,18 +1,16 @@
 import { v } from 'convex/values';
 import { api, internal } from './_generated/api';
 import type { Id, Doc } from './_generated/dataModel';
-import { mutation, type MutationCtx } from './_generated/server';
-
+import { type MutationCtx, mutation } from './_generated/server';
 const VISION_WIDTH = 7;
 const VISION_DEPTH = 20;
 const STALE_LOCK_TIMEOUT = 30000;
 
 export const tick = mutation({
   args: { leaderId: v.string() },
-  returns: v.object({ success: v.boolean(), latencyMs: v.number(), isLeader: v.boolean(), processedAgents: v.number() }),
+  returns: v.object({ success: v.boolean(), isLeader: v.boolean(), latencyMs: v.number(), processedAgents: v.number() }),
   handler: async (ctx, args) => {
     const startTime = Date.now();
-
     let state = await ctx.db.query('heartbeat_state').first();
 
     if (!state) {
@@ -22,11 +20,12 @@ export const tick = mutation({
         lastCompletedAt: 0,
         currentLeaderId: args.leaderId,
       });
+
       state = await ctx.db.get(stateId);
       if (!state) throw new Error('Failed to create heartbeat state');
     }
 
-    if (state.currentLeaderId !== args.leaderId) return { latencyMs: 0, success: false, isLeader: false, processedAgents: 0 };
+    if (state.currentLeaderId !== args.leaderId) return { success: false, isLeader: false, latencyMs: 0, processedAgents: 0 };
 
     if (state.isRunning) {
       if (Date.now() - state.lastStartedAt > STALE_LOCK_TIMEOUT) await ctx.db.patch(state._id, { isRunning: false });
@@ -37,15 +36,11 @@ export const tick = mutation({
 
     try {
       const agents = await ctx.db.query('agents').collect();
-
       await Promise.all(agents.map(agent => processAgentTick(ctx, agent, agents)));
-
       const agentsWithUpdatedTickNeeds = await ctx.db.query('agents').collect();
       await Promise.all(agentsWithUpdatedTickNeeds.map(agent => updateAgentNeeds(ctx, agent)));
-
       await ctx.db.patch(state._id, { isRunning: false, lastCompletedAt: Date.now() });
-
-      return { success: true, isLeader: true, processedAgents: agents.length, latencyMs: Date.now() - startTime };
+      return { success: true, isLeader: true, latencyMs: Date.now() - startTime, processedAgents: agents.length };
     } catch (error) {
       await ctx.db.patch(state._id, { isRunning: false });
       throw error;
@@ -68,12 +63,10 @@ async function processAgentTick(ctx: MutationCtx, agent: Doc<'agents'>, allAgent
 
   if (observations.length > 0) {
     await Promise.all(observations.map(obs => ctx.db.insert('observations', obs)));
-
     for (const obs of observations) console.log(`👁️  ${agent.name}: ${obs.summary}`);
   }
 
   await pruneOldObservations(ctx, agent._id, 50);
-
   await includeOpinionsInTickReadSet(ctx, agent._id);
 
   if (agent.currentConversationId) {
@@ -81,6 +74,7 @@ async function processAgentTick(ctx: MutationCtx, agent: Doc<'agents'>, allAgent
       agentId: agent._id,
       conversationId: agent.currentConversationId,
     });
+
     return;
   }
 
@@ -105,7 +99,6 @@ async function updateAgentNeeds(ctx: MutationCtx, agent: Doc<'agents'>) {
   const TIME_COMPRESSION = 2;
   const SIMULATED_SECONDS = TICK_INTERVAL * TIME_COMPRESSION;
   const HOUR_IN_SECONDS = 3600;
-
   const hungerGrowthRate = 0.01 / HOUR_IN_SECONDS;
   const sleepinessGrowthRate = 0.008 / HOUR_IN_SECONDS;
   const studyPressureGrowthRate = 0.005 / HOUR_IN_SECONDS;
@@ -127,9 +120,7 @@ async function updateAgentNeeds(ctx: MutationCtx, agent: Doc<'agents'>) {
 
 async function executePathMovement(ctx: MutationCtx, agent: Doc<'agents'>) {
   if (!agent.path || agent.path.length === 0) return;
-
   const nextStep = agent.path.length > 1 ? agent.path[1] : agent.path[0];
-
   await ctx.db.patch(agent._id, { path: agent.path.slice(1), pos: { x: nextStep.x, y: nextStep.y } });
 
   if (agent.path.length <= 1) {
@@ -143,7 +134,6 @@ async function executePathMovement(ctx: MutationCtx, agent: Doc<'agents'>) {
 
     if (activeDecision && !activeDecision.completedAt && activeDecision.action === 'MoveTo') {
       await ctx.db.patch(activeDecision._id, { completedAt: Date.now() });
-
       if (activeDecision.targetPlaceId) await performActionAtPlace(ctx, agent, activeDecision.targetPlaceId);
     }
   }
@@ -164,9 +154,7 @@ function isAgentInPlace(
 async function performActionAtPlace(ctx: MutationCtx, agent: Doc<'agents'>, placeId: Id<'places'>) {
   const place = await ctx.db.get(placeId);
   if (!place) return;
-
   if (!isAgentInPlace(agent.pos, place.bounds)) return;
-
   const placeKind = place.kind.toLowerCase();
   let decisionAction: 'Eat' | 'Sleep' | 'Study' | null = null;
   const newNeeds = { ...agent.needs };
@@ -184,7 +172,6 @@ async function performActionAtPlace(ctx: MutationCtx, agent: Doc<'agents'>, plac
 
   if (decisionAction) {
     await ctx.db.patch(agent._id, { needs: newNeeds });
-
     console.log(`🍽️  ${agent.name}: ${decisionAction} at ${place.name}`);
 
     await ctx.db.insert('decisions', {
@@ -222,34 +209,25 @@ async function getAgentsInVision(
   ctx: MutationCtx,
   agent: Doc<'agents'>,
   allAgents: Doc<'agents'>[]
-): Promise<Array<{ distance: number; agent: Doc<'agents'> }>> {
-  const visible: Array<{ distance: number; agent: Doc<'agents'> }> = [];
-
+): Promise<Array<{ agent: Doc<'agents'>; distance: number }>> {
+  const visible: Array<{ agent: Doc<'agents'>; distance: number }> = [];
   const headingX = Math.cos(agent.headingRad);
   const headingY = Math.sin(agent.headingRad);
-
   const perpX = -headingY;
   const perpY = headingX;
 
   for (const other of allAgents) {
     if (other._id === agent._id) continue;
-
     const dx = other.pos.x - agent.pos.x;
     const dy = other.pos.y - agent.pos.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
-
     const forwardDist = dx * headingX + dy * headingY;
-
     const sidewaysDist = Math.abs(dx * perpX + dy * perpY);
-
     if (forwardDist < 0 || forwardDist > VISION_DEPTH) continue;
     if (sidewaysDist > VISION_WIDTH / 2) continue;
-
     const hasLineOfSight = await checkLineOfSight(ctx, agent.pos, other.pos, allAgents, agent._id);
-
     if (!hasLineOfSight) continue;
-
-    visible.push({ distance, agent: other });
+    visible.push({ agent: other, distance });
   }
 
   return visible;
@@ -266,13 +244,11 @@ async function checkLineOfSight(
   const y0 = Math.round(from.y);
   const x1 = Math.round(to.x);
   const y1 = Math.round(to.y);
-
   const dx = Math.abs(x1 - x0);
   const dy = Math.abs(y1 - y0);
   const sx = x0 < x1 ? 1 : -1;
   const sy = y0 < y1 ? 1 : -1;
   let err = dx - dy;
-
   let x = x0;
   let y = y0;
 
@@ -293,12 +269,13 @@ async function checkLineOfSight(
     }
 
     if (x === x1 && y === y1) break;
-
     const e2 = 2 * err;
+
     if (e2 > -dy) {
       err -= dy;
       x += sx;
     }
+
     if (e2 < dx) {
       err += dx;
       y += sy;
@@ -310,9 +287,7 @@ async function checkLineOfSight(
 
 function calculateSalience(distance: number, target: Doc<'agents'>): number {
   const distanceFactor = 1 - distance / VISION_DEPTH;
-
   const arousalFactor = target.emotions.arousal;
-
   return Math.min(1, 0.3 + distanceFactor * 0.4 + arousalFactor * 0.3);
 }
 
