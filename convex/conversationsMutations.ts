@@ -1,8 +1,24 @@
 import { v } from 'convex/values';
-import { query, mutation } from './_generated/server';
+import type { Id } from './_generated/dataModel';
 import { messageFields, conversationFields } from './schema';
+import { type MutationCtx, query, internalMutation } from './_generated/server';
+// Each message is one paid OpenAI call, so a conversation ends once it reaches this many.
+const MAX_MESSAGES_PER_CONVERSATION = 30;
 
-export const createConversation = mutation({
+async function completeConversationById(ctx: MutationCtx, conversationId: Id<'conversations'>) {
+  const conversation = await ctx.db.get(conversationId);
+  if (!conversation) throw new Error('Conversation not found');
+  await ctx.db.patch(conversationId, { status: 'completed', completedAt: Date.now() });
+
+  for (const participantId of conversation.participantIds) {
+    const agent = await ctx.db.get(participantId);
+
+    if (agent && agent.currentConversationId === conversationId)
+      await ctx.db.patch(participantId, { state: 'Idle', currentConversationId: undefined });
+  }
+}
+
+export const createConversation = internalMutation({
   args: { targetId: v.id('agents'), initiatorId: v.id('agents') },
   handler: async (ctx, args) => {
     const initiator = await ctx.db.get(args.initiatorId);
@@ -24,7 +40,7 @@ export const createConversation = mutation({
   returns: v.id('conversations'),
 });
 
-export const addMessage = mutation({
+export const addMessage = internalMutation({
   args: {
     content: v.string(),
     agentId: v.id('agents'),
@@ -36,6 +52,7 @@ export const addMessage = mutation({
     const conversation = await ctx.db.get(args.conversationId);
     if (!conversation) throw new Error('Conversation not found');
     if (conversation.status !== 'active') throw new Error('Cannot add message to completed conversation');
+    if (!conversation.participantIds.includes(args.agentId)) throw new Error('Agent is not in this conversation');
     const agent = await ctx.db.get(args.agentId);
     if (!agent) throw new Error('Agent not found');
 
@@ -48,26 +65,18 @@ export const addMessage = mutation({
       emotionSnapshot: { valence: agent.emotions.valence, arousal: agent.emotions.arousal },
     });
 
-    await ctx.db.patch(args.conversationId, { turnCount: conversation.turnCount + 1 });
+    const turnCount = conversation.turnCount + 1;
+    await ctx.db.patch(args.conversationId, { turnCount });
+    if (turnCount >= MAX_MESSAGES_PER_CONVERSATION) await completeConversationById(ctx, args.conversationId);
     return messageId;
   },
   returns: v.id('messages'),
 });
 
-export const completeConversation = mutation({
+export const completeConversation = internalMutation({
   args: { conversationId: v.id('conversations') },
   handler: async (ctx, args) => {
-    const conversation = await ctx.db.get(args.conversationId);
-    if (!conversation) throw new Error('Conversation not found');
-    await ctx.db.patch(args.conversationId, { status: 'completed', completedAt: Date.now() });
-
-    for (const participantId of conversation.participantIds) {
-      const agent = await ctx.db.get(participantId);
-
-      if (agent && agent.currentConversationId === args.conversationId)
-        await ctx.db.patch(participantId, { state: 'Idle', currentConversationId: undefined });
-    }
-
+    await completeConversationById(ctx, args.conversationId);
     return null;
   },
   returns: v.null(),

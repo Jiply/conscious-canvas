@@ -16,7 +16,7 @@ import type * as events from '../events.js';
 import type * as seedMap from '../seedMap.js';
 import type * as opinions from '../opinions.js';
 import type * as decisions from '../decisions.js';
-import type * as heartbeat from '../heartbeat.js';
+import type * as world from '../world.js';
 import type * as observers from '../observers.js';
 import type * as pathfinding from '../pathfinding.js';
 import type * as observations from '../observations.js';
@@ -41,7 +41,7 @@ declare const fullApi: ApiFromModules<{
   seedMap: typeof seedMap;
   opinions: typeof opinions;
   decisions: typeof decisions;
-  heartbeat: typeof heartbeat;
+  world: typeof world;
   observers: typeof observers;
   pathfinding: typeof pathfinding;
   observations: typeof observations;

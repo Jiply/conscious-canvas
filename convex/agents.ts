@@ -1,8 +1,8 @@
 import { v } from 'convex/values';
 import { agentFields } from './schema';
-import { query, mutation } from './_generated/server';
+import { query, internalMutation } from './_generated/server';
 
-export const updateAgentEmotions = mutation({
+export const updateAgentEmotions = internalMutation({
   args: { agentId: v.id('agents'), valence: v.optional(v.number()), arousal: v.optional(v.number()) },
   handler: async (ctx, args) => {
     const agent = await ctx.db.get(args.agentId);
@@ -17,7 +17,7 @@ export const updateAgentEmotions = mutation({
   returns: v.null(),
 });
 
-export const setAgentPath = mutation({
+export const setAgentPath = internalMutation({
   args: { agentId: v.id('agents'), state: agentFields.state, path: v.array(v.object({ x: v.number(), y: v.number() })) },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.agentId, { path: args.path, state: args.state });
@@ -26,7 +26,7 @@ export const setAgentPath = mutation({
   returns: v.null(),
 });
 
-export const setNextDecisionTime = mutation({
+export const setNextDecisionTime = internalMutation({
   args: { agentId: v.id('agents'), nextDecisionAt: v.number() },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.agentId, { nextDecisionAt: args.nextDecisionAt });
@@ -47,7 +47,7 @@ export const getAgent = query({
   handler: async (ctx, args) => await ctx.db.get(args.agentId),
 });
 
-export const migrateAddConversationField = mutation({
+export const migrateAddConversationField = internalMutation({
   args: {},
   handler: async ctx => {
     const agents = await ctx.db.query('agents').collect();

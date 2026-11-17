@@ -1,7 +1,7 @@
 'use node';
 import OpenAI from 'openai';
 import { v } from 'convex/values';
-import { api } from './_generated/api';
+import { api, internal } from './_generated/api';
 import { internalAction } from './_generated/server';
 
 export const processConversationTurn = internalAction({
@@ -28,6 +28,9 @@ export const processConversationTurn = internalAction({
     let response;
 
     try {
+      if (!(await ctx.runMutation(internal.world.reserveOpenAICall, {})))
+        throw new Error('OpenAI budget spent for this minute');
+
       response = await generateConversationMessage(agent, otherAgent, opinionOfOther, messages, observations, decisions);
       if ((response as any).thoughts) console.log(`💭 ${agent.name} (thinking): ${(response as any).thoughts}`);
       console.log(`💬 ${agent.name} → ${otherAgent.name}: "${response.message}"`);
@@ -36,7 +39,7 @@ export const processConversationTurn = internalAction({
       console.log(`💬 ${agent.name} → ${otherAgent.name}: "${response.message}" (fallback)`);
     }
 
-    await ctx.runMutation(api.conversationsMutations.addMessage, {
+    await ctx.runMutation(internal.conversationsMutations.addMessage, {
       agentId: args.agentId,
       content: response.message,
       conversationId: args.conversationId,
@@ -45,14 +48,14 @@ export const processConversationTurn = internalAction({
     });
 
     if (response.emotionDelta)
-      await ctx.runMutation(api.agents.updateAgentEmotions, {
+      await ctx.runMutation(internal.agents.updateAgentEmotions, {
         agentId: args.agentId,
         arousal: Math.max(0, Math.min(1, agent.emotions.arousal + response.emotionDelta.arousal)),
         valence: Math.max(-1, Math.min(1, agent.emotions.valence + response.emotionDelta.valence)),
       });
 
     if (!response.continueConversation)
-      await ctx.runMutation(api.conversationsMutations.completeConversation, { conversationId: args.conversationId });
+      await ctx.runMutation(internal.conversationsMutations.completeConversation, { conversationId: args.conversationId });
 
     return { messageContent: response.message, continueConversation: response.continueConversation };
   },

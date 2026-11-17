@@ -123,12 +123,8 @@ export default defineSchema({
   messages: defineTable(messageFields).index('by_conversation', ['conversationId']).index('by_agent', ['agentId']),
   decisions: defineTable(decisionFields).index('by_agent', ['agentId']).index('by_status', ['agentId', 'completedAt']),
   conversations: defineTable(conversationFields).index('by_status', ['status']).index('by_participant', ['participantIds']),
-  heartbeat_state: defineTable({
-    isRunning: v.boolean(),
-    lastStartedAt: v.number(),
-    lastCompletedAt: v.number(),
-    currentLeaderId: v.string(),
-  }),
+  tick_loop: defineTable({ nextTickAt: v.number() }),
+  openai_call_budget: defineTable({ windowStartedAt: v.number(), callsInWindow: v.number() }),
   opinions: defineTable(opinionFields)
     .index('by_agent', ['agentId'])
     .index('by_target', ['targetAgentId'])

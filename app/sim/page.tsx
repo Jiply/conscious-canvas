@@ -8,10 +8,10 @@ import { Button } from '@/components/ui/button';
 import { getProfilePicture } from '@/lib/utils';
 import { PixiMap } from '@/components/pixi-map';
 import { EventFeed } from '@/components/event-feed';
-import { useHeartbeat } from '@/hooks/use-heartbeat';
 import { Separator } from '@/components/ui/separator';
 import type { Id } from '@/convex/_generated/dataModel';
 import { ConversationSheet } from '@/components/conversation-sheet';
+import { useObserverPresence } from '@/hooks/use-observer-presence';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 
 import {
@@ -21,7 +21,6 @@ import {
   MapPinIcon,
   SearchIcon,
   Loader2Icon,
-  ActivityIcon,
   PlayCircleIcon,
   PauseCircleIcon,
 } from 'lucide-react';
@@ -45,7 +44,7 @@ import {
 
 export default function SimPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const { isLeader, stats } = useHeartbeat();
+  const presence = useObserverPresence();
   const [isWorldReady, setIsWorldReady] = useState(false);
   const [isConvoSheetOpen, setIsConvoSheetOpen] = useState(false);
   const [chosenAgentId, setChosenAgentId] = useState<Id<'agents'> | null>(null);
@@ -94,7 +93,7 @@ export default function SimPage() {
                     <Loader2Icon className="size-3 animate-spin" />
                     Loading
                   </Badge>
-                ) : isLeader ? (
+                ) : presence?.isWorldRunning ? (
                   <Badge variant="secondary" className="gap-1.5 whitespace-nowrap">
                     <PlayCircleIcon className="size-3" />
                     Running
@@ -110,17 +109,8 @@ export default function SimPage() {
                 <EyeIcon className="size-4 flex-shrink-0" />
                 <span className="whitespace-nowrap text-muted-foreground">Observers:</span>
                 <Badge className="font-mono text-xs whitespace-nowrap" variant="default">
-                  1
+                  {presence?.observerCount ?? 1}
                 </Badge>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <ActivityIcon className="size-4 flex-shrink-0" />
-                <span className="whitespace-nowrap text-muted-foreground">{isLeader ? 'Leader' : 'Follower'}</span>
-                {stats ? (
-                  <Badge variant="outline" className="font-mono text-xs whitespace-nowrap">
-                    {stats.latencyMs}ms
-                  </Badge>
-                ) : null}
               </div>
             </div>
           </SidebarHeader>

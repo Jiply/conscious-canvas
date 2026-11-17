@@ -1,8 +1,8 @@
 import { v } from 'convex/values';
 import { decisionFields } from './schema';
-import { query, mutation } from './_generated/server';
+import { query, internalMutation } from './_generated/server';
 
-export const addDecision = mutation({
+export const addDecision = internalMutation({
   args: {
     agentId: v.id('agents'),
     action: decisionFields.action,
@@ -69,7 +69,7 @@ export const addDecision = mutation({
   returns: v.id('decisions'),
 });
 
-export const completeDecision = mutation({
+export const completeDecision = internalMutation({
   args: { decisionId: v.id('decisions') },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.decisionId, { completedAt: Date.now() });
@@ -78,7 +78,7 @@ export const completeDecision = mutation({
   returns: v.null(),
 });
 
-export const completeAllIncompleteDecisions = mutation({
+export const completeAllIncompleteDecisions = internalMutation({
   args: {},
   handler: async ctx => {
     const allDecisions = await ctx.db.query('decisions').collect();

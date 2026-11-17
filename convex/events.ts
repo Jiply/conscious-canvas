@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
-import { mutation } from './_generated/server';
+import { internalMutation } from './_generated/server';
 
-export const clearOldEvents = mutation({
+export const clearOldEvents = internalMutation({
   returns: v.number(),
   args: { olderThanMs: v.number() },
   handler: async (ctx, args) => {

@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
-import { query, mutation } from './_generated/server';
+import { query, internalMutation } from './_generated/server';
 
-export const pruneObservations = mutation({
+export const pruneObservations = internalMutation({
   args: { keepCount: v.number(), agentId: v.id('agents') },
   handler: async (ctx, args) => {
     const observations = await ctx.db

@@ -16,6 +16,14 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) to be redirected to `/sim`.
 
+The world runs on the server only while a `/sim` page is open. Setup and admin functions are internal, so run them from the Convex dashboard or CLI:
+
+```bash
+npx convex run map:initMap          # build the campus map once
+npx convex run seed:seedAgents      # replace all agents with the starting cast
+npx convex run observers:toggleAdmin '{"enabled": false}'   # freeze the world
+```
+
 ## License
 
 MIT

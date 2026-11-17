@@ -1,50 +1,106 @@
 import { v } from 'convex/values';
-import { api, internal } from './_generated/api';
+import { internal } from './_generated/api';
 import type { Id, Doc } from './_generated/dataModel';
-import { type MutationCtx, mutation } from './_generated/server';
+import { type MutationCtx, internalMutation } from './_generated/server';
 const VISION_WIDTH = 7;
 const VISION_DEPTH = 20;
-const STALE_LOCK_TIMEOUT = 30000;
+const TICK_INTERVAL_MS = 5000;
+// A tick still unfinished this long after it was due means its loop died, so an observer restarts it.
+const TICK_LOOP_STALL_MS = 10000;
+export const OBSERVER_TIMEOUT_MS = 15000;
+// Each tick starts at most one OpenAI call per agent (a decision or a conversation turn): 12 a minute per agent.
+// 500 a minute never throttles up to 41 agents (the live world has 32) and caps spend if anything loops.
+const OPENAI_CALLS_PER_MINUTE = 500;
+const OPENAI_BUDGET_WINDOW_MS = 60000;
 
-export const tick = mutation({
-  args: { leaderId: v.string() },
-  returns: v.object({ success: v.boolean(), isLeader: v.boolean(), latencyMs: v.number(), processedAgents: v.number() }),
+// The server owns one tick loop that runs while someone is watching; observers only ever start it.
+export async function startTickLoopIfStopped(ctx: MutationCtx) {
+  const now = Date.now();
+  const loop = await ctx.db.query('tick_loop').first();
+  if (loop && loop.nextTickAt > now - TICK_LOOP_STALL_MS) return;
+
+  if (loop) await ctx.db.patch(loop._id, { nextTickAt: now });
+  else await ctx.db.insert('tick_loop', { nextTickAt: now });
+
+  await ctx.scheduler.runAt(now, internal.world.tick, { scheduledFor: now });
+}
+
+export const tick = internalMutation({
+  args: { scheduledFor: v.number() },
+  returns: v.null(),
   handler: async (ctx, args) => {
-    const startTime = Date.now();
-    let state = await ctx.db.query('heartbeat_state').first();
+    const loop = await ctx.db.query('tick_loop').first();
+    // A restart replaced this loop's schedule, so this tick belongs to a dead loop.
+    if (!loop || loop.nextTickAt !== args.scheduledFor) return null;
+    const now = Date.now();
+    const worldSettings = await ctx.db.query('world_settings').first();
 
-    if (!state) {
-      const stateId = await ctx.db.insert('heartbeat_state', {
-        isRunning: false,
-        lastStartedAt: 0,
-        lastCompletedAt: 0,
-        currentLeaderId: args.leaderId,
-      });
+    const watcher = await ctx.db
+      .query('observer')
+      .withIndex('by_heartbeat', q => q.gte('lastHeartbeatAt', now - OBSERVER_TIMEOUT_MS))
+      .first();
 
-      state = await ctx.db.get(stateId);
-      if (!state) throw new Error('Failed to create heartbeat state');
+    if (!watcher || worldSettings?.adminEnabled === false) {
+      await ctx.db.patch(loop._id, { nextTickAt: 0 });
+
+      if (worldSettings?.isRunning) {
+        await ctx.db.patch(worldSettings._id, { isRunning: false, observerCount: 0 });
+        console.log('🧊 Universe FROZEN: No observers remain');
+
+        await ctx.db.insert('events', {
+          type: 'world',
+          metadata: { severity: 'important' },
+          timestamp: now,
+          description: '🧊 Universe frozen: No observers remain',
+        });
+      }
+
+      return null;
     }
 
-    if (state.currentLeaderId !== args.leaderId) return { success: false, isLeader: false, latencyMs: 0, processedAgents: 0 };
+    await ctx.scheduler.runAfter(0, internal.world.advanceWorld, { scheduledFor: args.scheduledFor });
+    return null;
+  },
+});
 
-    if (state.isRunning) {
-      if (Date.now() - state.lastStartedAt > STALE_LOCK_TIMEOUT) await ctx.db.patch(state._id, { isRunning: false });
-      else throw new Error('Heartbeat already running');
+export const reserveOpenAICall = internalMutation({
+  args: {},
+  returns: v.boolean(),
+  handler: async ctx => {
+    const now = Date.now();
+    const budget = await ctx.db.query('openai_call_budget').first();
+
+    if (!budget) {
+      await ctx.db.insert('openai_call_budget', { windowStartedAt: now, callsInWindow: 1 });
+      return true;
     }
 
-    await ctx.db.patch(state._id, { isRunning: true, lastStartedAt: Date.now() });
-
-    try {
-      const agents = await ctx.db.query('agents').collect();
-      await Promise.all(agents.map(agent => processAgentTick(ctx, agent, agents)));
-      const agentsWithUpdatedTickNeeds = await ctx.db.query('agents').collect();
-      await Promise.all(agentsWithUpdatedTickNeeds.map(agent => updateAgentNeeds(ctx, agent)));
-      await ctx.db.patch(state._id, { isRunning: false, lastCompletedAt: Date.now() });
-      return { success: true, isLeader: true, latencyMs: Date.now() - startTime, processedAgents: agents.length };
-    } catch (error) {
-      await ctx.db.patch(state._id, { isRunning: false });
-      throw error;
+    if (now - budget.windowStartedAt >= OPENAI_BUDGET_WINDOW_MS) {
+      await ctx.db.patch(budget._id, { windowStartedAt: now, callsInWindow: 1 });
+      return true;
     }
+
+    if (budget.callsInWindow >= OPENAI_CALLS_PER_MINUTE) return false;
+    await ctx.db.patch(budget._id, { callsInWindow: budget.callsInWindow + 1 });
+    return true;
+  },
+});
+
+// Schedules the next tick only once this one is done, so ticks never pile up.
+export const advanceWorld = internalMutation({
+  args: { scheduledFor: v.number() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const loop = await ctx.db.query('tick_loop').first();
+    if (!loop || loop.nextTickAt !== args.scheduledFor) return null;
+    const agents = await ctx.db.query('agents').collect();
+    await Promise.all(agents.map(agent => processAgentTick(ctx, agent, agents)));
+    const agentsWithUpdatedTickNeeds = await ctx.db.query('agents').collect();
+    await Promise.all(agentsWithUpdatedTickNeeds.map(agent => updateAgentNeeds(ctx, agent)));
+    const nextTickAt = Date.now() + TICK_INTERVAL_MS;
+    await ctx.db.patch(loop._id, { nextTickAt });
+    await ctx.scheduler.runAt(nextTickAt, internal.world.tick, { scheduledFor: nextTickAt });
+    return null;
   },
 });
 
@@ -95,9 +151,8 @@ async function includeOpinionsInTickReadSet(ctx: MutationCtx, agentId: Id<'agent
 }
 
 async function updateAgentNeeds(ctx: MutationCtx, agent: Doc<'agents'>) {
-  const TICK_INTERVAL = 5;
   const TIME_COMPRESSION = 2;
-  const SIMULATED_SECONDS = TICK_INTERVAL * TIME_COMPRESSION;
+  const SIMULATED_SECONDS = (TICK_INTERVAL_MS / 1000) * TIME_COMPRESSION;
   const HOUR_IN_SECONDS = 3600;
   const hungerGrowthRate = 0.01 / HOUR_IN_SECONDS;
   const sleepinessGrowthRate = 0.008 / HOUR_IN_SECONDS;
@@ -194,7 +249,7 @@ async function makeAgentDecision(ctx: MutationCtx, agent: Doc<'agents'>) {
   if (activeDecision && !activeDecision.completedAt) return;
 
   try {
-    await ctx.scheduler.runAfter(0, api.llm.makeAgentDecision, { agentId: agent._id });
+    await ctx.scheduler.runAfter(0, internal.llm.makeAgentDecision, { agentId: agent._id });
   } catch (error) {
     await ctx.db.insert('decisions', {
       action: 'Idle',

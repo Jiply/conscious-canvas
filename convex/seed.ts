@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 import type { Id } from './_generated/dataModel';
-import { type MutationCtx, mutation } from './_generated/server';
+import { type MutationCtx, internalMutation } from './_generated/server';
 const MAP_CENTER_X = 100;
 const MAP_CENTER_Y = 75;
 const CLUSTER_RADIUS = 8;
@@ -112,7 +112,7 @@ const AGENT_PROFILE_TEMPLATES = [
   },
 ];
 
-export const seedAgents = mutation({
+export const seedAgents = internalMutation({
   args: {},
   handler: async ctx => {
     console.log('🌱 Starting agent seeding...');
@@ -159,7 +159,7 @@ export const seedAgents = mutation({
   returns: v.object({ success: v.boolean(), agentCount: v.number() }),
 });
 
-export const clearAllData = mutation({
+export const clearAllData = internalMutation({
   args: {},
   handler: async ctx => {
     await clearSimulationData(ctx);

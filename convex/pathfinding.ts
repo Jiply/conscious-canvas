@@ -1,17 +1,17 @@
 import { v } from 'convex/values';
-import { type QueryCtx, query } from './_generated/server';
+import { type QueryCtx, internalQuery } from './_generated/server';
 const heuristic = (x1: number, y1: number, x2: number, y2: number): number => Math.abs(x1 - x2) + Math.abs(y1 - y2);
 
 interface PathNode {
-  x: number;
-  y: number;
+  f: number;
   g: number;
   h: number;
-  f: number;
+  x: number;
+  y: number;
   parent: PathNode | null;
 }
 
-export const findPath = query({
+export const findPath = internalQuery({
   returns: v.union(v.array(v.object({ x: v.number(), y: v.number() })), v.null()),
   args: { goalX: v.number(), goalY: v.number(), startX: v.number(), startY: v.number() },
   handler: async (ctx, args) => {

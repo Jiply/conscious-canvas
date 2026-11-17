@@ -1,10 +1,10 @@
 'use node';
 import OpenAI from 'openai';
 import { v } from 'convex/values';
-import { api } from './_generated/api';
-import { action } from './_generated/server';
+import { api, internal } from './_generated/api';
+import { internalAction } from './_generated/server';
 
-export const makeAgentDecision = action({
+export const makeAgentDecision = internalAction({
   args: { agentId: v.id('agents') },
   returns: v.object({
     action: v.union(v.literal('MoveTo'), v.literal('EngageConversation'), v.literal('Idle')),
@@ -94,7 +94,10 @@ export const makeAgentDecision = action({
         };
     }
 
-    if (!decision) {
+    if (!decision && !(await ctx.runMutation(internal.world.reserveOpenAICall, {}))) {
+      console.log(`💸 ${agent.name}: OpenAI budget spent for this minute, idling`);
+      decision = heuristicFallback();
+    } else if (!decision) {
       try {
         decision = await callOpenAIForDecision(systemPrompt, userPrompt);
         console.log(`🤖 ${agent.name}: "${decision.innerThought}" → ${decision.action}`);
@@ -109,7 +112,7 @@ export const makeAgentDecision = action({
 
     const latency = Date.now() - startTime;
 
-    const decisionId = await ctx.runMutation(api.decisions.addDecision, {
+    const decisionId = await ctx.runMutation(internal.decisions.addDecision, {
       agentId: args.agentId,
       llmLatencyMs: latency,
       action: decision.action,
@@ -119,20 +122,20 @@ export const makeAgentDecision = action({
       targetAgentId: decision.targetAgentId,
     });
 
-    if (decision.action === 'Idle') await ctx.runMutation(api.decisions.completeDecision, { decisionId });
+    if (decision.action === 'Idle') await ctx.runMutation(internal.decisions.completeDecision, { decisionId });
 
     if (decision.action === 'EngageConversation' && decision.targetAgentId) {
       try {
         const targetAgent = await ctx.runQuery(api.agents.getAgent, { agentId: decision.targetAgentId });
 
         if (targetAgent && !targetAgent.currentConversationId) {
-          await ctx.runMutation(api.conversationsMutations.createConversation, {
+          await ctx.runMutation(internal.conversationsMutations.createConversation, {
             initiatorId: args.agentId,
             targetId: decision.targetAgentId,
           });
 
-          await ctx.runMutation(api.decisions.completeDecision, { decisionId });
-        } else await ctx.runMutation(api.decisions.completeDecision, { decisionId });
+          await ctx.runMutation(internal.decisions.completeDecision, { decisionId });
+        } else await ctx.runMutation(internal.decisions.completeDecision, { decisionId });
       } catch (error) {}
     }
 
@@ -143,27 +146,27 @@ export const makeAgentDecision = action({
         if (targetPlace && targetPlace.entrances && targetPlace.entrances.length > 0) {
           const entrance = targetPlace.entrances[0];
 
-          const path = await ctx.runQuery(api.pathfinding.findPath, {
+          const path = await ctx.runQuery(internal.pathfinding.findPath, {
             goalX: entrance.x,
             goalY: entrance.y,
             startX: agent.pos.x,
             startY: agent.pos.y,
           });
 
-          if (path) await ctx.runMutation(api.agents.setAgentPath, { path, state: 'Transit', agentId: args.agentId });
+          if (path) await ctx.runMutation(internal.agents.setAgentPath, { path, state: 'Transit', agentId: args.agentId });
         }
       } catch (error) {}
     }
 
     if (decision.emotionDelta)
-      await ctx.runMutation(api.agents.updateAgentEmotions, {
+      await ctx.runMutation(internal.agents.updateAgentEmotions, {
         agentId: args.agentId,
         valence: agent.emotions.valence + decision.emotionDelta.valence,
         arousal: agent.emotions.arousal + decision.emotionDelta.arousal,
       });
 
     const nextDecisionDelay = 5000 + Math.random() * 10000;
-    await ctx.runMutation(api.agents.setNextDecisionTime, {
+    await ctx.runMutation(internal.agents.setNextDecisionTime, {
       agentId: args.agentId,
       nextDecisionAt: Date.now() + nextDecisionDelay,
     });

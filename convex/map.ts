@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
 import { internal } from './_generated/api';
-import { type MutationCtx, query, mutation } from './_generated/server';
 import { placeFields, mapTileFields, mapSettingsFields } from './schema';
+import { type MutationCtx, query, internalMutation } from './_generated/server';
 
 async function deleteAll(ctx: MutationCtx, table: 'map_tiles' | 'places' | 'map_settings') {
   const docs = await ctx.db.query(table).collect();
@@ -98,7 +98,7 @@ export const getPlaces = query({
   },
 });
 
-export const initMap = mutation({
+export const initMap = internalMutation({
   args: { seed: v.optional(v.string()), force: v.optional(v.boolean()) },
   handler: async (
     ctx,
@@ -136,7 +136,7 @@ export const initMap = mutation({
   }),
 });
 
-export const clearAllTiles = mutation({
+export const clearAllTiles = internalMutation({
   args: { batchSize: v.optional(v.number()) },
   handler: async (ctx, args) => {
     const batchSize = args.batchSize || 1000;
@@ -150,7 +150,7 @@ export const clearAllTiles = mutation({
   returns: v.object({ hasMore: v.boolean(), success: v.boolean(), tilesDeleted: v.number() }),
 });
 
-export const clearAllPlaces = mutation({
+export const clearAllPlaces = internalMutation({
   args: {},
   handler: async ctx => {
     console.log('🗑️  Clearing all places...');
@@ -161,7 +161,7 @@ export const clearAllPlaces = mutation({
   returns: v.object({ success: v.boolean(), placesDeleted: v.number() }),
 });
 
-export const clearMapSettings = mutation({
+export const clearMapSettings = internalMutation({
   args: {},
   handler: async ctx => {
     console.log('🗑️  Clearing map settings...');
@@ -172,7 +172,7 @@ export const clearMapSettings = mutation({
   returns: v.object({ success: v.boolean(), settingsDeleted: v.number() }),
 });
 
-export const clearAllMapData = mutation({
+export const clearAllMapData = internalMutation({
   args: {},
   handler: async ctx => {
     console.log('🗑️  Clearing all map data...');

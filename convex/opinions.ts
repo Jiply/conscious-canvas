@@ -1,8 +1,8 @@
 import { v } from 'convex/values';
 import { opinionFields } from './schema';
-import { query, mutation } from './_generated/server';
+import { query, internalMutation } from './_generated/server';
 
-export const upsertOpinion = mutation({
+export const upsertOpinion = internalMutation({
   args: {
     traits: v.optional(v.record(v.string(), v.number())),
     agentId: v.id('agents'),
