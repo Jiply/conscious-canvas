@@ -2,7 +2,10 @@
   "private": true,
   "version": "0.1.0",
   "name": "conscious-canvas",
-  "scripts": { "dev": "next dev --turbopack", "build": "next build --turbopack" },
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build --turbopack"
+  },
   "devDependencies": {
     "typescript": "^5",
     "tailwindcss": "^4",
@@ -14,7 +17,7 @@
   },
   "dependencies": {
     "clsx": "^2.1.1",
-    "next": "^15.5.9",
+    "next": "15.5.29",
     "react": "19.1.0",
     "convex": "^1.28.0",
     "openai": "^4.77.0",

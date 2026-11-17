@@ -37,49 +37,53 @@ export const heartbeat = mutation({
 
     const isCounted = existing !== null || activeObservers.length < MAX_ACTIVE_OBSERVERS;
     const observerCount = activeObservers.filter(o => o.sessionId !== args.sessionId).length + (isCounted ? 1 : 0);
-    const worldSettings = await ctx.db.query('world_settings').first();
-    const isWorldRunning = worldSettings?.adminEnabled !== false;
+    const worldSettings = await getOrCreateWorldSettings(ctx);
+    const wasRunning = worldSettings.isRunning;
+    const isWorldRunning = worldSettings.adminEnabled;
 
-    if (!worldSettings)
-      await ctx.db.insert('world_settings', {
-        tickHz: 0.2,
-        observerCount,
-        currentTick: 0,
-        adminEnabled: true,
-        lastTickAt: undefined,
-        isRunning: true,
-        simulationStartedAt: now,
+    if (!wasRunning && isWorldRunning) {
+      const timestamp = new Date(now).toLocaleTimeString('en-US', { hour12: false });
+      console.log(
+        `⏰ [${timestamp}] 🌍 World AWAKENS: ${observerCount} ${observerCount === 1 ? 'observer' : 'observers'} watching`
+      );
+
+      await ctx.db.insert('events', {
+        type: 'world',
+        metadata: { severity: 'important' },
+        timestamp: now,
+        description: `🌍 Universe awakens: ${observerCount} ${observerCount === 1 ? 'observer' : 'observers'} watching`,
       });
-    else {
-      const wasRunning = worldSettings.isRunning;
-
-      if (!wasRunning && isWorldRunning) {
-        const timestamp = new Date(now).toLocaleTimeString('en-US', { hour12: false });
-        console.log(
-          `⏰ [${timestamp}] 🌍 World AWAKENS: ${observerCount} ${observerCount === 1 ? 'observer' : 'observers'} watching`
-        );
-
-        await ctx.db.insert('events', {
-          type: 'world',
-          metadata: { severity: 'important' },
-          timestamp: now,
-          description: `🌍 Universe awakens: ${observerCount} ${observerCount === 1 ? 'observer' : 'observers'} watching`,
-        });
-      }
-
-      if (worldSettings.observerCount !== observerCount || wasRunning !== isWorldRunning)
-        await ctx.db.patch(worldSettings._id, {
-          observerCount,
-          isRunning: isWorldRunning,
-          simulationStartedAt: !wasRunning && isWorldRunning ? now : worldSettings.simulationStartedAt,
-        });
     }
 
+    if (worldSettings.observerCount !== observerCount || wasRunning !== isWorldRunning)
+      await ctx.db.patch(worldSettings._id, {
+        observerCount,
+        isRunning: isWorldRunning,
+        simulationStartedAt: !wasRunning && isWorldRunning ? now : worldSettings.simulationStartedAt,
+      });
+
     if (isWorldRunning) await startTickLoopIfStopped(ctx);
-    return { observerCount, isWorldRunning };
+    return null;
   },
-  returns: v.object({ observerCount: v.number(), isWorldRunning: v.boolean() }),
+  returns: v.null(),
 });
+
+async function getOrCreateWorldSettings(ctx: MutationCtx) {
+  const existing = await ctx.db.query('world_settings').first();
+  if (existing) return existing;
+
+  const worldSettingsId = await ctx.db.insert('world_settings', {
+    tickHz: 0.2,
+    currentTick: 0,
+    isRunning: false,
+    observerCount: 0,
+    adminEnabled: true,
+  });
+
+  const created = await ctx.db.get(worldSettingsId);
+  if (!created) throw new Error('Failed to create world settings');
+  return created;
+}
 
 async function deleteStaleObservers(ctx: MutationCtx, now: number) {
   const staleObservers = await ctx.db
@@ -109,19 +113,9 @@ export const toggleAdmin = internalMutation({
   args: { enabled: v.boolean() },
   handler: async (ctx, args) => {
     const now = Date.now();
-    const worldSettings = await ctx.db.query('world_settings').first();
-
-    if (!worldSettings)
-      await ctx.db.insert('world_settings', {
-        tickHz: 0.2,
-        currentTick: 0,
-        isRunning: false,
-        observerCount: 0,
-        adminEnabled: args.enabled,
-      });
-    else
-      // The next observer heartbeat marks the world running again and announces it.
-      await ctx.db.patch(worldSettings._id, { adminEnabled: args.enabled, isRunning: false });
+    const worldSettings = await getOrCreateWorldSettings(ctx);
+    // Disabling freezes at once; re-enabling a frozen world leaves it frozen until the next observer heartbeat wakes it.
+    await ctx.db.patch(worldSettings._id, { adminEnabled: args.enabled, isRunning: args.enabled && worldSettings.isRunning });
 
     await ctx.db.insert('events', {
       type: 'world',

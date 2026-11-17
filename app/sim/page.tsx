@@ -44,7 +44,8 @@ import {
 
 export default function SimPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const presence = useObserverPresence();
+  useObserverPresence();
+  const worldState = useQuery(api.observers.getWorldState);
   const [isWorldReady, setIsWorldReady] = useState(false);
   const [isConvoSheetOpen, setIsConvoSheetOpen] = useState(false);
   const [chosenAgentId, setChosenAgentId] = useState<Id<'agents'> | null>(null);
@@ -88,12 +89,12 @@ export default function SimPage() {
               <div className="flex items-center gap-2 text-sm">
                 <ClockIcon className="size-4 flex-shrink-0" />
                 <span className="whitespace-nowrap text-muted-foreground">World:</span>
-                {!isWorldReady ? (
+                {!isWorldReady || worldState === undefined ? (
                   <Badge variant="outline" className="gap-1.5 whitespace-nowrap">
                     <Loader2Icon className="size-3 animate-spin" />
                     Loading
                   </Badge>
-                ) : presence?.isWorldRunning ? (
+                ) : worldState?.isRunning ? (
                   <Badge variant="secondary" className="gap-1.5 whitespace-nowrap">
                     <PlayCircleIcon className="size-3" />
                     Running
@@ -109,7 +110,7 @@ export default function SimPage() {
                 <EyeIcon className="size-4 flex-shrink-0" />
                 <span className="whitespace-nowrap text-muted-foreground">Observers:</span>
                 <Badge className="font-mono text-xs whitespace-nowrap" variant="default">
-                  {presence?.observerCount ?? 1}
+                  {Math.max(1, worldState?.observerCount ?? 1)}
                 </Badge>
               </div>
             </div>
